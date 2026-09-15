@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local environments and secrets
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+
+# Runtime outputs
+data/
+runs/
+debug_frames/
+ops/freezes/
+
+# Video/database/journal artifacts
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.duckdb
+*.duckdb.wal
+*.duckdb.tmp
+*.jsonl
+*.log
+
+node_modules
+
+.claude
+
+.cache
+
+# Web build & test artifacts
+dist/
+test-results/
+playwright-report/
+.DS_Store
+tests/e2e/screenshots
+*.tsbuildinfo
