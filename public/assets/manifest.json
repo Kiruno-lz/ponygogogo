@@ -1,0 +1,410 @@
+{
+  "audio.bgm_home": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/bgm_home.ogg",
+    "bytes": 1147279,
+    "sha256": "5c8f058e977b3fa1",
+    "alt": "assets/placeholder/audio/bgm_home.mp3"
+  },
+  "audio.bgm_race": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/bgm_race.ogg",
+    "bytes": 1018509,
+    "sha256": "1ac2738974c274c5",
+    "alt": "assets/placeholder/audio/bgm_race.mp3"
+  },
+  "audio.jingle_lose": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/jingle_lose.ogg",
+    "bytes": 24554,
+    "sha256": "0982af07ff167f30",
+    "alt": "assets/placeholder/audio/jingle_lose.mp3"
+  },
+  "audio.jingle_win": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/jingle_win.ogg",
+    "bytes": 25779,
+    "sha256": "416063260257245d",
+    "alt": "assets/placeholder/audio/jingle_win.mp3"
+  },
+  "audio.manifest": {
+    "kind": "json",
+    "path": "assets/placeholder/audio/manifest.json",
+    "bytes": 4644,
+    "sha256": "eabe8d38a5fa6ceb"
+  },
+  "audio.sfx_card_deal": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_card_deal.ogg",
+    "bytes": 1837,
+    "sha256": "86230db7b002a626",
+    "alt": "assets/placeholder/audio/sfx_card_deal.mp3"
+  },
+  "audio.sfx_card_hover": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_card_hover.ogg",
+    "bytes": 1024,
+    "sha256": "cf930e04d1ac2b0c",
+    "alt": "assets/placeholder/audio/sfx_card_hover.mp3"
+  },
+  "audio.sfx_card_pick": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_card_pick.ogg",
+    "bytes": 2739,
+    "sha256": "65e0df426562a610",
+    "alt": "assets/placeholder/audio/sfx_card_pick.mp3"
+  },
+  "audio.sfx_card_refresh": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_card_refresh.ogg",
+    "bytes": 1637,
+    "sha256": "2166fbf660021319",
+    "alt": "assets/placeholder/audio/sfx_card_refresh.mp3"
+  },
+  "audio.sfx_checkpoint": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_checkpoint.ogg",
+    "bytes": 5008,
+    "sha256": "b8f63b2ac4af2532",
+    "alt": "assets/placeholder/audio/sfx_checkpoint.mp3"
+  },
+  "audio.sfx_countdown_tick": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_countdown_tick.ogg",
+    "bytes": 861,
+    "sha256": "396648c11a174aea",
+    "alt": "assets/placeholder/audio/sfx_countdown_tick.mp3"
+  },
+  "audio.sfx_equip": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_equip.ogg",
+    "bytes": 1852,
+    "sha256": "5c5544513d792ca0",
+    "alt": "assets/placeholder/audio/sfx_equip.mp3"
+  },
+  "audio.sfx_exhaust_enter": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_exhaust_enter.ogg",
+    "bytes": 3349,
+    "sha256": "b9c85109c2d4d5fb",
+    "alt": "assets/placeholder/audio/sfx_exhaust_enter.mp3"
+  },
+  "audio.sfx_exhaust_exit": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_exhaust_exit.ogg",
+    "bytes": 3383,
+    "sha256": "e674180b62d3a8b7",
+    "alt": "assets/placeholder/audio/sfx_exhaust_exit.mp3"
+  },
+  "audio.sfx_explosion": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_explosion.ogg",
+    "bytes": 11499,
+    "sha256": "8c84fdc6efab2e65",
+    "alt": "assets/placeholder/audio/sfx_explosion.mp3"
+  },
+  "audio.sfx_finish": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_finish.ogg",
+    "bytes": 23801,
+    "sha256": "01735bde3a5ee88b",
+    "alt": "assets/placeholder/audio/sfx_finish.mp3"
+  },
+  "audio.sfx_gogo_early": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_gogo_early.ogg",
+    "bytes": 3836,
+    "sha256": "9caad945120c6a20",
+    "alt": "assets/placeholder/audio/sfx_gogo_early.mp3"
+  },
+  "audio.sfx_gogo_good": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_gogo_good.ogg",
+    "bytes": 3866,
+    "sha256": "ae5e6a84153d5747",
+    "alt": "assets/placeholder/audio/sfx_gogo_good.mp3"
+  },
+  "audio.sfx_gogo_late": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_gogo_late.ogg",
+    "bytes": 3743,
+    "sha256": "eb09c26ee12f9934",
+    "alt": "assets/placeholder/audio/sfx_gogo_late.mp3"
+  },
+  "audio.sfx_race_start": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_race_start.ogg",
+    "bytes": 5044,
+    "sha256": "a00c828e6bb8998c",
+    "alt": "assets/placeholder/audio/sfx_race_start.mp3"
+  },
+  "audio.sfx_result_open": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_result_open.ogg",
+    "bytes": 1802,
+    "sha256": "0adea29b0a53c7fd",
+    "alt": "assets/placeholder/audio/sfx_result_open.mp3"
+  },
+  "audio.sfx_swap": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_swap.ogg",
+    "bytes": 748,
+    "sha256": "b1becf0774d41005",
+    "alt": "assets/placeholder/audio/sfx_swap.mp3"
+  },
+  "audio.sfx_ui_back": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_ui_back.ogg",
+    "bytes": 1403,
+    "sha256": "2255fe3bd9ddb1ac",
+    "alt": "assets/placeholder/audio/sfx_ui_back.mp3"
+  },
+  "audio.sfx_ui_click": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_ui_click.ogg",
+    "bytes": 1860,
+    "sha256": "c8f0007cc061ae13",
+    "alt": "assets/placeholder/audio/sfx_ui_click.mp3"
+  },
+  "audio.sfx_ui_hover": {
+    "kind": "audio",
+    "path": "assets/placeholder/audio/sfx_ui_hover.ogg",
+    "bytes": 2299,
+    "sha256": "e0dd8fac9b704fa7",
+    "alt": "assets/placeholder/audio/sfx_ui_hover.mp3"
+  },
+  "bg.far_clean": {
+    "kind": "image",
+    "path": "assets/placeholder/bg/far_clean.png",
+    "bytes": 474419,
+    "sha256": "2386c5526a2c35b2"
+  },
+  "bg.fence_clean": {
+    "kind": "image",
+    "path": "assets/placeholder/bg/fence_clean.png",
+    "bytes": 425764,
+    "sha256": "461fec349c135549"
+  },
+  "bg.front_clean": {
+    "kind": "image",
+    "path": "assets/placeholder/bg/front_clean.png",
+    "bytes": 634278,
+    "sha256": "88b0e233b4983679"
+  },
+  "bg.layer_far": {
+    "kind": "image",
+    "path": "assets/placeholder/bg/layer_far.png",
+    "bytes": 677312,
+    "sha256": "2a4d84bbcf0b1075"
+  },
+  "bg.layer_fence": {
+    "kind": "image",
+    "path": "assets/placeholder/bg/layer_fence.png",
+    "bytes": 264163,
+    "sha256": "e1bb911fe63b0188"
+  },
+  "bg.layer_fence_tile": {
+    "kind": "image",
+    "path": "assets/placeholder/bg/layer_fence_tile.png",
+    "bytes": 527240,
+    "sha256": "df42869de9b26469"
+  },
+  "bg.layer_front": {
+    "kind": "image",
+    "path": "assets/placeholder/bg/layer_front.png",
+    "bytes": 493566,
+    "sha256": "d3581ac76764b10d"
+  },
+  "bg.layer_front_tile": {
+    "kind": "image",
+    "path": "assets/placeholder/bg/layer_front_tile.png",
+    "bytes": 985170,
+    "sha256": "7bf37c8ac54da993"
+  },
+  "bg.palette": {
+    "kind": "json",
+    "path": "assets/placeholder/bg/palette.json",
+    "bytes": 228,
+    "sha256": "1daf2da27355f9f0"
+  },
+  "bg.track_dirt": {
+    "kind": "image",
+    "path": "assets/placeholder/bg/track_dirt.png",
+    "bytes": 47473,
+    "sha256": "2dfd416b54c9268c"
+  },
+  "icons.icon_01": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_01.png",
+    "bytes": 112251,
+    "sha256": "58d1fadc8b94779d"
+  },
+  "icons.icon_02": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_02.png",
+    "bytes": 131516,
+    "sha256": "a8de84cb03c20f46"
+  },
+  "icons.icon_03": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_03.png",
+    "bytes": 105532,
+    "sha256": "5f425752878e4171"
+  },
+  "icons.icon_04": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_04.png",
+    "bytes": 104381,
+    "sha256": "fb25a8a4c7caa94b"
+  },
+  "icons.icon_05": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_05.png",
+    "bytes": 118235,
+    "sha256": "4573779cb75129ad"
+  },
+  "icons.icon_06": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_06.png",
+    "bytes": 117973,
+    "sha256": "176e205bcb7f9561"
+  },
+  "icons.icon_07": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_07.png",
+    "bytes": 123200,
+    "sha256": "299c21ff55f597eb"
+  },
+  "icons.icon_08": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_08.png",
+    "bytes": 113834,
+    "sha256": "f70607c7fd6983a5"
+  },
+  "icons.icon_09": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_09.png",
+    "bytes": 131316,
+    "sha256": "b47316ffef48d8b3"
+  },
+  "icons.icon_10": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_10.png",
+    "bytes": 106335,
+    "sha256": "001b67be0e6bf39b"
+  },
+  "icons.icon_11": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_11.png",
+    "bytes": 110160,
+    "sha256": "17c5667e4244d4aa"
+  },
+  "icons.icon_12": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_12.png",
+    "bytes": 107398,
+    "sha256": "2250e94c5fa5ce56"
+  },
+  "icons.icon_13": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_13.png",
+    "bytes": 115652,
+    "sha256": "1841199b60e03e15"
+  },
+  "icons.icon_14": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_14.png",
+    "bytes": 116879,
+    "sha256": "ade1347dced598c1"
+  },
+  "icons.icon_15": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_15.png",
+    "bytes": 119134,
+    "sha256": "7603dafc49bda7e3"
+  },
+  "icons.icon_16": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_16.png",
+    "bytes": 99394,
+    "sha256": "69c897fe939a53cd"
+  },
+  "icons.icon_17": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_17.png",
+    "bytes": 108432,
+    "sha256": "604558982a5521c2"
+  },
+  "icons.icon_18": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_18.png",
+    "bytes": 108728,
+    "sha256": "81135237b0796dce"
+  },
+  "icons.icon_19": {
+    "kind": "image",
+    "path": "assets/placeholder/icons/icon_19.png",
+    "bytes": 83484,
+    "sha256": "281935222b2a53c7"
+  },
+  "ui.btn_star": {
+    "kind": "image",
+    "path": "assets/placeholder/ui/btn_star.png",
+    "bytes": 672477,
+    "sha256": "283b129e108fabae"
+  },
+  "ui.btn_wood_1": {
+    "kind": "image",
+    "path": "assets/placeholder/ui/btn_wood_1.png",
+    "bytes": 1292599,
+    "sha256": "d898d4fb2fb5b40a"
+  },
+  "ui.btn_wood_2": {
+    "kind": "image",
+    "path": "assets/placeholder/ui/btn_wood_2.png",
+    "bytes": 1298155,
+    "sha256": "5e2c84380faaf4fb"
+  },
+  "ui.btn_wood_3": {
+    "kind": "image",
+    "path": "assets/placeholder/ui/btn_wood_3.png",
+    "bytes": 1001483,
+    "sha256": "c4a1e575d41452a0"
+  },
+  "ui.card_frame": {
+    "kind": "json",
+    "path": "assets/placeholder/ui/card_frame.json",
+    "bytes": 363,
+    "sha256": "ede9ee0ecad19e8e"
+  },
+  "ui.card_frame_common": {
+    "kind": "image",
+    "path": "assets/placeholder/ui/card_frame_common.png",
+    "bytes": 912834,
+    "sha256": "ebe40c076df2750f"
+  },
+  "ui.card_frame_rare": {
+    "kind": "image",
+    "path": "assets/placeholder/ui/card_frame_rare.png",
+    "bytes": 903149,
+    "sha256": "13058e9fe2a8b6c0"
+  },
+  "ui.logo_title": {
+    "kind": "image",
+    "path": "assets/placeholder/ui/logo_title.png",
+    "bytes": 1326281,
+    "sha256": "4e948df6ae556fc3"
+  },
+  "ui.panel_parchment": {
+    "kind": "image",
+    "path": "assets/placeholder/ui/panel_parchment.png",
+    "bytes": 1699173,
+    "sha256": "4ee249a2aaac2cc9"
+  },
+  "ui.start_gate": {
+    "kind": "image",
+    "path": "assets/placeholder/ui/start_gate.png",
+    "bytes": 926550,
+    "sha256": "3fd16df69d1c3fc8"
+  }
+}
