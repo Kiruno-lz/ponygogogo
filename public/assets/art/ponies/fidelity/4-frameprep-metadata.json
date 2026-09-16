@@ -1,0 +1,211 @@
+{
+  "horseId": 4,
+  "status": "pilot_not_consumed",
+  "storyboard": "4-storyboard.png",
+  "sourceSize": [
+    1983,
+    793
+  ],
+  "frameWidth": 256,
+  "frameHeight": 192,
+  "frameCount": 8,
+  "maxOpaqueWidth": 210,
+  "maxOpaqueHeight": 145,
+  "scale": 0.8818565400843882,
+  "sourceColumnCuts": [
+    [
+      0,
+      254,
+      503,
+      752,
+      996,
+      1243,
+      1486,
+      1736,
+      1983
+    ],
+    [
+      0,
+      252,
+      502,
+      746,
+      996,
+      1241,
+      1486,
+      1733,
+      1983
+    ]
+  ],
+  "origin": {
+    "x": 0.5,
+    "y": 0.9375
+  },
+  "idleBaseline": 180,
+  "runningSourceBaseline": 321,
+  "frames": [
+    {
+      "action": "running",
+      "frame": 0,
+      "opaqueBounds": [
+        25,
+        44,
+        234,
+        178
+      ]
+    },
+    {
+      "action": "running",
+      "frame": 1,
+      "opaqueBounds": [
+        28,
+        41,
+        233,
+        178
+      ]
+    },
+    {
+      "action": "running",
+      "frame": 2,
+      "opaqueBounds": [
+        27,
+        41,
+        233,
+        180
+      ]
+    },
+    {
+      "action": "running",
+      "frame": 3,
+      "opaqueBounds": [
+        32,
+        38,
+        233,
+        169
+      ]
+    },
+    {
+      "action": "running",
+      "frame": 4,
+      "opaqueBounds": [
+        29,
+        36,
+        233,
+        161
+      ]
+    },
+    {
+      "action": "running",
+      "frame": 5,
+      "opaqueBounds": [
+        30,
+        44,
+        234,
+        175
+      ]
+    },
+    {
+      "action": "running",
+      "frame": 6,
+      "opaqueBounds": [
+        25,
+        44,
+        233,
+        177
+      ]
+    },
+    {
+      "action": "running",
+      "frame": 7,
+      "opaqueBounds": [
+        29,
+        44,
+        234,
+        179
+      ]
+    },
+    {
+      "action": "idle",
+      "frame": 0,
+      "opaqueBounds": [
+        32,
+        39,
+        233,
+        180
+      ]
+    },
+    {
+      "action": "idle",
+      "frame": 1,
+      "opaqueBounds": [
+        30,
+        38,
+        234,
+        180
+      ]
+    },
+    {
+      "action": "idle",
+      "frame": 2,
+      "opaqueBounds": [
+        36,
+        40,
+        233,
+        180
+      ]
+    },
+    {
+      "action": "idle",
+      "frame": 3,
+      "opaqueBounds": [
+        31,
+        39,
+        233,
+        180
+      ]
+    },
+    {
+      "action": "idle",
+      "frame": 4,
+      "opaqueBounds": [
+        33,
+        40,
+        233,
+        180
+      ]
+    },
+    {
+      "action": "idle",
+      "frame": 5,
+      "opaqueBounds": [
+        30,
+        38,
+        234,
+        180
+      ]
+    },
+    {
+      "action": "idle",
+      "frame": 6,
+      "opaqueBounds": [
+        28,
+        42,
+        233,
+        180
+      ]
+    },
+    {
+      "action": "idle",
+      "frame": 7,
+      "opaqueBounds": [
+        30,
+        39,
+        233,
+        180
+      ]
+    }
+  ],
+  "opaqueThreshold": "alpha > 127",
+  "runningGlobalYOffsetCorrection": 0,
+  "runningRegisteredFloor": 180,
+  "portrait": "4-portrait.png"
+}

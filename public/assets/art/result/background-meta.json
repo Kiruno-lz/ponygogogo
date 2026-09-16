@@ -1,0 +1,23 @@
+{
+  "file": "public/assets/art/result/background.png",
+  "source": "assrt/result.png",
+  "toolmode": "built-in",
+  "sourceDimensions": [
+    1620,
+    971
+  ],
+  "nativeDimensions": [
+    1620,
+    971
+  ],
+  "prompt": "Use case: precise-object-edit. Asset type: COMPLETE clean result-screen environment background, opaque PNG1620x971. Input image is exact EDIT TARGET, approved result composition. Remove ONLY the result UI overlays and pony, meticulously reconstructing their occluded original scene. Remove the ENTIRE large top parchment/wood result title board including its gold crown/leaf ornaments and BOTH small blue horseshoe flags attached to that board (roughly x420..1210 y15..235). Remove the left upper first-place gold medal, Kiruno name wood plaque, and small dark rank strip (roughly x140..685 y120..350). Remove the ONE left Kiruno horse including mane/tail/crown/tack/feet and only the floating gold celebratory paper/confetti belonging to it. Remove the ENTIRE right settlement parchment board including wood backing, all rows/coin/highlight/three small selection cards/settled footer (roughly x803..1556 y180..760). Remove all THREE bottom buttons: home wood plaque x425..755 y761..860; share wood plaque x772..1140 y762..860; large yellow retry star x1180..1619 y691..918 including its decorative sparkles. Output background must contain NO pony/horse figures, NO medal, NO UI boards/buttons/cards, NO digits or UI labels. PRESERVE EXACTLY the original low-poly environment camera, framing, sunlight direction, colors and depth of field. Crucial invariants: keep the left grass/white-flower-covered wooden presentation platform at EXACT original position, scale, step geometry and footprint, x75..790 around y670..848; keep its flowers, grass and wooden blocks complete after removing the pony. Keep the large LEFT environmental blue 'Run Faster Together!' flag and drawn crown, its pole/support and original readable text/shape/location unchanged (x40..242 y204..610); restore only its small part previously occluded by medal. Keep mountains/castle/right skyline/pine forest, spectator stands/crowd, back wooden rails/posts/pennant strings, warm dirt racetrack and existing lane paint, and the small environmental 'PONY PONY GO!' sign between platform and right board, all in original positions. Keep the ENTIRE bottom foreground wooden fence/posts, blurred spectators, flowers and original blue flags including crown/horseshoe marks and existing 'Go! Go! Pony!' wording in exact source arrangement. Environmental existing words are allowed and must remain; no new lettering or signs. Fill removed UI regions by continuing the existing castle/pine forest/stands and warm racecourse, not a newly composed landscape. Keep original 1620x971 full image, no crop/zoom/camera move, no flipped content, no restyling, no rearranged platform or flag, no added characters or props. Meticulous source-preserving inpainting outside removal areas, naturally continuous geometry and warm low-poly polygon textures.",
+  "originalGeneratedFile": "/Users/kiruno/.codex/generated_images/01a0a50a-aacf-7910-b309-e6d63b4076eb/exec-a8ee106e-9341-44b3-bee7-d3dec2cadf3c.png",
+  "inspection": {
+    "uiRemoved": true,
+    "horseRemoved": true,
+    "platformPositionPreserved": true,
+    "largeBlueEnvironmentalFlagPreserved": true,
+    "foregroundPreserved": true
+  },
+  "note": "Occluded scene regions reconstructed by imagegen; visible composition inspected, not guaranteed pixel-identical."
+}

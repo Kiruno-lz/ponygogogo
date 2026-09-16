@@ -1,0 +1,670 @@
+{
+  "horseId": 1,
+  "productionOverwritten": false,
+  "frameCount": 16,
+  "frameWidth": 256,
+  "frameHeight": 192,
+  "sheetWidth": 4096,
+  "frameRate": 24,
+  "apngFrameDurationMs": 42,
+  "sourceSize": [
+    2119,
+    742
+  ],
+  "sourceColumnCuts": [
+    [
+      0,
+      274,
+      538,
+      800,
+      1058,
+      1314,
+      1577,
+      1840,
+      2119
+    ],
+    [
+      0,
+      272,
+      536,
+      797,
+      1061,
+      1324,
+      1591,
+      1844,
+      2119
+    ]
+  ],
+  "scale": 0.7619047619047619,
+  "registration": "action torso anchors transferred phase-by-phase from exact approved edit target 0-storyboard; X fixed128; never silhouette bbox recentered",
+  "opaqueThreshold": "alpha > 127",
+  "torsoAnchorX": 128,
+  "stanceFrames": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "flightFrames": [
+    6,
+    7,
+    8
+  ],
+  "flightFeet": {
+    "6": 169,
+    "7": 156,
+    "8": 171
+  },
+  "registeredFloor": 180,
+  "torsoYRange": [
+    97.0,
+    122.7126140116525
+  ],
+  "torsoBobTotalPixels": 25.712614011652505,
+  "torsoAdjacentDeltas": [
+    0.028577879325894173,
+    -0.7355020607489564,
+    -3.412473085065514,
+    -2.075019463532044,
+    -2.6458108767443065,
+    0.6032475274618321,
+    -6.609610679345735,
+    5.2540098588386,
+    8.819148911909394,
+    11.63945524090451,
+    -6.855855180702676,
+    4.143241169050171,
+    -3.847146206531349,
+    2.1751077702652424,
+    -2.4813708050850636,
+    -4.0
+  ],
+  "maxAbsAdjacentTorsoYDeltaIncludingLoop": 11.63945524090451,
+  "frames": [
+    {
+      "phase": 0,
+      "row": 0,
+      "column": 0,
+      "sourceOpaqueBounds": [
+        16,
+        177,
+        267,
+        340
+      ],
+      "sourceCrop": [
+        11,
+        172,
+        272,
+        345
+      ],
+      "transferredActionTorsoAnchor": [
+        135.70820021299255,
+        252.24813631522898
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 107.84659075864883,
+      "translationBeforeContact": [
+        33,
+        47
+      ],
+      "contactYCorrection": 4,
+      "registeredTorsoY": 111.84659075864883,
+      "opaqueBounds": [
+        37,
+        55,
+        228,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 1,
+      "row": 0,
+      "column": 1,
+      "sourceOpaqueBounds": [
+        9,
+        168,
+        261,
+        342
+      ],
+      "sourceCrop": [
+        4,
+        163,
+        264,
+        347
+      ],
+      "transferredActionTorsoAnchor": [
+        132.96597145993414,
+        252.3874862788145
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 107.87516863797472,
+      "translationBeforeContact": [
+        30,
+        40
+      ],
+      "contactYCorrection": 4,
+      "registeredTorsoY": 111.87516863797472,
+      "opaqueBounds": [
+        34,
+        48,
+        226,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 2,
+      "row": 0,
+      "column": 2,
+      "sourceOpaqueBounds": [
+        4,
+        163,
+        259,
+        339
+      ],
+      "sourceCrop": [
+        0,
+        158,
+        262,
+        344
+      ],
+      "transferredActionTorsoAnchor": [
+        132.41604278074865,
+        248.8010695187166
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 107.13966657722577,
+      "translationBeforeContact": [
+        27,
+        38
+      ],
+      "contactYCorrection": 4,
+      "registeredTorsoY": 111.13966657722577,
+      "opaqueBounds": [
+        30,
+        46,
+        225,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 3,
+      "row": 0,
+      "column": 3,
+      "sourceOpaqueBounds": [
+        3,
+        160,
+        256,
+        342
+      ],
+      "sourceCrop": [
+        0,
+        155,
+        258,
+        347
+      ],
+      "transferredActionTorsoAnchor": [
+        132.34534534534535,
+        246.78978978978978
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 106.72719349216025,
+      "translationBeforeContact": [
+        27,
+        37
+      ],
+      "contactYCorrection": 1,
+      "registeredTorsoY": 107.72719349216025,
+      "opaqueBounds": [
+        29,
+        42,
+        223,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 4,
+      "row": 0,
+      "column": 4,
+      "sourceOpaqueBounds": [
+        4,
+        159,
+        252,
+        339
+      ],
+      "sourceCrop": [
+        0,
+        154,
+        256,
+        344
+      ],
+      "transferredActionTorsoAnchor": [
+        128.70273348519362,
+        241.5478359908884
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 105.65217402862821,
+      "translationBeforeContact": [
+        30,
+        39
+      ],
+      "contactYCorrection": 0,
+      "registeredTorsoY": 105.65217402862821,
+      "opaqueBounds": [
+        33,
+        43,
+        222,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 5,
+      "row": 0,
+      "column": 5,
+      "sourceOpaqueBounds": [
+        6,
+        150,
+        260,
+        339
+      ],
+      "sourceCrop": [
+        1,
+        145,
+        263,
+        344
+      ],
+      "transferredActionTorsoAnchor": [
+        134.14182939362794,
+        238.39876670092497
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 105.0063631518839,
+      "translationBeforeContact": [
+        27,
+        34
+      ],
+      "contactYCorrection": -2,
+      "registeredTorsoY": 103.0063631518839,
+      "opaqueBounds": [
+        31,
+        36,
+        225,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 6,
+      "row": 0,
+      "column": 6,
+      "sourceOpaqueBounds": [
+        4,
+        138,
+        259,
+        313
+      ],
+      "sourceCrop": [
+        0,
+        133,
+        263,
+        318
+      ],
+      "transferredActionTorsoAnchor": [
+        131.09337349397592,
+        226.71184738955824
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 102.60961067934574,
+      "translationBeforeContact": [
+        28,
+        31
+      ],
+      "contactYCorrection": 1,
+      "registeredTorsoY": 103.60961067934574,
+      "opaqueBounds": [
+        31,
+        36,
+        225,
+        169
+      ],
+      "stanceFrame": false
+    },
+    {
+      "phase": 7,
+      "row": 0,
+      "column": 7,
+      "sourceOpaqueBounds": [
+        5,
+        132,
+        260,
+        290
+      ],
+      "sourceCrop": [
+        0,
+        127,
+        265,
+        295
+      ],
+      "transferredActionTorsoAnchor": [
+        133.805,
+        213.987
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 100.0,
+      "translationBeforeContact": [
+        26,
+        34
+      ],
+      "contactYCorrection": -3,
+      "registeredTorsoY": 97.0,
+      "opaqueBounds": [
+        30,
+        35,
+        224,
+        156
+      ],
+      "stanceFrame": false
+    },
+    {
+      "phase": 8,
+      "row": 1,
+      "column": 0,
+      "sourceOpaqueBounds": [
+        17,
+        94,
+        268,
+        269
+      ],
+      "sourceCrop": [
+        12,
+        89,
+        272,
+        274
+      ],
+      "transferredActionTorsoAnchor": [
+        138.37924151696606,
+        178.82734530938123
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 100.2540098588386,
+      "translationBeforeContact": [
+        32,
+        32
+      ],
+      "contactYCorrection": 2,
+      "registeredTorsoY": 102.2540098588386,
+      "opaqueBounds": [
+        36,
+        38,
+        227,
+        171
+      ],
+      "stanceFrame": false
+    },
+    {
+      "phase": 9,
+      "row": 1,
+      "column": 1,
+      "sourceOpaqueBounds": [
+        6,
+        115,
+        260,
+        284
+      ],
+      "sourceCrop": [
+        1,
+        110,
+        264,
+        289
+      ],
+      "transferredActionTorsoAnchor": [
+        128.8499452354874,
+        192.57393209200438
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 103.073158770748,
+      "translationBeforeContact": [
+        31,
+        40
+      ],
+      "contactYCorrection": 8,
+      "registeredTorsoY": 111.073158770748,
+      "opaqueBounds": [
+        35,
+        52,
+        228,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 10,
+      "row": 1,
+      "column": 2,
+      "sourceOpaqueBounds": [
+        4,
+        121,
+        256,
+        277
+      ],
+      "sourceCrop": [
+        0,
+        116,
+        261,
+        282
+      ],
+      "transferredActionTorsoAnchor": [
+        125.47138397502601,
+        200.5681581685744
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 104.7126140116525,
+      "translationBeforeContact": [
+        32,
+        40
+      ],
+      "contactYCorrection": 18,
+      "registeredTorsoY": 122.7126140116525,
+      "opaqueBounds": [
+        35,
+        62,
+        227,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 11,
+      "row": 1,
+      "column": 3,
+      "sourceOpaqueBounds": [
+        6,
+        129,
+        261,
+        291
+      ],
+      "sourceCrop": [
+        1,
+        124,
+        264,
+        296
+      ],
+      "transferredActionTorsoAnchor": [
+        131.1602822580645,
+        206.14717741935485
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 105.85675883094983,
+      "translationBeforeContact": [
+        29,
+        43
+      ],
+      "contactYCorrection": 10,
+      "registeredTorsoY": 115.85675883094983,
+      "opaqueBounds": [
+        33,
+        57,
+        226,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 12,
+      "row": 1,
+      "column": 4,
+      "sourceOpaqueBounds": [
+        4,
+        140,
+        260,
+        296
+      ],
+      "sourceCrop": [
+        0,
+        135,
+        263,
+        301
+      ],
+      "transferredActionTorsoAnchor": [
+        132.43986254295532,
+        216.5979381443299
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 108.0,
+      "translationBeforeContact": [
+        27,
+        46
+      ],
+      "contactYCorrection": 12,
+      "registeredTorsoY": 120.0,
+      "opaqueBounds": [
+        30,
+        62,
+        224,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 13,
+      "row": 1,
+      "column": 5,
+      "sourceOpaqueBounds": [
+        5,
+        135,
+        263,
+        297
+      ],
+      "sourceCrop": [
+        0,
+        130,
+        267,
+        302
+      ],
+      "transferredActionTorsoAnchor": [
+        134.9665513264129,
+        212.46712802768167
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 107.15285379346865,
+      "translationBeforeContact": [
+        25,
+        44
+      ],
+      "contactYCorrection": 9,
+      "registeredTorsoY": 116.15285379346865,
+      "opaqueBounds": [
+        29,
+        57,
+        225,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 14,
+      "row": 1,
+      "column": 6,
+      "sourceOpaqueBounds": [
+        5,
+        131,
+        249,
+        288
+      ],
+      "sourceCrop": [
+        0,
+        126,
+        253,
+        293
+      ],
+      "transferredActionTorsoAnchor": [
+        117.90011614401858,
+        208.44483159117306
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 106.3279615637339,
+      "translationBeforeContact": [
+        38,
+        44
+      ],
+      "contactYCorrection": 12,
+      "registeredTorsoY": 118.3279615637339,
+      "opaqueBounds": [
+        42,
+        60,
+        228,
+        180
+      ],
+      "stanceFrame": true
+    },
+    {
+      "phase": 15,
+      "row": 1,
+      "column": 7,
+      "sourceOpaqueBounds": [
+        4,
+        136,
+        261,
+        300
+      ],
+      "sourceCrop": [
+        0,
+        131,
+        266,
+        305
+      ],
+      "transferredActionTorsoAnchor": [
+        134.5291576673866,
+        215.8498920086393
+      ],
+      "registeredTorsoX": 128,
+      "targetPreContactTorsoY": 107.84659075864883,
+      "translationBeforeContact": [
+        26,
+        43
+      ],
+      "contactYCorrection": 8,
+      "registeredTorsoY": 115.84659075864883,
+      "opaqueBounds": [
+        29,
+        55,
+        225,
+        180
+      ],
+      "stanceFrame": true
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "mode": "built-in",
+  "tool": "image_gen.imagegen",
+  "horseId": 2,
+  "assets": [
+    {
+      "file": "2-reference.png",
+      "references": [
+        "assrt/race_gaming.png crop [580,482,780,599]",
+        "assrt/race_start.png crop [171,483,351,592]",
+        "fidelity/0-reference.png"
+      ],
+      "prompt": "Use case: background-extraction. Asset type: Berry id2 exact-source-fidelity pony sprite reference on transparent RGBA. Image1 is actual Berry running pony crop; Image2 is actual Berry idle pony crop; Image3 white pony is ONLY crisp polygon facet material/style anchor, do NOT copy its colors, crown, costume or proportions. Isolate and reproduce Berry identity from Image1/2 exactly: pale rose pink slim horizontal pony body, bright saturated rosy-magenta swept spiky FACETED mane and tail, low lean forward pink head with small simple BLACK eye (not huge expressive glossy eye), pink rose studded leather collar with pale ivory studs, pink saddle cloth and tiny rose decorative patches same source, dark rosy-brown compact hooves. Lean dynamic right-facing side profile with mildly three-quarter visible chest, short bent folded legs and elongated horizontal neck/head posture. Full mane tail ears and all four legs visible. Keep head modest and low, torso shallow and lean as source; do NOT make plush obese belly, oversized head, long upright neck, baby toy or rounded soft hair. No crown, no royal gold jewelry, no wings, no new marks. Exact original faceted triangulated papercraft / low-poly 3D-render appearance, crisp sharp geometric triangular surfaces like Image3, source Berry pink costume and colors strictly. Warm neutral sunlight. Only one complete Berry pony centered large on genuinely transparent background, no dust no dirt no ground no backdrop no text no shadows no checkerboard. Main body from muzzle to tail width roughly twice entire height, short folded galloping legs. Source-faithful silhouette instead of new character design."
+    },
+    {
+      "file": "2-storyboard.png",
+      "references": [
+        "2-reference.png",
+        "assrt/race_gaming.png Berry crop"
+      ],
+      "prompt": "Use case: stylized-concept. Asset type: transparent animation storyboard SPRITE SHEET for the EXACT attached Berry id2 pony. Image1 is final Berry identity reference; Image2 actual race Berry source posture. Generate a precisely aligned EIGHT COLUMNS by TWO ROWS grid, sixteen complete isolated ponies total, no labels or grid lines. TOP ROW exactly8 sequential gallop phases progressing left-to-right through a complete smooth RUNNING loop: leg extension, folded gathering, push-off, all-hooves airborne suspension, landing, diagonal folded phase, push-off, return. BOTTOM ROW exactly8 subtle IDLE breathing phases, hooves planted on a consistent floor line, modest mane/tail sway and tiny head movement. Uniform side-right camera, identity, costume and scale across every cell. Keep exact lean low horizontal pink body, modest forward-leaning head, tiny black eye, short folded legs, crisp saturated rose spiky polygon mane/tail, pink saddlecloth with small rose emblems, ivory-studded pink collar and dark rose hooves of reference. Do not make plush oversized head or round belly. Crisp triangulated faceted low-poly game art, exact same Berry across16 frames. All source original pink colors and costume unchanged. Same body length/scale on all frames; consistent torso anchor and floorline within each ROW; top row keep natural jumping hoof HEIGHT differences, do not normalize all running feet to floor. Each pony must fit within its own equal-width cell with ample TRANSPARENT gutters, full tail and mane included, no overlaps. Very wide overall sheet canvas approx2048x768, eight equal256px columns and two384px rows, each pony displayed about210px wide by120px high centrally inside cell, horizontal body long and shallow. Genuine transparent RGBA background; no shadows, no dust, no ground, no text, no digits, no borders, no checkerboard, no scenery. Sixteen ponies exactly,8top and8bottom. This is the complete animation reference storyboard that will be split into frames."
+    }
+  ],
+  "postprocess": "Pillow alpha-aware adaptive eight-column/two-row frame cuts; one scale 0.8203125; preserve running source floor difference, global opaque floor180, idle individual opaque floor180; 256x192 frames,2048x192 sheets,8-frame APNGs; reference head crop portrait256."
+}

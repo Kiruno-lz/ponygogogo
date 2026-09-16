@@ -1,0 +1,40 @@
+{
+  "source": "assrt/result.png",
+  "generatedKit": "ui-kit.png",
+  "canvas": [
+    1620,
+    971
+  ],
+  "components": {
+    "header-zh": [
+      408,
+      0,
+      1218,
+      253
+    ],
+    "placement": [
+      140,
+      104,
+      682,
+      369
+    ],
+    "button-home": [
+      405,
+      742,
+      761,
+      866
+    ],
+    "button-share": [
+      771,
+      743,
+      1148,
+      866
+    ],
+    "button-again": [
+      1150,
+      683,
+      1617,
+      930
+    ]
+  }
+}

@@ -1,0 +1,150 @@
+{
+  "file": "hero-atlas.png",
+  "sourceReferences": [
+    "public/assets/art/ponies/fidelity/1-reference.png",
+    "public/assets/art/ponies/fidelity/2-reference.png",
+    "public/assets/art/ponies/fidelity/3-reference.png",
+    "public/assets/art/ponies/fidelity/4-reference.png",
+    "assrt/result.png"
+  ],
+  "toolmode": "built-in",
+  "nativeDimensions": [
+    1254,
+    1254
+  ],
+  "cuts": {
+    "x": [
+      0,
+      627,
+      1254
+    ],
+    "y": [
+      0,
+      627,
+      1254
+    ]
+  },
+  "prompts": [],
+  "selectedGeneration": "corrected-spacing",
+  "originalGeneratedFiles": [
+    "/Users/kiruno/.codex/generated_images/01a0a50a-aacf-7910-b309-e6d63b4076eb/exec-24e0c9d6-7702-40e3-9e95-f505768e1c55.png",
+    "/Users/kiruno/.codex/generated_images/01a0a50a-aacf-7910-b309-e6d63b4076eb/exec-414c5436-6b77-41f9-9516-85e5cfb57f80.png"
+  ],
+  "alphaCleanup": "Per-cell retain largest8-connected alpha>127 horse component plus2px original alpha fringe; remove disconnected transparent-region glow fragments, RGB horse artwork unchanged.",
+  "commonScale": 0.6991869918699187,
+  "displayCanvas": [
+    480,
+    360
+  ],
+  "displayBaseline": 352,
+  "horses": [
+    {
+      "horseId": 1,
+      "atlasCell": [
+        0,
+        0,
+        627,
+        627
+      ],
+      "cleanOpaqueBounds": [
+        41,
+        96,
+        583,
+        588
+      ],
+      "output": "hero-1.png",
+      "outputSize": [
+        480,
+        360
+      ],
+      "outputOpaqueBounds": [
+        50,
+        8,
+        429,
+        352
+      ],
+      "scale": 0.6991869918699187
+    },
+    {
+      "horseId": 2,
+      "atlasCell": [
+        627,
+        0,
+        1254,
+        627
+      ],
+      "cleanOpaqueBounds": [
+        21,
+        97,
+        555,
+        587
+      ],
+      "output": "hero-2.png",
+      "outputSize": [
+        480,
+        360
+      ],
+      "outputOpaqueBounds": [
+        53,
+        9,
+        426,
+        352
+      ],
+      "scale": 0.6991869918699187
+    },
+    {
+      "horseId": 3,
+      "atlasCell": [
+        0,
+        627,
+        627,
+        1254
+      ],
+      "cleanOpaqueBounds": [
+        48,
+        70,
+        592,
+        560
+      ],
+      "output": "hero-3.png",
+      "outputSize": [
+        480,
+        360
+      ],
+      "outputOpaqueBounds": [
+        50,
+        9,
+        430,
+        352
+      ],
+      "scale": 0.6991869918699187
+    },
+    {
+      "horseId": 4,
+      "atlasCell": [
+        627,
+        627,
+        1254,
+        1254
+      ],
+      "cleanOpaqueBounds": [
+        21,
+        69,
+        563,
+        560
+      ],
+      "output": "hero-4.png",
+      "outputSize": [
+        480,
+        360
+      ],
+      "outputOpaqueBounds": [
+        50,
+        9,
+        429,
+        352
+      ],
+      "scale": 0.6991869918699187
+    }
+  ]
+}
