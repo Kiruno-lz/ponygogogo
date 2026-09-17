@@ -1,0 +1,236 @@
+{
+  "file": "stats-board.png",
+  "source": "assrt/result.png",
+  "sourceCrop": [
+    803,
+    168,
+    1607,
+    760
+  ],
+  "nativeSize": [
+    804,
+    592
+  ],
+  "generatedOriginalSize": [
+    1462,
+    1076
+  ],
+  "generatedResize": [
+    804,
+    592
+  ],
+  "alphaFrom": "built-in edit extraction resized to native crop",
+  "eraseMaskFile": "stats-board-erase-mask.png",
+  "eraseRegions": [
+    {
+      "name": "finish_label",
+      "box": [
+        118,
+        101,
+        240,
+        133
+      ]
+    },
+    {
+      "name": "finish_time",
+      "box": [
+        534,
+        98,
+        648,
+        134
+      ]
+    },
+    {
+      "name": "bet_label",
+      "box": [
+        118,
+        144,
+        185,
+        176
+      ]
+    },
+    {
+      "name": "bet_amount",
+      "box": [
+        544,
+        142,
+        649,
+        176
+      ]
+    },
+    {
+      "name": "return_label",
+      "box": [
+        118,
+        185,
+        224,
+        216
+      ]
+    },
+    {
+      "name": "return_amount",
+      "box": [
+        532,
+        181,
+        650,
+        217
+      ]
+    },
+    {
+      "name": "profit_label",
+      "box": [
+        116,
+        240,
+        227,
+        283
+      ]
+    },
+    {
+      "name": "profit_amount",
+      "box": [
+        414,
+        223,
+        658,
+        301
+      ]
+    },
+    {
+      "name": "history_label",
+      "box": [
+        102,
+        318,
+        261,
+        352
+      ]
+    },
+    {
+      "name": "pick_number_1",
+      "box": [
+        109,
+        365,
+        137,
+        395
+      ]
+    },
+    {
+      "name": "pick_number_2",
+      "box": [
+        306,
+        363,
+        334,
+        396
+      ]
+    },
+    {
+      "name": "pick_number_3",
+      "box": [
+        510,
+        364,
+        539,
+        395
+      ]
+    },
+    {
+      "name": "horse_1",
+      "box": [
+        145,
+        365,
+        226,
+        428
+      ]
+    },
+    {
+      "name": "horse_2",
+      "box": [
+        351,
+        365,
+        422,
+        429
+      ]
+    },
+    {
+      "name": "horse_3",
+      "box": [
+        556,
+        365,
+        632,
+        429
+      ]
+    },
+    {
+      "name": "card_name_1",
+      "box": [
+        127,
+        431,
+        237,
+        461
+      ]
+    },
+    {
+      "name": "card_name_2",
+      "box": [
+        332,
+        431,
+        441,
+        461
+      ]
+    },
+    {
+      "name": "card_name_3",
+      "box": [
+        537,
+        431,
+        649,
+        461
+      ]
+    },
+    {
+      "name": "settled_text",
+      "box": [
+        330,
+        493,
+        425,
+        527
+      ]
+    },
+    {
+      "name": "occluded_top_left_frame",
+      "box": [
+        0,
+        0,
+        276,
+        53
+      ]
+    },
+    {
+      "name": "occluded_bottom_right_frame",
+      "box": [
+        435,
+        524,
+        804,
+        592
+      ]
+    }
+  ],
+  "maskFeatherPixels": 2,
+  "maskPixelCount": 161803,
+  "sourceRgbChangedOutsideEraseMask": 0,
+  "sourceRgbExactOutsideEraseMask": true,
+  "alphaRange": [
+    0,
+    255
+  ],
+  "alphaAbove127Bbox": [
+    12,
+    7,
+    761,
+    582
+  ],
+  "retainedCoinSourceBounds": [
+    339,
+    232,
+    410,
+    302
+  ],
+  "warning": "Extraction alpha is generated approximate matte; small outer-edge registration differences can occur. Hidden board edges at top-left/bottom-right restored from generated edit."
+}

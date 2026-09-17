@@ -1,0 +1,25 @@
+{
+  "file": "star-race-source.png",
+  "source": "assrt/race_start.png",
+  "sourceCrop": [
+    1190,
+    565,
+    1619,
+    955
+  ],
+  "size": [
+    429,
+    390
+  ],
+  "alphaFrom": "star-reference.png resized to source crop canvas",
+  "alphaAbove127Bbox": [
+    5,
+    10,
+    426,
+    382
+  ],
+  "nativeRgbPixelEqual": true,
+  "opaqueCorePixels": 82355,
+  "opaqueCoreRgbMismatchPixels": 0,
+  "warning": "Generated extraction matte is approximate; visible outer wood edges align within several source pixels but separate decorative fragments are redrawn and may admit tiny original background halos. Source RACE lettering is intentionally retained."
+}

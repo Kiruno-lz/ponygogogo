@@ -1,129 +1,43 @@
-/** 首页。构图对齐 assrt/tittle.png 与 tittle_logined.png */
+/** 首页木牌与标志使用目标图原始切片，按钮保留原有输入处理。 */
 import type { AccountInfo } from '../chain/port.ts'
 import { formatMon } from '../chain/port.ts'
 import { CARD_POOL } from '../race/cards/pool.ts'
-import { WoodButton, Chip } from './Button.tsx'
+import { Chip, usePress } from './Button.tsx'
 import { t, type Lang } from './i18n.ts'
 
-export function HomeScreen({
-  lang,
-  account,
-  balance,
-  connecting,
-  onStart,
-  onCollection,
-  onSettings,
-  onConnect,
-  onDisconnect,
-  onToggleLang,
-}: {
-  lang: Lang
-  account: AccountInfo | null
-  balance: bigint
-  connecting: boolean
-  onStart: () => void
-  onCollection: () => void
-  onSettings: () => void
-  onConnect: () => void
-  onDisconnect: () => void
-  onToggleLang: () => void
+export function HomeScreen({ lang, account, balance, connecting, onStart, onCollection, onSettings,
+  onConnect, onDisconnect, onToggleLang }: {
+  lang: Lang; account: AccountInfo | null; balance: bigint; connecting: boolean
+  onStart: () => void; onCollection: () => void; onSettings: () => void
+  onConnect: () => void; onDisconnect: () => void; onToggleLang: () => void
 }) {
-  return (
-    <div
-      className="screen"
-      data-testid="screen-home"
-      style={{ background: 'linear-gradient(#ffffff,#f6efe6)' }}
-    >
-      {/* logo 已是紧裁的干净素材（不含登录/注册木牌），直接按比例铺开即可 */}
-      <img
-        src="/assets/placeholder/ui/logo_title.png"
-        alt={t(lang, 'app.title')}
-        draggable={false}
-        style={{ position: 'absolute', left: 150, top: 40, width: 860 }}
-      />
-
-      <div
-        style={{
-          position: 'absolute',
-          left: 520,
-          top: 480,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 22,
-        }}
-      >
-        <WoodButton
-          zh={t(lang, 'home.start')}
-          en="START"
-          icon="🏁"
-          onClick={onStart}
-          variant={1}
-          style={{ minWidth: 560 }}
-        />
-        <WoodButton
-          zh={t(lang, 'home.collection')}
-          en="COLLECTION"
-          icon="🃏"
-          onClick={onCollection}
-          variant={2}
-          style={{ minWidth: 500, marginLeft: 30 }}
-        />
-        <WoodButton
-          zh={t(lang, 'home.settings')}
-          en="SETTINGS"
-          icon="⚙️"
-          onClick={onSettings}
-          variant={3}
-          style={{ minWidth: 500, marginLeft: 30 }}
-        />
-      </div>
-
-      {/* 右上：mock 钱包入口 */}
-      <div style={{ position: 'absolute', right: 56, top: 34, width: 350 }}>
-        {account ? (
-          <div className="panel" data-testid="wallet-panel" style={{ padding: '2px 14px' }}>
-            <Row icon="🐴" text={account.label} />
-            <Row icon="🪙" text={`${formatMon(balance)} MON`} testId="balance" />
-            <Row icon="🃏" text={`0 / ${CARD_POOL.length}`} />
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingBottom: 6 }}>
-              <Chip label={lang === 'zh' ? 'EN' : '中文'} onClick={onToggleLang} style={{ fontSize: 16, padding: '4px 12px' }} />
-              <Chip
-                label={t(lang, 'home.logout')}
-                onClick={onDisconnect}
-                style={{ fontSize: 16, padding: '4px 12px' }}
-              />
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
-            <WoodButton
-              zh={connecting ? t(lang, 'home.connecting') : t(lang, 'home.login')}
-              onClick={onConnect}
-              disabled={connecting}
-              style={{ minWidth: 260, minHeight: 84 }}
-            />
-            <WoodButton
-              zh={t(lang, 'home.register')}
-              onClick={onConnect}
-              disabled={connecting}
-              style={{ minWidth: 260, minHeight: 84 }}
-            />
-            <Chip label={lang === 'zh' ? 'EN' : '中文'} onClick={onToggleLang} style={{ fontSize: 16 }} />
-          </div>
-        )}
-      </div>
+  return <div className="screen home-screen" data-testid="screen-home">
+    <div className="home-artboard">
+      <img className="home-logo" src="/assets/art/home/logo.png" alt={t(lang, 'app.title')} draggable={false} />
+      <ArtButton art="start" label={t(lang, 'home.start')} en="START" lang={lang} onClick={onStart} />
+      <ArtButton art="collection" label={t(lang, 'home.collection')} en="COLLECTION" lang={lang} onClick={onCollection} />
+      <ArtButton art="settings" label={t(lang, 'home.settings')} en="SETTINGS" lang={lang} onClick={onSettings} />
+      {account ? <div className="home-wallet" data-testid="wallet-panel">
+        <div className="wallet-content">
+          <div className="wallet-row"><img src="/assets/art/ui/avatar-trimmed.png" alt=""/><span className="mono">{account.label}</span></div>
+          <div className="wallet-row"><img src="/assets/art/ui/coin-trimmed.png" alt=""/><span className="mono" data-testid="balance">{formatMon(balance)} MON</span></div>
+          <div className="wallet-row"><img src="/assets/placeholder/icons/icon_13.png" alt=""/><span>0 / {CARD_POOL.length}</span></div>
+        </div>
+        <button className="wallet-logout btn" onClick={onDisconnect} aria-label={t(lang, 'home.logout')} title={t(lang, 'home.logout')}>{t(lang, 'home.logout')}</button>
+      </div> : <>
+        <ArtButton art="login" label={connecting ? t(lang, 'home.connecting') : t(lang, 'home.login')} en="LOGIN" lang={lang} onClick={onConnect} disabled={connecting}/>
+        <ArtButton art="register" label={t(lang, 'home.register')} en="REGISTER" lang={lang} onClick={onConnect} disabled={connecting}/>
+      </>}
+      <Chip label={lang === 'zh' ? 'EN' : '中文'} onClick={onToggleLang} style={{ position: 'absolute', right: 38, bottom: 30, fontSize: 15, padding: '5px 12px' }}/>
     </div>
-  )
+  </div>
 }
 
-function Row({ icon, text, testId }: { icon: string; text: string; testId?: string }) {
-  return (
-    <div
-      data-testid={testId}
-      style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 21, padding: '4px 0' }}
-    >
-      <span style={{ fontSize: 22 }}>{icon}</span>
-      <span className="mono">{text}</span>
-    </div>
-  )
+function ArtButton({ art, label, en, lang, onClick, disabled }: {
+  art: string; label: string; en: string; lang: Lang; onClick: () => void; disabled?: boolean
+}) {
+  const { pressed, handlers } = usePress(onClick, disabled)
+  return <button type="button" className={`btn home-${art}${pressed ? ' pressed' : ''}`} aria-label={`${label} ${en}`} disabled={disabled} {...handlers}>
+    <img src={`/assets/art/home/${art}${lang === 'en' ? '-en' : ''}.png`} alt="" draggable={false}/>
+  </button>
 }

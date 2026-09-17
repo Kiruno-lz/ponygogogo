@@ -1,0 +1,55 @@
+{
+  "file": "star-gogo-source.png",
+  "toolmode": "built-in",
+  "prompt": "Use case: precise-object-edit / text removal. Input image is the exact approved gold GOGOGO racing star-button crop, native429x390, EDIT TARGET. Remove ONLY the SMALL lower caption 'U win 10 MON'. Its black ink occupies approximately x137..301,y231..270 in this429x390 canvas; inpaint only a small surrounding lower golden face region approximately x130..308,y227..276 with uninterrupted matching original warm yellow-gold low-poly faceted paper/metal texture. There must be NO black letter/number remnants at the caption. Keep the LARGE bold handwritten 'GOGOGO' text exactly unchanged, every letter, dripping brush lower ends, scale/slant/location; keep the black angled right arrow exactly unchanged; preserve all surrounding yellow/cream polygon facets, beveled gold rim, dark brown wooden star-backing silhouette, every little scattered gold sparkle fragment, and entire original canvas/framing. This is surgical removal of only the lower payout caption, NOT a blank star, NOT restyling or redesign, NOT replacement of GOGOGO. The erased caption region should naturally continue the same existing gold face planes and brightness, matching its neighboring pixels without a visible rectangle or color seam. Existing transparent exterior must stay transparent alpha; do not paint new background, no checkerboard, no white backdrop. Output one PNG at the same source429:390 aspect ratio and complete original framing with all star tips included. No changed camera, no moved edges, no resized lettering, no added text/icons, no new decorative fragments. Only the small lower payout-caption ink disappears and becomes matching blank gold.",
+  "source": "assrt/race_gaming.png",
+  "sourceCrop": [
+    1190,
+    565,
+    1619,
+    955
+  ],
+  "size": [
+    429,
+    390
+  ],
+  "alphaFrom": "star-reference.png alpha resized429x390 LANCZOS",
+  "alphaRange": [
+    0,
+    255
+  ],
+  "alphaAbove127Bbox": [
+    5,
+    10,
+    426,
+    382
+  ],
+  "labelInkMeasuredBounds": [
+    137,
+    231,
+    301,
+    270
+  ],
+  "labelFillEnvelope": [
+    130,
+    227,
+    308,
+    276
+  ],
+  "labelFillMask": "star-gogo-source-label-mask.png",
+  "labelFillMaskNonzeroBounds": [
+    131,
+    228,
+    307,
+    275
+  ],
+  "labelFillMaskPixels": 8272,
+  "featherPixels": 3,
+  "outsideLabelRgbMismatchPixels": 0,
+  "largeGogogoNativeRgbExact": true,
+  "arrowNativeRgbExact": true,
+  "sourceAlphaExact": true,
+  "remainingDarkCaptionPixels": 0,
+  "generatedFillSource": "/Users/kiruno/.codex/generated_images/01a0a50a-aacf-7910-b309-e6d63b4076eb/exec-27488e4f-26e7-449f-b1f1-dd7cb1a6cb60.png",
+  "preparation": "Use built-in imagegen blank-caption fill only inside source-local small label mask; all other originalsourceRGB pixels retained exactly. Approved star-reference extraction alpha used unchanged after resize. Exterior alpha remains approximate as in existing star-race-source.png; no manual geometry redraw."
+}

@@ -98,7 +98,9 @@ export function Card({
           top: pct(ay, f.h),
           width: pct(aw, f.w),
           height: pct(ah, f.h),
-          display: 'flex',
+          display: compact ? 'flex' : 'grid',
+          gridTemplateRows: compact ? undefined : 'minmax(0, 1fr) auto',
+          justifyItems: 'center',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: compact ? 'center' : 'flex-start',
@@ -113,6 +115,9 @@ export function Card({
           style={{
             width: compact ? '86%' : '52%',
             aspectRatio: '1 / 1',
+            height: compact ? undefined : '100%',
+            maxHeight: '100%',
+            minHeight: 0,
             objectFit: 'contain',
             filter: def.art.tint ? `hue-rotate(${def.art.tint}deg) saturate(1.25)` : undefined,
           }}
@@ -121,6 +126,7 @@ export function Card({
           <p
             style={{
               margin: 0,
+              width: '100%',
               fontSize: descSize,
               lineHeight: 1.42,
               color: '#4a2a14',

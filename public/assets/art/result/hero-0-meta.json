@@ -1,0 +1,84 @@
+{
+  "file": "hero-0.png",
+  "source": "assrt/result.png",
+  "sourceCrop": [
+    133,
+    340,
+    648,
+    733
+  ],
+  "nativeSize": [
+    515,
+    393
+  ],
+  "generatedOriginalSize": [
+    1436,
+    1095
+  ],
+  "generatedResize": [
+    515,
+    393
+  ],
+  "alphaFrom": "built-in imagegen isolation resized to source-native crop",
+  "alphaRange": [
+    0,
+    255
+  ],
+  "alphaAbove127Bbox": [
+    9,
+    7,
+    485,
+    379
+  ],
+  "reconstructionMaskFile": "hero-0-reconstruction-mask.png",
+  "reconstructionRegions": [
+    {
+      "name": "rear_left_hoof_grass",
+      "box": [
+        82,
+        365,
+        150,
+        393
+      ]
+    },
+    {
+      "name": "rear_mid_hoof_grass",
+      "box": [
+        210,
+        357,
+        258,
+        393
+      ]
+    },
+    {
+      "name": "front_left_hoof_grass",
+      "box": [
+        313,
+        366,
+        379,
+        393
+      ]
+    },
+    {
+      "name": "front_right_hoof_grass",
+      "box": [
+        382,
+        365,
+        447,
+        393
+      ]
+    },
+    {
+      "name": "right_leg_flower",
+      "box": [
+        429,
+        303,
+        472,
+        340
+      ]
+    }
+  ],
+  "sourceRgbExactOutsideReconstructionMask": true,
+  "sourceRgbChangedOutsideReconstructionMask": 0,
+  "note": "Visible source hero pixels retained through generated alpha matte. Generated RGB used only for lower hoof/leg pixels occluded by source flowers and grass."
+}
