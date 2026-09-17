@@ -100,7 +100,7 @@ export function StarButton({
   return (
     <button
       type="button"
-      className={`btn btn-star${pressed ? ' pressed' : ''}`}
+      className={`btn btn-star${big === 'RACE!' ? ' source-race' : ''}${pressed ? ' pressed' : ''}`}
       disabled={disabled}
       style={style}
       {...handlers}

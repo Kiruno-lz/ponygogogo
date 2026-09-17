@@ -9,8 +9,8 @@
   --ink-soft: #8a5a3a;
   --dirt: #b77249;
   --sky: #6f9efa;
-  --stage-w: 1600px;
-  --stage-h: 950px;
+  --stage-w: 1619px;
+  --stage-h: 971px;
   color-scheme: light;
 }
 
@@ -97,8 +97,7 @@ html, body, #root {
 .btn-wood .ico { font-size: 34px; }
 
 .btn-star {
-  /* 星形是十二角的放射造型：border-image 会让居中的四个尖角随宽高比不一致地拉伸变形
-     （已实测验证：拉伸后角尖会挤成一个十字），因此改用整图等比铺满，不做九宫格切片。 */
+  /* 完整透明 PNG 保留原画的不对称尖角；按钮画布对应原画裁框。 */
   position: relative;
   min-width: 360px;
   min-height: 250px;
@@ -124,8 +123,7 @@ html, body, #root {
 .btn-star .sub { font-size: 20px; font-weight: 700; margin-top: 4px; color: #5b3a18; }
 
 .panel {
-  /* top/bottom 保持与旧素材一致的 53px 厚度：全站多处面板按这个厚度硬编码了高度，
-     换新素材时把边框做得更厚会顶掉内容（实测已发现结算页“净盈亏”一行被挤出可视区）。 */
+  /* 木纸边缘按主体像素厚度注册，内容区不被边框挤占。 */
   border-image: url('/assets/placeholder/ui/panel_parchment.png') 96 48 97 92 fill stretch;
   border-width: 53px 26px 54px 51px;
   border-style: solid;
@@ -211,3 +209,133 @@ html, body, #root {
 .scrolly { overflow-y: auto; overscroll-behavior: contain; }
 .scrolly::-webkit-scrollbar { width: 10px; }
 .scrolly::-webkit-scrollbar-thumb { background: #a3714c; border-radius: 6px; }
+
+/* 目标图原始切片：保持木牌、图标和原画字形的共同注册位置。 */
+.home-screen { background: #fff; }
+.home-artboard { position: absolute; width: 1611px; height: 976px; left: 0; top: 0; transform: none; transform-origin: top left; }
+.home-logo { position: absolute; left: 250px; top: 0; width: 1095px; height: 485px; }
+.home-artboard > .btn { position: absolute; }
+.home-artboard > .btn img { display: block; width: 100%; height: 100%; pointer-events: none; }
+.home-start { left: 486px; top: 482px; width: 654px; height: 168px; }
+.home-collection { left: 536px; top: 645px; width: 530px; height: 141px; }
+.home-settings { left: 541px; top: 781px; width: 514px; height: 155px; }
+.home-login { left: 1310px; top: 0; width: 301px; height: 161px; }
+.home-register { left: 1325px; top: 159px; width: 286px; height: 233px; }
+.home-wallet { position: absolute; right: 0; top: 0; width: 386px; height: 448px; background: url('/assets/art/ui/wallet-trimmed.png') center / 100% 100% no-repeat; }
+.wallet-content { position: absolute; left: 82px; top: 76px; width: 250px; height: 175px; transform: rotate(-5deg); padding: 4px 0; }
+.wallet-row { display: flex; align-items: center; gap: 14px; height: 55px; font-size: 22px; color: #281c14; font-weight: 750; }
+.wallet-row img { width: 45px; height: 45px; object-fit: contain; }
+.wallet-logout { position: absolute; right: 34px; top: 349px; width: 63px; height: 32px; font-size: 13px; font-weight: 800; background: #e8c495; transform: rotate(-7deg); }
+
+/* 侧视赛道的美术层与 HUD。 */
+.select-screen { background: #82b7ed; overflow: hidden; }
+.select-track { position: absolute; inset: 0; width: 1619px; height: 971px; }
+.select-start-line { position: absolute; left: 379px; top: 356px; width: 20px; height: 413px; background: #fff5db; opacity: .72; filter: blur(3px); }
+.player-plaque { position: absolute; left: 35px; top: 25px; width: 218px; height: 222px; pointer-events: none; }
+.player-plaque > img:first-child { width: 100%; height: 100%; object-fit: contain; }
+.player-plaque > span { position: absolute; left: 40px; right: 17px; bottom: 24px; text-align: center; font-family: 'Trebuchet MS', sans-serif; font-size: 25px; font-style: italic; font-weight: 800; color: #20170f; transform: rotate(-7deg); }
+.player-plaque .plaque-pony { position: absolute; width: 146px; height: 148px; object-fit: contain; left: 43px; top: 43px; clip-path: polygon(8% 0, 88% 0, 100% 85%, 0 88%); }
+.player-plaque > .source-name { opacity: 0; }
+.stamina-art { position: absolute; left: 263px; top: 27px; width: 380px; height: 83px; pointer-events: none; }
+.stamina-art > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+.stamina-empty { filter: none; }
+.stamina-fill { transition: clip-path 90ms linear; }
+.exhausted-art .stamina-fill { filter: saturate(.3) brightness(.7); }
+.over-art .stamina-fill { filter: brightness(1.3); }
+.horse-choice { position: absolute; left: 58px; width: 340px; height: 116px; border: 0; padding: 0; background: none; color: #fff; cursor: pointer; outline-offset: -3px; }
+.horse-choice > .pony-portrait { position: absolute; left: 109px; top: -13.15625px; }
+.lane-pennant { position: absolute; left: 0; bottom: 7px; width: 101px; height: 74px; object-fit: contain; }
+.horse-choice .horse-ground-ring { position: absolute; bottom: -12px; left: 90px; width: 194px; height: 48px; opacity: 0; pointer-events: none; }
+.horse-choice.selected .horse-ground-ring { opacity: 1; }
+.horse-choice.selected > .pony-portrait { filter: drop-shadow(0 0 5px #ffde83); }
+.horse-choice:hover > .pony-portrait { filter: brightness(1.08); }
+.horse-choice:focus-visible { outline: 3px solid #ffe39b; border-radius: 10px; }
+.bet-art-panel { position: absolute; left: 1259px; top: 72px; width: 360px; height: 475px; background: url('/assets/art/ui/bet-panel-trimmed.png') center / 100% 100% no-repeat; padding: 64px 29px 18px 40px; color: #2c2019; font-family: 'Trebuchet MS', 'PingFang SC', sans-serif; font-style: italic; }
+.bet-balance { display: flex; align-items: center; gap: 14px; height: 73px; padding: 0 8px; font-size: 27px; font-weight: 800; }
+.bet-balance img { width: 59px; height: 59px; object-fit: contain; }
+.bet-art-panel h2 { font-size: 25px; font-weight: 700; margin: 9px 0 17px 9px; }
+.bet-chips { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.bet-chips .chip { grid-column: span 2; border: 0; border-radius: 0; background: url('/assets/art/ui/bet-chip-trimmed.png') center / 100% 100% no-repeat; box-shadow: none; height: 68px; padding: 0; font-size: 27px; font-style: italic; }
+.bet-chips .chip:nth-child(n+4) { grid-column: span 3; }
+.bet-chips .chip.on { background-image: url('/assets/art/ui/bet-chip-selected-trimmed.png'); filter: drop-shadow(0 0 6px #ffd240); font-size: 34px; }
+.bet-win { display: flex; align-items: center; justify-content: center; gap: 9px; height: 70px; background: url('/assets/art/ui/win-strip-trimmed.png') center / 100% 100% no-repeat; margin-top: 29px; font-size: 21px; font-weight: 700; color: #fff6e5; white-space: nowrap; }
+.bet-win img { width: 38px; height: 44px; object-fit: contain; }
+.bet-win img:last-child { width: 41px; }
+.bet-difficulty { display: flex; justify-content: space-between; padding-top: 8px; font-size: 14px; color: #4e3828; }
+.bet-error { font-size: 15px; color: #a32c17; font-weight: 800; }
+.select-race-cta { position: absolute; left: 1190px; top: 565px; width: 429px; height: 390px; }
+.select-race-cta .btn-star { width: 100%; height: 100%; }
+.select-race-cta .big { position: absolute; left: 84px; top: 126px; width: 276px; transform: rotate(-12deg); font-size: 91px; line-height: 1; }
+.select-race-cta .sub { position: absolute; left: 65px; right: 49px; top: 241px; font-size: 16px; transform: rotate(-12deg); }
+.select-race-cta .source-race { background-image: url('/assets/art/ui/star-race-source.png'); }
+.select-race-cta .source-race > .big { opacity: 0; }
+.select-back { position: absolute; left: 35px; bottom: 14px; }
+.select-back .btn-wood { border: 0; background: url('/assets/placeholder/ui/btn_wood_2.png') center / 100% 100% no-repeat; }
+.select-back .zh { font-size: 16px; letter-spacing: 0; }
+.select-error { position: absolute; left: 515px; bottom: 45px; width: 580px; text-align: center; font-size: 20px; padding: 4px 20px; }
+.btn-star { background-image: url('/assets/art/ui/star-reference.png'); background-size: contain; background-repeat: no-repeat; }
+.btn-star .big { font-family: 'Trebuchet MS', 'Arial Black', sans-serif; font-style: italic; color: #1f1b14; text-shadow: none; font-weight: 1000; }
+.pony-portrait { background-repeat: no-repeat; animation: pony-idle 1.2s steps(8, jump-none) infinite; }
+@keyframes pony-idle { to { background-position: 100% 0; } }
+.reduced .pony-portrait { animation: none; }
+@media (prefers-reduced-motion: reduce) { .pony-portrait { animation: none; } }
+
+.leaderboard-art { background: url('/assets/art/ui/bet-panel-trimmed.png') center / 100% 100% no-repeat; color: #2b221a; font-family: 'Trebuchet MS', 'PingFang SC', sans-serif; font-style: italic; }
+.horse-avatar { flex: 0 0 auto; overflow: visible; border: 0; border-radius: 0; background: none; }
+.horse-avatar img { width: 100%; height: 100%; object-fit: contain; }
+.stamina-exhausted { position: absolute; left: 55px; right: 15px; top: 23px; color: #ffe3af; font-size: 19px; font-weight: 900; text-align: center; }
+.gogo .big { position: absolute; left: 65px; top: 126px; width: 310px; font-size: 72px; line-height: 1; letter-spacing: -3px; transform: rotate(-12deg); }
+.gogo .sub { position: absolute; left: 113px; top: 231px; width: 212px; font-size: 26px; color: #201b14; transform: rotate(-8deg); margin-top: 0; }
+.gogo.source-gogo { background-image: url('/assets/art/ui/star-gogo-source.png'); }
+.gogo.source-gogo > .big { opacity: 0; }
+
+@font-face { font-family: Knewave; src: url('/assets/art/fonts/Knewave-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Kalam; src: url('/assets/art/fonts/Kalam-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Kalam; src: url('/assets/art/fonts/Kalam-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+.btn-star .big { font-family: Knewave, 'PingFang SC', sans-serif; font-weight: 400; font-style: normal; }
+.player-plaque > span, .leaderboard-art, .bet-art-panel, .bet-chips .chip, .gogo .sub { font-family: Kalam, 'PingFang SC', sans-serif; font-style: normal; }
+.bet-balance { font-weight: 700; }
+.btn-star:disabled { filter: saturate(.85) brightness(.95); }
+
+/* 次级界面沿用同一木纸素材，保持控件内容的可用区域。 */
+.btn-wood { border: 0; padding: 18px 46px; background-position: center; background-size: 100% 100%; background-repeat: no-repeat; }
+.btn-wood-1 { background-image: url('/assets/placeholder/ui/btn_wood_1.png'); }
+.btn-wood-2 { background-image: url('/assets/placeholder/ui/btn_wood_2.png'); }
+.btn-wood-3 { background-image: url('/assets/placeholder/ui/btn_wood_3.png'); }
+.panel { border-width: 32px 22px 33px 30px; }
+[data-testid='screen-collection'], [data-testid='screen-settings'], [data-testid='screen-result'], [data-testid='screen-loading'] { background: #fbf7f0 !important; }
+[data-testid='screen-collection'] .scrolly { padding-top: 18px !important; }
+[data-testid='screen-settings'] .panel { width: 950px !important; padding: 34px 55px !important; gap: 27px !important; }
+[data-testid='screen-settings'] input[type='range'] { height: 9px; }
+[data-testid='screen-result'] > div:first-of-type > .panel { height: 360px !important; }
+[data-testid='screen-result'] .h-title { font-family: Kalam, 'PingFang SC', sans-serif; }
+[data-testid='screen-result'] .btn-star .big { font-size: 28px; font-weight: 800; letter-spacing: 1px; }
+.chip { border: 0; border-radius: 0; background: url('/assets/art/ui/bet-chip-trimmed.png') center / 100% 100% no-repeat; padding: 12px 22px; }
+.chip.on { border: 0; background: url('/assets/art/ui/bet-chip-selected-trimmed.png') center / 100% 100% no-repeat; box-shadow: 0 0 7px #ffd45d55; }
+.wallet-logout { right: 8px; top: 278px; width: 96px; height: 170px; color: transparent; font-size: 0; background: transparent; transform: none; }
+.pony-running { animation-duration: .667s; }
+.bet-chips .chip:nth-child(2) { grid-column: 5 / span 2; grid-row: 1; }
+.bet-chips .chip:nth-child(3) { grid-column: 1 / span 3; grid-row: 2; }
+.bet-chips .chip:nth-child(4) { grid-column: 4 / span 3; grid-row: 2; }
+.bet-art-panel { padding-top: 69px; }
+.bet-art-panel h2 { margin-top: 14px; margin-bottom: 9px; }
+.bet-chips .chip { font-size: 31px; line-height: 68px; }
+.bet-chips .chip.on { font-size: 46px; }
+.bet-win { height: 74px; }
+.bet-difficulty { position: absolute; left: 137px; top: 216px; width: 94px; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; text-align: center; line-height: 18px; }
+.bet-difficulty strong { font-size: 16px; }
+.home-wallet { right: 13px; width: 355px; height: 404px; }
+.wallet-content { left: 71px; top: 71px; width: 235px; }
+.wallet-row { height: 51px; font-size: 22px; }
+.wallet-logout { right: 6px; top: 251px; width: 92px; height: 153px; }
+.stamina-art { left: 263px; width: 382px; }
+.race-hud .stamina-art { width: 415px; left: 263px; }
+.badge > div { border: 0 !important; border-radius: 0 !important; background: url('/assets/art/ui/buff-frame-trimmed.png') center / 100% 100% no-repeat !important; }
+.badge > div > img { margin-top: -7px; }
+.wallet-content { left: 81px; top: 77px; }
+.wallet-row { gap: 24px; }
+.wallet-row img { width: 46px; height: 46px; }
+.wallet-row:first-child { gap: 14px; }
+.wallet-row:first-child img { width: 56px; height: 52px; }
+.bet-balance { padding-left: 16px; gap: 20px; }
+.card-root .h-title { font-family: Kalam, 'PingFang SC', sans-serif; font-weight: 700; }

@@ -1,36 +1,32 @@
-/**
- * 画面布局常量。全部对齐 assrt/race_gaming.png 的构图：
- *   y 0–265    天空 / 城堡 / 远山 / 松林 / 看台
- *   y 250–347  木栅栏与告示牌
- *   y 340–755  五条泥土赛道（每条 83px）
- *   y 748–950  前景栅栏与观众
- */
-export const DESIGN_W = 1600
-export const DESIGN_H = 950
+/** 比赛原画的完整画布与赛道注册坐标。只用于渲染。 */
+export const DESIGN_W = 1619
+export const DESIGN_H = 971
 
 /** 源渲染图宽度，用于把切片缩放到设计宽度 */
 export const SRC_W = 1619
 export const BG_SCALE = DESIGN_W / SRC_W
 
-export const TRACK_TOP = 340
-export const TRACK_BOTTOM = 755
+export const TRACK_TOP = 356
+export const TRACK_BOTTOM = 769
 export const LANE_COUNT = 5
 export const LANE_H = (TRACK_BOTTOM - TRACK_TOP) / LANE_COUNT
 
 export function laneCenterY(laneIndex: number): number {
-  return TRACK_TOP + LANE_H * (laneIndex + 0.5)
+  return [723, 637, 553, 471.5, 394.5][laneIndex]!
 }
 
-/** 马匹站立的基线（蹄子位置）略低于车道中心 */
+/** 蹄子基线逐条取自原画；车道白线并非等距。 */
 export function laneGroundY(laneIndex: number): number {
-  return laneCenterY(laneIndex) + LANE_H * 0.38
+  return [758, 669, 588, 502, 428][laneIndex]!
 }
 
 /** 距离单位 -> 像素。一屏可见约 6000 距离单位 */
 export const PX_PER_UNIT = DESIGN_W / 6000
 
-/** 玩家马固定在屏幕横向的这个比例上 */
-export const PLAYER_ANCHOR_X = 0.42
+/** 比赛原画中玩家光圈中心 x=862；起跑构图保留原画的马与白线间距。 */
+export const PLAYER_ANCHOR_X = 862 / DESIGN_W
+export const PLAYER_START_X = 234
+export const START_LINE_X = 389
 
 /** 视差系数 */
 export const PARALLAX = {

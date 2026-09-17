@@ -406,5 +406,587 @@
     "path": "assets/placeholder/ui/start_gate.png",
     "bytes": 926550,
     "sha256": "3fd16df69d1c3fc8"
+  },
+  "art.home.collection-en": {
+    "kind": "image",
+    "path": "assets/art/home/collection-en.png",
+    "bytes": 1235195,
+    "sha256": "41870ef1aa32238c"
+  },
+  "art.home.collection": {
+    "kind": "image",
+    "path": "assets/art/home/collection.png",
+    "bytes": 107966,
+    "sha256": "4dd9f4afd1533056"
+  },
+  "art.home.login-en": {
+    "kind": "image",
+    "path": "assets/art/home/login-en.png",
+    "bytes": 894396,
+    "sha256": "59402d8224168491"
+  },
+  "art.home.login": {
+    "kind": "image",
+    "path": "assets/art/home/login.png",
+    "bytes": 62518,
+    "sha256": "22af68fd43f089e9"
+  },
+  "art.home.logo": {
+    "kind": "image",
+    "path": "assets/art/home/logo.png",
+    "bytes": 659036,
+    "sha256": "184b5f328e243dee"
+  },
+  "art.home.register-en": {
+    "kind": "image",
+    "path": "assets/art/home/register-en.png",
+    "bytes": 646267,
+    "sha256": "840d9dda44170d6a"
+  },
+  "art.home.register": {
+    "kind": "image",
+    "path": "assets/art/home/register.png",
+    "bytes": 69606,
+    "sha256": "78229374fb01b394"
+  },
+  "art.home.settings-en": {
+    "kind": "image",
+    "path": "assets/art/home/settings-en.png",
+    "bytes": 1297116,
+    "sha256": "287ac5444c519037"
+  },
+  "art.home.settings": {
+    "kind": "image",
+    "path": "assets/art/home/settings.png",
+    "bytes": 108403,
+    "sha256": "e145a7f5d845643a"
+  },
+  "art.home.start-en": {
+    "kind": "image",
+    "path": "assets/art/home/start-en.png",
+    "bytes": 1471008,
+    "sha256": "bc9b68f6af30ef07"
+  },
+  "art.home.start": {
+    "kind": "image",
+    "path": "assets/art/home/start.png",
+    "bytes": 160796,
+    "sha256": "ae8814146a600e66"
+  },
+  "art.ponies.0-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/0-idle.png",
+    "bytes": 371459,
+    "sha256": "544e224c5ea5cfc5"
+  },
+  "art.ponies.0-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/0-portrait.png",
+    "bytes": 81965,
+    "sha256": "0965fa0c85bf19f9"
+  },
+  "art.ponies.0-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/0-running.png",
+    "bytes": 359354,
+    "sha256": "3f1223bff96098fa"
+  },
+  "art.ponies.1-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/1-idle.png",
+    "bytes": 319078,
+    "sha256": "630dc57acf7c3c3b"
+  },
+  "art.ponies.1-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/1-portrait.png",
+    "bytes": 68191,
+    "sha256": "c499c1fa88940c1a"
+  },
+  "art.ponies.1-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/1-running.png",
+    "bytes": 296551,
+    "sha256": "a010774870ed9543"
+  },
+  "art.ponies.2-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/2-idle.png",
+    "bytes": 338796,
+    "sha256": "de2404f862469b6d"
+  },
+  "art.ponies.2-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/2-portrait.png",
+    "bytes": 75836,
+    "sha256": "a862e0aacd162eba"
+  },
+  "art.ponies.2-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/2-running.png",
+    "bytes": 318311,
+    "sha256": "79f1e9031a36681a"
+  },
+  "art.ponies.3-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/3-idle.png",
+    "bytes": 328203,
+    "sha256": "bd965fff3e789c85"
+  },
+  "art.ponies.3-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/3-portrait.png",
+    "bytes": 68580,
+    "sha256": "5aaa05d7fb11f90b"
+  },
+  "art.ponies.3-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/3-running.png",
+    "bytes": 316876,
+    "sha256": "d5783decef949ddd"
+  },
+  "art.ponies.4-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/4-idle.png",
+    "bytes": 335695,
+    "sha256": "d36683779c69469b"
+  },
+  "art.ponies.4-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/4-portrait.png",
+    "bytes": 72297,
+    "sha256": "e0e99d4bbf614c11"
+  },
+  "art.ponies.4-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/4-running.png",
+    "bytes": 343704,
+    "sha256": "ed76dd4d315461d3"
+  },
+  "art.ponies.running-v3.0-contact": {
+    "kind": "image",
+    "path": "assets/art/ponies/running-v3/0-contact.png",
+    "bytes": 544164,
+    "sha256": "22b8b0265b41689d"
+  },
+  "art.ponies.running-v3.0-frameprep-metadata": {
+    "kind": "json",
+    "path": "assets/art/ponies/running-v3/0-frameprep-metadata.json",
+    "bytes": 13801,
+    "sha256": "713b652311838cbf"
+  },
+  "art.ponies.running-v3.0-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/running-v3/0-running.png",
+    "bytes": 641786,
+    "sha256": "9439a49514bad6aa"
+  },
+  "art.ponies.running-v3.1-contact": {
+    "kind": "image",
+    "path": "assets/art/ponies/running-v3/1-contact.png",
+    "bytes": 547093,
+    "sha256": "c0bd847a210242b4"
+  },
+  "art.ponies.running-v3.1-frameprep-metadata": {
+    "kind": "json",
+    "path": "assets/art/ponies/running-v3/1-frameprep-metadata.json",
+    "bytes": 12275,
+    "sha256": "51a7c570cea1de6c"
+  },
+  "art.ponies.running-v3.1-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/running-v3/1-running.png",
+    "bytes": 617650,
+    "sha256": "bcada83a929ea0c1"
+  },
+  "art.ponies.running-v3.2-frameprep-metadata": {
+    "kind": "json",
+    "path": "assets/art/ponies/running-v3/2-frameprep-metadata.json",
+    "bytes": 9507,
+    "sha256": "35c497898c93e792"
+  },
+  "art.ponies.running-v3.2-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/running-v3/2-running.png",
+    "bytes": 655194,
+    "sha256": "8de846f310b11718"
+  },
+  "art.result.background-meta": {
+    "kind": "json",
+    "path": "assets/art/result/background-meta.json",
+    "bytes": 3496,
+    "sha256": "dc5dfd29387fc2b4"
+  },
+  "art.result.background": {
+    "kind": "image",
+    "path": "assets/art/result/background.png",
+    "bytes": 2342934,
+    "sha256": "360f80bcd44273e7"
+  },
+  "art.result.button-again": {
+    "kind": "image",
+    "path": "assets/art/result/button-again.png",
+    "bytes": 151819,
+    "sha256": "e322fdee469cc07c"
+  },
+  "art.result.button-home": {
+    "kind": "image",
+    "path": "assets/art/result/button-home.png",
+    "bytes": 61048,
+    "sha256": "b5942dabfefe66aa"
+  },
+  "art.result.button-share": {
+    "kind": "image",
+    "path": "assets/art/result/button-share.png",
+    "bytes": 63710,
+    "sha256": "34329d9e144082c8"
+  },
+  "art.result.header-zh": {
+    "kind": "image",
+    "path": "assets/art/result/header-zh.png",
+    "bytes": 287548,
+    "sha256": "98e72ce0a4a63796"
+  },
+  "art.result.hero-0-generation-prompt": {
+    "kind": "json",
+    "path": "assets/art/result/hero-0-generation-prompt.json",
+    "bytes": 2191,
+    "sha256": "c7c9f4a7e00c7a23"
+  },
+  "art.result.hero-0-meta": {
+    "kind": "json",
+    "path": "assets/art/result/hero-0-meta.json",
+    "bytes": 1416,
+    "sha256": "2e24391a784af908"
+  },
+  "art.result.hero-0-reconstruction-mask": {
+    "kind": "image",
+    "path": "assets/art/result/hero-0-reconstruction-mask.png",
+    "bytes": 1079,
+    "sha256": "6cc0358a6df14347"
+  },
+  "art.result.hero-0": {
+    "kind": "image",
+    "path": "assets/art/result/hero-0.png",
+    "bytes": 393296,
+    "sha256": "f23c018bd11ca815"
+  },
+  "art.result.hero-1": {
+    "kind": "image",
+    "path": "assets/art/result/hero-1.png",
+    "bytes": 181900,
+    "sha256": "0d475d3dade4a359"
+  },
+  "art.result.hero-2": {
+    "kind": "image",
+    "path": "assets/art/result/hero-2.png",
+    "bytes": 181590,
+    "sha256": "33990523137ff6d4"
+  },
+  "art.result.hero-3": {
+    "kind": "image",
+    "path": "assets/art/result/hero-3.png",
+    "bytes": 183699,
+    "sha256": "2797b5b1e6f43b50"
+  },
+  "art.result.hero-4": {
+    "kind": "image",
+    "path": "assets/art/result/hero-4.png",
+    "bytes": 179985,
+    "sha256": "0ff3b24258f886ad"
+  },
+  "art.result.hero-atlas-meta.partial": {
+    "kind": "json",
+    "path": "assets/art/result/hero-atlas-meta.partial.json",
+    "bytes": 2800,
+    "sha256": "196d90905cc664fd"
+  },
+  "art.result.hero-atlas": {
+    "kind": "image",
+    "path": "assets/art/result/hero-atlas.png",
+    "bytes": 1590293,
+    "sha256": "693324271bf6f1e0"
+  },
+  "art.result.placement": {
+    "kind": "image",
+    "path": "assets/art/result/placement.png",
+    "bytes": 223659,
+    "sha256": "f7c4d027b4a9c8c8"
+  },
+  "art.result.stats-board-erase-mask": {
+    "kind": "image",
+    "path": "assets/art/result/stats-board-erase-mask.png",
+    "bytes": 6273,
+    "sha256": "50f37298f5e60503"
+  },
+  "art.result.stats-board-generation-prompt": {
+    "kind": "json",
+    "path": "assets/art/result/stats-board-generation-prompt.json",
+    "bytes": 2367,
+    "sha256": "74d3ba759f853d77"
+  },
+  "art.result.stats-board-meta": {
+    "kind": "json",
+    "path": "assets/art/result/stats-board-meta.json",
+    "bytes": 3360,
+    "sha256": "ae3cbdff7ec505be"
+  },
+  "art.result.stats-board": {
+    "kind": "image",
+    "path": "assets/art/result/stats-board.png",
+    "bytes": 708328,
+    "sha256": "9253ed3b12769b97"
+  },
+  "art.result.ui-kit-meta": {
+    "kind": "json",
+    "path": "assets/art/result/ui-kit-meta.json",
+    "bytes": 481,
+    "sha256": "2f003b29d9b04aee"
+  },
+  "art.result.ui-kit": {
+    "kind": "image",
+    "path": "assets/art/result/ui-kit.png",
+    "bytes": 739569,
+    "sha256": "aad2635ceb93e9e2"
+  },
+  "art.track.far": {
+    "kind": "image",
+    "path": "assets/art/track/far.png",
+    "bytes": 1781320,
+    "sha256": "68f2bbf4c7da980b"
+  },
+  "art.track.front": {
+    "kind": "image",
+    "path": "assets/art/track/front.png",
+    "bytes": 885320,
+    "sha256": "998864533e451890"
+  },
+  "art.track.scene": {
+    "kind": "image",
+    "path": "assets/art/track/scene.png",
+    "bytes": 2211232,
+    "sha256": "d0b871544b86bb89"
+  },
+  "art.track.track": {
+    "kind": "image",
+    "path": "assets/art/track/track.png",
+    "bytes": 1869958,
+    "sha256": "368da18efa48e80a"
+  },
+  "art.ui.avatar-blank-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/avatar-blank-trimmed.png",
+    "bytes": 1706134,
+    "sha256": "b15e6175252d689b"
+  },
+  "art.ui.avatar-reference-blank": {
+    "kind": "image",
+    "path": "assets/art/ui/avatar-reference-blank.png",
+    "bytes": 1507342,
+    "sha256": "aeaf0a5df6f7b2ad"
+  },
+  "art.ui.avatar-reference": {
+    "kind": "image",
+    "path": "assets/art/ui/avatar-reference.png",
+    "bytes": 1628560,
+    "sha256": "fc6e28460642131e"
+  },
+  "art.ui.avatar-source": {
+    "kind": "image",
+    "path": "assets/art/ui/avatar-source.png",
+    "bytes": 104921,
+    "sha256": "e068427dd3bbd5ab"
+  },
+  "art.ui.avatar-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/avatar-trimmed.png",
+    "bytes": 2013973,
+    "sha256": "113ed91d8174bdac"
+  },
+  "art.ui.bet-chip-selected-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/bet-chip-selected-trimmed.png",
+    "bytes": 1184274,
+    "sha256": "a89fe0ac84bf895f"
+  },
+  "art.ui.bet-chip-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/bet-chip-trimmed.png",
+    "bytes": 1260257,
+    "sha256": "e4b9a2bb5bc2d3cd"
+  },
+  "art.ui.bet-panel-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/bet-panel-trimmed.png",
+    "bytes": 1828957,
+    "sha256": "106ee179ad3366c8"
+  },
+  "art.ui.buff-eye-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/buff-eye-trimmed.png",
+    "bytes": 911699,
+    "sha256": "dbe8b2ac308c9d58"
+  },
+  "art.ui.buff-fire-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/buff-fire-trimmed.png",
+    "bytes": 1040506,
+    "sha256": "d0dfd31cb7432ed0"
+  },
+  "art.ui.buff-frame-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/buff-frame-trimmed.png",
+    "bytes": 460343,
+    "sha256": "f541ec275594dff5"
+  },
+  "art.ui.buff-leaf-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/buff-leaf-trimmed.png",
+    "bytes": 441770,
+    "sha256": "940139935a66f6cc"
+  },
+  "art.ui.buff-wing-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/buff-wing-trimmed.png",
+    "bytes": 571579,
+    "sha256": "fbb2f293f3cde156"
+  },
+  "art.ui.coin-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/coin-trimmed.png",
+    "bytes": 1471030,
+    "sha256": "62146de5d906a7c2"
+  },
+  "art.ui.dust-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/dust-trimmed.png",
+    "bytes": 10683,
+    "sha256": "bc4e6dac915a401f"
+  },
+  "art.ui.flag-0": {
+    "kind": "image",
+    "path": "assets/art/ui/flag-0.png",
+    "bytes": 122432,
+    "sha256": "94db1ae09219a0a4"
+  },
+  "art.ui.flag-1": {
+    "kind": "image",
+    "path": "assets/art/ui/flag-1.png",
+    "bytes": 123875,
+    "sha256": "6001fe0bab04e820"
+  },
+  "art.ui.flag-2": {
+    "kind": "image",
+    "path": "assets/art/ui/flag-2.png",
+    "bytes": 123199,
+    "sha256": "21ea544d4ec31e38"
+  },
+  "art.ui.flag-3": {
+    "kind": "image",
+    "path": "assets/art/ui/flag-3.png",
+    "bytes": 125030,
+    "sha256": "ee178ec8d232984d"
+  },
+  "art.ui.flag-4": {
+    "kind": "image",
+    "path": "assets/art/ui/flag-4.png",
+    "bytes": 127000,
+    "sha256": "d3ea238aa7d01bb0"
+  },
+  "art.ui.gold-ring-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/gold-ring-trimmed.png",
+    "bytes": 462835,
+    "sha256": "5a740a7b34fbb995"
+  },
+  "art.ui.horseshoe-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/horseshoe-trimmed.png",
+    "bytes": 844665,
+    "sha256": "fca3d9642f77af4d"
+  },
+  "art.ui.leaderboard-avatar-0": {
+    "kind": "image",
+    "path": "assets/art/ui/leaderboard-avatar-0.png",
+    "bytes": 200150,
+    "sha256": "88767236cf75f3d0"
+  },
+  "art.ui.leaderboard-avatar-1": {
+    "kind": "image",
+    "path": "assets/art/ui/leaderboard-avatar-1.png",
+    "bytes": 179743,
+    "sha256": "355cc0cf87ad5da3"
+  },
+  "art.ui.leaderboard-avatar-2": {
+    "kind": "image",
+    "path": "assets/art/ui/leaderboard-avatar-2.png",
+    "bytes": 197359,
+    "sha256": "e607e9c6acab1d1b"
+  },
+  "art.ui.leaderboard-avatar-3": {
+    "kind": "image",
+    "path": "assets/art/ui/leaderboard-avatar-3.png",
+    "bytes": 191244,
+    "sha256": "e00cd7a595992559"
+  },
+  "art.ui.leaderboard-avatar-4": {
+    "kind": "image",
+    "path": "assets/art/ui/leaderboard-avatar-4.png",
+    "bytes": 177436,
+    "sha256": "79926838a4e1ef70"
+  },
+  "art.ui.stamina-reference-empty": {
+    "kind": "image",
+    "path": "assets/art/ui/stamina-reference-empty.png",
+    "bytes": 643878,
+    "sha256": "911cf79fb071bf0f"
+  },
+  "art.ui.stamina-reference": {
+    "kind": "image",
+    "path": "assets/art/ui/stamina-reference.png",
+    "bytes": 676882,
+    "sha256": "5cc4de89a773a2d1"
+  },
+  "art.ui.stamina-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/stamina-trimmed.png",
+    "bytes": 470982,
+    "sha256": "b0c211c287c8c003"
+  },
+  "art.ui.star-gogo-source": {
+    "kind": "image",
+    "path": "assets/art/ui/star-gogo-source.png",
+    "bytes": 298730,
+    "sha256": "f33b19dbddacc092"
+  },
+  "art.ui.star-race-source": {
+    "kind": "image",
+    "path": "assets/art/ui/star-race-source.png",
+    "bytes": 296606,
+    "sha256": "a6f2e18c2a935264"
+  },
+  "art.ui.star-reference": {
+    "kind": "image",
+    "path": "assets/art/ui/star-reference.png",
+    "bytes": 1289888,
+    "sha256": "b38cf026f17bf442"
+  },
+  "art.ui.star-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/star-trimmed.png",
+    "bytes": 1411709,
+    "sha256": "9e038c141f634109"
+  },
+  "art.ui.wallet-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/wallet-trimmed.png",
+    "bytes": 1163833,
+    "sha256": "625c48a3a2ec7096"
+  },
+  "art.ui.win-strip-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/win-strip-trimmed.png",
+    "bytes": 904728,
+    "sha256": "9eb76a477889eb34"
   }
 }

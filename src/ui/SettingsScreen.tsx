@@ -67,7 +67,7 @@ export function SettingsScreen({
             onClick={() => onChange({ ...settings, reducedMotion: !settings.reducedMotion })}
           />
           <Chip
-            label={settings.muted ? '🔇' : '🔊'}
+            label={lang === 'zh' ? (settings.muted ? '静音' : '声音') : (settings.muted ? 'MUTED' : 'SOUND')}
             on={!settings.muted}
             onClick={() => onChange({ ...settings, muted: !settings.muted })}
           />
