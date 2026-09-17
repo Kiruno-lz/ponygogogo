@@ -10,6 +10,7 @@ import { DESIGN_H, DESIGN_W } from '../game/layout.ts'
 import { RaceScene } from '../game/RaceScene.ts'
 import { HORSE_PROFILES } from '../game/horses.ts'
 import { preparePonyImages } from '../game/pony.ts'
+import { prepareSceneImages } from '../game/sceneArt.ts'
 import { PAYOUT_TABLE, STAKE_PRESETS } from '../race/core/constants.ts'
 import { FP } from '../race/core/fixed.ts'
 import type { RaceEvent } from '../race/core/types.ts'
@@ -61,7 +62,7 @@ export function RaceScreen(p: RaceScreenProps) {
     if (!hostRef.current || gameRef.current) return
     let disposed = false
     let game: Phaser.Game | null = null
-    void preparePonyImages(HORSE_PROFILES).then((ponyImages) => {
+    void Promise.all([preparePonyImages(HORSE_PROFILES), prepareSceneImages(p.urls)]).then(([ponyImages, sceneImages]) => {
       if (disposed || !hostRef.current || gameRef.current) return
       game = new Phaser.Game({
         type: Phaser.AUTO,
@@ -69,6 +70,7 @@ export function RaceScreen(p: RaceScreenProps) {
         width: DESIGN_W,
         height: DESIGN_H,
         backgroundColor: '#6f9efa',
+        transparent: true,
         scale: { mode: Phaser.Scale.NONE, autoCenter: Phaser.Scale.NO_CENTER },
         render: { antialias: true, roundPixels: false },
         audio: { noAudio: true },
@@ -81,6 +83,7 @@ export function RaceScreen(p: RaceScreenProps) {
         urls: p.urls,
         reducedMotion: p.reducedMotion,
         ponyImages,
+        sceneImages,
       })
       sceneRef.current = game.scene.getScene('race') as RaceScene
     })
@@ -186,7 +189,7 @@ export function RaceScreen(p: RaceScreenProps) {
         : null
 
   return (
-    <div className="screen" data-testid="screen-race" style={{ background: '#6f9efa' }}>
+    <div className="screen" data-testid="screen-race" style={{ background: "url('/assets/art/track/scene.png') center / 100% 100% no-repeat" }}>
       <div
         ref={hostRef}
         style={{ position: 'absolute', inset: 0, width: DESIGN_W, height: DESIGN_H }}

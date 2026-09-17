@@ -30,9 +30,7 @@ export function LoadingScreen({
         gap: 26,
       }}
     >
-      <h1 className="h-title" style={{ fontSize: 58, margin: 0, color: '#57250c' }}>
-        {t(lang, 'app.title')}
-      </h1>
+      <img src="/assets/placeholder/ui/logo_title.png" alt={t(lang, 'app.title')} draggable={false} style={{ width: 700, height: 305, objectFit: 'contain' }}/>
       <p style={{ margin: 0, fontSize: 22, opacity: 0.75 }}>{t(lang, 'loading.title')}</p>
 
       <div
