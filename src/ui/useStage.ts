@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { DESIGN_H, DESIGN_W } from '../game/layout.ts'
 
 export interface StageBox {
@@ -7,18 +7,18 @@ export interface StageBox {
   top: number
 }
 
-/** 把 1600×950 的设计画布等比缩放居中，保证构图与渲染图逐像素对齐 */
-export function useStage(): StageBox {
+/** 每个原画画布分别等比缩放居中，避免首页与赛道的不同比例互相裁切。 */
+export function useStage(designWidth = DESIGN_W, designHeight = DESIGN_H): StageBox {
   const [box, setBox] = useState<StageBox>({ scale: 1, left: 0, top: 0 })
-  useEffect(() => {
+  useLayoutEffect(() => {
     const fit = (): void => {
       const w = window.innerWidth
       const h = window.innerHeight
-      const scale = Math.min(w / DESIGN_W, h / DESIGN_H)
+      const scale = Math.min(w / designWidth, h / designHeight)
       setBox({
         scale,
-        left: Math.round((w - DESIGN_W * scale) / 2),
-        top: Math.round((h - DESIGN_H * scale) / 2),
+        left: Math.round((w - designWidth * scale) / 2),
+        top: Math.round((h - designHeight * scale) / 2),
       })
     }
     fit()
@@ -28,6 +28,6 @@ export function useStage(): StageBox {
       window.removeEventListener('resize', fit)
       window.removeEventListener('orientationchange', fit)
     }
-  }, [])
+  }, [designWidth, designHeight])
   return box
 }

@@ -12,16 +12,18 @@ import {
   BG_SCALE,
   DESIGN_H,
   DESIGN_W,
-  LANE_H,
   PALETTE,
   PARALLAX,
   PLAYER_ANCHOR_X,
+  PLAYER_START_X,
+  START_LINE_X,
   PX_PER_UNIT,
   TRACK_BOTTOM,
   TRACK_TOP,
   laneGroundY,
 } from './layout.ts'
 import { PonySprite, registerPonyTextures, type PonyImages } from './pony.ts'
+import type { SceneImages } from './sceneArt.ts'
 
 const TRACK_UNITS = TRACK_LEN / FP
 
@@ -30,20 +32,19 @@ export interface RaceSceneData {
   urls: Record<string, string>
   reducedMotion: boolean
   ponyImages: PonyImages
+  sceneImages: SceneImages
 }
 
 export class RaceScene extends Phaser.Scene {
   private driver!: RaceDriver
-  private urls: Record<string, string> = {}
   private reducedMotion = false
   private ponyImages: PonyImages = {}
+  private sceneImages: SceneImages = {}
   private ponies: PonySprite[] = []
   private renderPos: number[] = []
   private far!: Phaser.GameObjects.TileSprite
-  private fence!: Phaser.GameObjects.TileSprite
   private front!: Phaser.GameObjects.TileSprite
   private lanes: Phaser.GameObjects.TileSprite[] = []
-  private laneLines!: Phaser.GameObjects.Graphics
   private finishLine!: Phaser.GameObjects.Graphics
   private gate!: Phaser.GameObjects.Graphics
   private hazardIcons = new Map<number, Phaser.GameObjects.Container>()
@@ -57,31 +58,21 @@ export class RaceScene extends Phaser.Scene {
 
   init(data: RaceSceneData): void {
     this.driver = data.driver
-    this.urls = data.urls
     this.reducedMotion = data.reducedMotion
     this.ponyImages = data.ponyImages
-  }
-
-  preload(): void {
-    const want: Array<[string, string]> = [
-      ['bg.far', 'bg.far_clean'],
-      ['bg.fence', 'bg.fence_clean'],
-      ['bg.front', 'bg.front_clean'],
-      ['bg.track_dirt', 'bg.track_dirt'],
-    ]
-    for (const [key, manifestKey] of want) {
-      const url = this.urls[manifestKey]
-      if (url && !this.textures.exists(key)) this.load.image(key, url)
-    }
+    this.sceneImages = data.sceneImages
   }
 
   create(): void {
     registerPonyTextures(this, this.ponyImages)
+    for (const [key, image] of Object.entries(this.sceneImages)) {
+      if (!this.textures.exists(key)) this.textures.addImage(key, image)
+    }
     this.cameras.main.setBackgroundColor(PALETTE.sky)
 
     // 远景：天空 / 城堡 / 远山 / 松林 / 看台
     this.far = this.add
-      .tileSprite(0, 0, DESIGN_W, 272 * BG_SCALE, 'bg.far')
+      .tileSprite(0, 0, DESIGN_W, 356, 'art.far')
       .setOrigin(0, 0)
       .setTileScale(BG_SCALE, BG_SCALE)
 
@@ -90,31 +81,19 @@ export class RaceScene extends Phaser.Scene {
       .rectangle(0, TRACK_BOTTOM - 4, DESIGN_W, DESIGN_H - TRACK_BOTTOM + 4, 0x4b7c42)
       .setOrigin(0, 0)
 
-    // 木栅栏与告示牌
-    this.fence = this.add
-      .tileSprite(0, 252, DESIGN_W, 98 * BG_SCALE, 'bg.fence')
-      .setOrigin(0, 0)
-      .setTileScale(BG_SCALE, BG_SCALE)
+    // 整条原画赛道共同滚动，完整保留五条不等距白线与泥土纹理。
+    this.lanes.push(this.add
+      .tileSprite(0, TRACK_TOP, DESIGN_W, TRACK_BOTTOM - TRACK_TOP, 'art.track')
+      .setOrigin(0, 0))
 
-    // 五条泥土赛道
-    for (let i = 0; i < 5; i++) {
-      const y = TRACK_TOP + LANE_H * i
-      const t = this.add
-        .tileSprite(0, y, DESIGN_W, LANE_H, 'bg.track_dirt')
-        .setOrigin(0, 0)
-        .setTileScale(1, LANE_H / 64)
-      t.setTint(i % 2 === 0 ? 0xffffff : 0xf2e2d6)
-      this.lanes.push(t)
-    }
-    this.laneLines = this.add.graphics()
-
-    // 起跑闸门：程序化画，避免把渲染图里烤进去的招牌与马一起带进场景
+    // 竖向起跑线独立于原画背景，跟随赛道距离滚动
     this.gate = this.add.graphics()
+    this.gate.postFX.addBlur(0, 2, 2, 1, 0xffffff, 2)
 
     this.finishLine = this.add.graphics()
 
     // 尘土
-    const dustTex = this.makeDustTexture()
+    const dustTex = 'fx.dust'
     this.dust = this.add.particles(0, 0, dustTex, {
       speedX: { min: -140, max: -50 },
       speedY: { min: -34, max: 10 },
@@ -137,43 +116,11 @@ export class RaceScene extends Phaser.Scene {
 
     // 前景栅栏与观众
     this.front = this.add
-      .tileSprite(0, 756, DESIGN_W, 191 * BG_SCALE, 'bg.front')
+      .tileSprite(0, 769, DESIGN_W, 202, 'art.front')
       .setOrigin(0, 0)
       .setTileScale(BG_SCALE, BG_SCALE)
       .setDepth(40)
 
-    this.drawLaneLines()
-  }
-
-  private makeDustTexture(): string {
-    const key = 'fx_dust'
-    if (this.textures.exists(key)) return key
-    const g = this.make.graphics({ x: 0, y: 0 }, false)
-    g.fillStyle(0xe8d4bf, 1)
-    g.fillCircle(16, 16, 15)
-    g.fillStyle(0xfdf3e7, 0.9)
-    g.fillCircle(12, 12, 8)
-    g.generateTexture(key, 32, 32)
-    g.destroy()
-    return key
-  }
-
-  private drawLaneLines(): void {
-    const g = this.laneLines
-    g.clear()
-    g.lineStyle(4, PALETTE.laneLine, 0.85)
-    for (let i = 0; i <= 5; i++) {
-      const y = TRACK_TOP + LANE_H * i
-      g.beginPath()
-      g.moveTo(0, y)
-      g.lineTo(DESIGN_W, y)
-      g.strokePath()
-    }
-    g.lineStyle(6, 0x8a5431, 0.35)
-    g.beginPath()
-    g.moveTo(0, TRACK_TOP)
-    g.lineTo(DESIGN_W, TRACK_TOP)
-    g.strokePath()
   }
 
   handleEvents(events: RaceEvent[]): void {
@@ -251,11 +198,10 @@ export class RaceScene extends Phaser.Scene {
 
     // 镜头只沿横轴跟随玩家，纵轴与缩放固定
     const anchorUnits = (PLAYER_ANCHOR_X * DESIGN_W) / PX_PER_UNIT
-    this.camPos = Math.max(-anchorUnits * 0.25, this.renderPos[player.horseId]! - anchorUnits)
+    this.camPos = Math.max(-PLAYER_START_X / PX_PER_UNIT, this.renderPos[player.horseId]! - anchorUnits)
 
     const scroll = this.camPos * PX_PER_UNIT
     this.far.tilePositionX = (scroll * PARALLAX.far) / BG_SCALE
-    this.fence.tilePositionX = (scroll * PARALLAX.fence) / BG_SCALE
     this.front.tilePositionX = (scroll * PARALLAX.front) / BG_SCALE
     for (const lane of this.lanes) lane.tilePositionX = scroll
 
@@ -271,7 +217,7 @@ export class RaceScene extends Phaser.Scene {
       const pony = this.ponies[h.horseId]!
       pony.x = this.screenX(this.renderPos[h.horseId]!)
       pony.y = laneGroundY(h.laneIndex) + jitter
-      pony.setDepth(10 + h.laneIndex)
+      pony.setDepth(14 - h.laneIndex)
       const hide = blinded && h.horseId !== st.playerHorseId
       pony.setVisible(!hide && pony.x > -260 && pony.x < DESIGN_W + 260)
 
@@ -298,23 +244,11 @@ export class RaceScene extends Phaser.Scene {
   private drawGate(): void {
     const g = this.gate
     g.clear()
-    const x = this.screenX(0)
+    const x = this.screenX(0) + START_LINE_X - PLAYER_START_X
     if (x < -260 || x > DESIGN_W + 260) return
-    // 横梁
-    g.fillStyle(0x9c6a47, 1)
-    g.fillRect(x - 44, TRACK_TOP - 74, 88, 14)
-    g.fillStyle(0xc69068, 1)
-    g.fillRect(x - 40, TRACK_TOP - 70, 80, 8)
-    // 两根立柱
-    for (const dx of [-40, 32]) {
-      g.fillStyle(0x6f4527, 1)
-      g.fillRect(x + dx - 2, TRACK_TOP - 70, 12, TRACK_BOTTOM - TRACK_TOP + 70)
-      g.fillStyle(0xb07c55, 1)
-      g.fillRect(x + dx, TRACK_TOP - 68, 8, TRACK_BOTTOM - TRACK_TOP + 66)
-    }
-    // 起跑线
-    g.fillStyle(0xfaf3e6, 0.92)
-    g.fillRect(x - 4, TRACK_TOP, 8, TRACK_BOTTOM - TRACK_TOP)
+    // 最新侧视稿只有竖向起跑线。
+    g.fillStyle(0xfff5db, 0.72)
+    g.fillRect(x - 10, TRACK_TOP, 20, TRACK_BOTTOM - TRACK_TOP)
   }
 
   private drawFinishLine(): void {

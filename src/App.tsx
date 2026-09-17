@@ -24,6 +24,7 @@ import { t } from './ui/i18n.ts'
 import { registerAudio } from './ui/sfx.ts'
 import { loadSettings, saveSettings, type GameSettings } from './ui/settings.ts'
 import { useStage } from './ui/useStage.ts'
+import { DESIGN_W, DESIGN_H } from './game/layout.ts'
 
 type Page = 'loading' | 'home' | 'select' | 'race' | 'result' | 'collection' | 'settings'
 
@@ -35,10 +36,12 @@ function qs(name: string): string | null {
 }
 
 export default function App() {
-  const stage = useStage()
   // 惰性初始化：不能先渲染默认值再用 effect 覆盖，否则挂载时的保存会把已存设置冲掉
   const [settings, setSettings] = useState<GameSettings>(loadSettings)
   const [page, setPage] = useState<Page>('loading')
+  const canvasWidth = page === 'home' ? 1611 : DESIGN_W
+  const canvasHeight = page === 'home' ? 976 : DESIGN_H
+  const stage = useStage(canvasWidth, canvasHeight)
   const [progress, setProgress] = useState<LoadProgress>(EMPTY_PROGRESS)
   const [ready, setReady] = useState(false)
   const [account, setAccount] = useState<AccountInfo | null>(null)
@@ -214,11 +217,13 @@ export default function App() {
 
   const stageStyle = useMemo(
     () => ({
+      width: canvasWidth,
+      height: canvasHeight,
       transform: `scale(${stage.scale})`,
       left: stage.left,
       top: stage.top,
     }),
-    [stage],
+    [stage, canvasWidth, canvasHeight],
   )
 
   return (

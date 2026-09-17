@@ -7,7 +7,6 @@ import { PAYOUT_TABLE, SIM_HZ, STAKE_PRESETS } from '../race/core/constants.ts'
 import { FP } from '../race/core/fixed.ts'
 import type { RaceResult } from '../race/core/types.ts'
 import { HORSE_PROFILES, hexCss } from '../game/horses.ts'
-import { ponyFullSvg, svgToDataUrl } from '../game/ponyArt.ts'
 import type { Lang } from '../ui/i18n.ts'
 
 export type PosterFormat = 'x' | 'ig'
@@ -90,7 +89,7 @@ export async function drawPoster(
 
   // 小马
   try {
-    const pony = await loadImage(svgToDataUrl(ponyFullSvg(prof)))
+    const pony = await loadImage(`/assets/art/ponies/${result.horseId}-idle-0.png`)
     const pw = W * 0.3
     ctx.drawImage(pony, W * 0.05, H * 0.46, pw, pw * 0.75)
   } catch {

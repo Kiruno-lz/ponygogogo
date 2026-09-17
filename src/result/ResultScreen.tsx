@@ -47,8 +47,7 @@ export function ResultScreen(p: ResultScreenProps) {
       }}
     >
       <h1 className="h-title" style={{ margin: 0, fontSize: 46 }}>
-        {p.result.rank === 1 ? '🏆 ' : ''}
-        {t(p.lang, 'result.title')}
+                {t(p.lang, 'result.title')}
       </h1>
 
       <div style={{ display: 'flex', gap: 26, alignItems: 'center' }}>
@@ -81,7 +80,7 @@ export function ResultScreen(p: ResultScreenProps) {
             >
               {p.result.rank}
             </span>
-            <span style={{ fontSize: 26 }}>{p.result.rank === 1 ? '🏆' : '/ 5'}</span>
+            <span style={{ fontSize: 26 }}>/ 5</span>
           </div>
           {combo && (
             <div data-testid="result-combo" style={{ color: '#b5451f', fontWeight: 900, fontSize: 22 }}>
@@ -166,9 +165,9 @@ export function ResultScreen(p: ResultScreenProps) {
           color: p.settle === 'failed' ? '#a32c17' : '#57250c',
         }}
       >
-        {p.settle === 'settled' ? '✅ ' + t(p.lang, 'result.settled') : null}
-        {p.settle === 'failed' ? '⚠️ ' + t(p.lang, 'result.settleFailed') : null}
-        {p.settle !== 'settled' && p.settle !== 'failed' ? '⏳ ' + t(p.lang, 'result.settling') : null}
+        {p.settle === 'settled' ? t(p.lang, 'result.settled') : null}
+        {p.settle === 'failed' ? t(p.lang, 'result.settleFailed') : null}
+        {p.settle !== 'settled' && p.settle !== 'failed' ? t(p.lang, 'result.settling') : null}
         {p.settle === 'failed' && (
           <Chip
             label={t(p.lang, 'result.settleRetry')}
@@ -186,7 +185,6 @@ export function ResultScreen(p: ResultScreenProps) {
         />
         <WoodButton
           zh={p.shared ? t(p.lang, 'result.shared') : t(p.lang, 'result.share')}
-          icon="🖼️"
           onClick={p.onShare}
           style={{ minWidth: 330, minHeight: 84 }}
         />
