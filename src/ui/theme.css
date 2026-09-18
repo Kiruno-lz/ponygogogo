@@ -65,7 +65,9 @@ html, body, #root {
   will-change: transform;
 }
 .btn:disabled { cursor: default; filter: grayscale(0.55) opacity(0.6); }
-.btn:not(:disabled):hover { filter: brightness(1.06); }
+/* 提亮与辉光都走 filter：它按素材的 alpha 作用，不会把按钮外框那圈透明区域一起染色。
+   任何 background/box-shadow 形式的悬浮反馈都会画成矩形，比按钮本身大一圈。 */
+.btn:not(:disabled):hover { filter: brightness(1.07) drop-shadow(0 0 9px rgba(255, 213, 120, 0.6)); }
 .btn.pressed:not(:disabled) { transform: scale(0.94); }
 .btn:focus-visible { outline: 4px solid var(--gold-lite); outline-offset: 4px; border-radius: 10px; }
 
