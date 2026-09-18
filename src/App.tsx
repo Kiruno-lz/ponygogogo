@@ -44,8 +44,9 @@ export default function App() {
   // 惰性初始化：不能先渲染默认值再用 effect 覆盖，否则挂载时的保存会把已存设置冲掉
   const [settings, setSettings] = useState<GameSettings>(loadSettings)
   const [page, setPage] = useState<Page>('loading')
-  const canvasWidth = page === 'home' ? 1611 : DESIGN_W
-  const canvasHeight = page === 'home' ? 976 : DESIGN_H
+  // 首页与结算页各自对齐自己那张原画的画布，不跟赛道共用一个尺寸
+  const canvasWidth = page === 'home' ? 1611 : page === 'result' ? 1620 : DESIGN_W
+  const canvasHeight = page === 'home' ? 976 : page === 'result' ? 971 : DESIGN_H
   const stage = useStage(canvasWidth, canvasHeight)
   const [progress, setProgress] = useState<LoadProgress>(EMPTY_PROGRESS)
   const [ready, setReady] = useState(false)
