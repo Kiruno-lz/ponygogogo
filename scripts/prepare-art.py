@@ -1,20 +1,11 @@
 #!/usr/bin/env python3
 """Register source UI slices, generated transparent HUD assets, and continuous track layers."""
 from pathlib import Path
+
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 ART = ROOT / 'public/assets/art'
-HOME = ART / 'home'
-HOME.mkdir(parents=True, exist_ok=True)
-source = Image.open(ROOT / 'assrt/tittle.png').convert('RGBA')
-rects = {
-    'logo': (250, 0, 1345, 485), 'start': (486, 482, 1140, 650),
-    'collection': (536, 645, 1066, 786), 'settings': (541, 781, 1055, 936),
-    'login': (1310, 0, 1611, 161), 'register': (1325, 159, 1611, 392),
-}
-for name, box in rects.items():
-    source.crop(box).save(HOME / f'{name}.png')
 
 UI = ART / 'ui'
 race_source = Image.open(ROOT / 'assrt/race_start.png').convert('RGBA')
