@@ -7,7 +7,9 @@ import { AudioManager } from './assets/audio.ts'
 import { AssetLoader, FailingAssetSource, type LoadProgress } from './assets/loader.ts'
 import { LocalAssetSource, fetchManifest } from './assets/source.ts'
 import { chainPort } from './chain/mock.ts'
-import { MON, type AccountInfo } from './chain/port.ts'
+import { MON } from './chain/port.ts'
+import { DEFAULT_PASSKEY_NAME } from './chain/network.ts'
+import { wallet, type WalletAccount } from './chain/wallet.ts'
 import { PAYOUT_TABLE, STAKE_PRESETS } from './race/core/constants.ts'
 import { FP } from './race/core/fixed.ts'
 import type { RaceResult } from './race/core/types.ts'
@@ -15,7 +17,10 @@ import { RaceDriver } from './race/driver.ts'
 import { drawPoster, sharePoster } from './export/poster.ts'
 import { ResultScreen, type SettleStatus } from './result/ResultScreen.tsx'
 import { CollectionScreen } from './ui/CollectionScreen.tsx'
-import { HomeScreen } from './ui/HomeScreen.tsx'
+import { HomeScreen, type WalletBusy } from './ui/HomeScreen.tsx'
+import { RegisterModal } from './ui/RegisterModal.tsx'
+import { WalletModal } from './ui/WalletModal.tsx'
+import { walletErrorText } from './ui/walletError.ts'
 import { LoadingScreen } from './ui/LoadingScreen.tsx'
 import { RaceScreen } from './ui/RaceScreen.tsx'
 import { SelectScreen } from './ui/SelectScreen.tsx'
@@ -44,9 +49,15 @@ export default function App() {
   const stage = useStage(canvasWidth, canvasHeight)
   const [progress, setProgress] = useState<LoadProgress>(EMPTY_PROGRESS)
   const [ready, setReady] = useState(false)
-  const [account, setAccount] = useState<AccountInfo | null>(null)
+  const [account, setAccount] = useState<WalletAccount | null>(null)
+  /** 链上真实余额，只读展示。null = 还没读到，界面显示占位符而不是谎报为 0 */
+  const [walletBalance, setWalletBalance] = useState<bigint | null>(null)
+  /** 游戏余额，合约上线前是本地账 */
   const [balance, setBalance] = useState<bigint>(0n)
-  const [connecting, setConnecting] = useState(false)
+  const [walletBusy, setWalletBusy] = useState<WalletBusy>(null)
+  const [walletError, setWalletError] = useState<string | null>(null)
+  const [walletOpen, setWalletOpen] = useState(false)
+  const [registerOpen, setRegisterOpen] = useState(false)
   const [entering, setEntering] = useState(false)
   const [enterError, setEnterError] = useState<string | null>(null)
   const [driver, setDriver] = useState<RaceDriver | null>(null)
@@ -56,6 +67,12 @@ export default function App() {
   const [shared, setShared] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
 
+  /**
+   * 钱包操作的世代号。注册的领水轮询要跑十几秒，期间玩家可以退出、甚至再注册一把；
+   * 这个号用来判断一次异步返回是不是仍然属于「当前这一次」，过期的一律丢掉，
+   * 免得旧的余额或提示覆盖掉新账户。
+   */
+  const walletSeq = useRef(0)
   const loaderRef = useRef<AssetLoader | null>(null)
   const audioRef = useRef<AudioManager | null>(null)
   const urlsRef = useRef<Record<string, string>>({})
@@ -107,9 +124,8 @@ export default function App() {
     return () => ctl.abort()
   }, [runLoad])
 
-  // 钱包 mock
+  // 游戏余额与钱包余额是两笔账：前者本地模拟，后者读链，互不换算
   useEffect(() => {
-    setAccount(chainPort.getAccount())
     void chainPort.getBalance().then(setBalance)
   }, [])
 
@@ -120,14 +136,81 @@ export default function App() {
     setPage('home')
   }, [audio])
 
-  const connect = useCallback(async () => {
-    setConnecting(true)
+  /** 注册：用取名窗口给定的用户名建通行密钥 → 派生账户 → 自动领一次测试币 */
+  const register = useCallback(async (userName: string) => {
+    const seq = ++walletSeq.current
+    const current = () => walletSeq.current === seq
+    setWalletBusy('register')
+    setWalletError(null)
     try {
-      const a = await chainPort.connect()
-      setAccount(a)
-      setBalance(await chainPort.getBalance())
+      const { faucet, balance: b, funded } = await wallet.register({
+        userName,
+        onAccount: (a) => {
+          if (!current()) return
+          setAccount(a)
+          setRegisterOpen(false)
+          // 通行密钥仪式到此结束，后面只剩领水轮询。忙碌态必须在这里放开，
+          // 否则轮询那十几秒里玩家一旦退出，首页的登录与注册就全是灰的。
+          setWalletBusy(null)
+        },
+      })
+      if (!current()) return
+      setWalletBalance(b)
+      // 受理不等于到账：只有余额真涨了才说「已到账」
+      setNotice(
+        !faucet.ok
+          ? t(lang, 'wallet.faucetFailed', { detail: faucet.detail })
+          : t(lang, funded ? 'wallet.faucetOk' : 'wallet.faucetSlow'),
+      )
+      setTimeout(() => setNotice(null), 5200)
+    } catch (err) {
+      if (!current()) return
+      setWalletError(walletErrorText(lang, err))
     } finally {
-      setConnecting(false)
+      if (current()) {
+        setWalletBusy(null)
+        setRegisterOpen(false)
+      }
+    }
+  }, [lang])
+
+  /** 登录：唤起通行密钥，由系统自己列出该域名下的全部，派生出同一个地址 */
+  const login = useCallback(async () => {
+    const seq = ++walletSeq.current
+    const current = () => walletSeq.current === seq
+    setWalletBusy('login')
+    setWalletError(null)
+    try {
+      const a = await wallet.login()
+      if (!current()) return
+      setAccount(a)
+      // 余额读不到时留 null：显示「—」，不谎报成 0
+      const b = await wallet.refreshBalance().catch(() => null)
+      if (current()) setWalletBalance(b)
+    } catch (err) {
+      if (!current()) return
+      setWalletError(walletErrorText(lang, err))
+    } finally {
+      if (current()) setWalletBusy(null)
+    }
+  }, [lang])
+
+  const logout = useCallback(() => {
+    // 退出即作废所有在途的钱包操作：注册的领水轮询不能在退出之后再把余额写回来
+    walletSeq.current++
+    setWalletBusy(null)
+    wallet.logout()
+    setAccount(null)
+    setWalletBalance(null)
+    setWalletOpen(false)
+  }, [])
+
+  const refreshWalletBalance = useCallback(async () => {
+    try {
+      setWalletBalance(await wallet.refreshBalance())
+    } catch (err) {
+      setWalletBalance(null)
+      throw err
     }
   }, [])
 
@@ -242,13 +325,19 @@ export default function App() {
           <HomeScreen
             lang={lang}
             account={account}
-            balance={balance}
-            connecting={connecting}
+            balance={walletBalance}
+            busy={walletBusy}
+            error={walletError}
             onStart={() => setPage('select')}
             onCollection={() => setPage('collection')}
             onSettings={() => setPage('settings')}
-            onConnect={() => void connect()}
-            onDisconnect={() => void chainPort.disconnect().then(() => setAccount(null))}
+            onRegister={() => {
+              setWalletError(null)
+              setRegisterOpen(true)
+            }}
+            onLogin={() => void login()}
+            onOpenWallet={() => setWalletOpen(true)}
+            onLogout={logout}
             onToggleLang={() => setSettings((s) => ({ ...s, lang: s.lang === 'zh' ? 'en' : 'zh' }))}
           />
         )}
@@ -298,6 +387,29 @@ export default function App() {
             settings={settings}
             onChange={setSettings}
             onBack={() => setPage('home')}
+          />
+        )}
+
+        {registerOpen && !account && (
+          <RegisterModal
+            lang={lang}
+            defaultName={DEFAULT_PASSKEY_NAME}
+            busy={walletBusy === 'register'}
+            onConfirm={(userName) => void register(userName)}
+            onClose={() => setRegisterOpen(false)}
+          />
+        )}
+
+        {walletOpen && account && (
+          <WalletModal
+            lang={lang}
+            account={account}
+            balance={walletBalance}
+            gameBalance={balance}
+            onRefresh={refreshWalletBalance}
+            onFaucet={() => wallet.claimFaucet()}
+            onExport={() => wallet.exportMnemonic()}
+            onClose={() => setWalletOpen(false)}
           />
         )}
 

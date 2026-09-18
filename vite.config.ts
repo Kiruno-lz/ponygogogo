@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  server: { port: 5173, strictPort: true, host: '127.0.0.1' },
-  preview: { port: 5174, strictPort: true, host: '127.0.0.1' },
+  // 通行密钥的 rpId 不接受 IP 字面量，本地一律走 localhost
+  server: { port: 5173, strictPort: true, host: 'localhost' },
+  preview: { port: 5174, strictPort: true, host: 'localhost' },
   build: { target: 'es2022', chunkSizeWarningLimit: 2000 },
 })

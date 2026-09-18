@@ -4,7 +4,8 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 PORT="${PORT:-5173}"
-HOST=127.0.0.1
+# 通行密钥的 rpId 不接受 IP 字面量，必须用 localhost 打开
+HOST=localhost
 
 say() { printf '\033[1;36m[dev]\033[0m %s\n' "$1"; }
 die() { printf '\033[1;31m[dev]\033[0m %s\n' "$1"; exit 1; }
@@ -35,10 +36,7 @@ fi
 say "生成资源清单…"
 bun run scripts/gen-manifest.ts || die "manifest 生成失败"
 
-# ---- 3. 边界检查 ----
-bash scripts/check-no-chain.sh || die "无链边界检查未通过"
-
-# ---- 4. 端口占用检测与释放 ----
+# ---- 3. 端口占用检测与释放 ----
 PIDS=$(lsof -ti tcp:"$PORT" 2>/dev/null || true)
 if [ -n "$PIDS" ]; then
   say "端口 $PORT 被占用（pid: $PIDS），正在释放…"
@@ -49,13 +47,13 @@ if [ -n "$PIDS" ]; then
   [ -n "$PIDS" ] && kill -9 $PIDS 2>/dev/null || true
 fi
 
-# ---- 5. 启动 ----
+# ---- 4. 启动 ----
 say "启动 Vite: http://$HOST:$PORT"
 bun run dev >/tmp/ponygogogo-dev.log 2>&1 &
 VITE_PID=$!
 trap 'kill $VITE_PID 2>/dev/null || true' EXIT INT TERM
 
-# ---- 6. 健康检查 ----
+# ---- 5. 健康检查 ----
 for i in $(seq 1 60); do
   if curl -sf "http://$HOST:$PORT/" >/dev/null 2>&1; then
     say "就绪（${i}×0.5s）→ http://$HOST:$PORT"

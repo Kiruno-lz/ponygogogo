@@ -2,17 +2,21 @@
 
 Monad 上的横向赛马社交游戏。每场五匹马，玩家挑一匹作为自己的马，与其余四匹电脑马竞速，通过节奏点击和三次选牌争取率先冲线。下注允许 0 MON；下注越多，电脑马越可能跑得凶。
 
-当前的[无链最小 Demo](docs/plan/demo.md) 已经可玩：加载页、首页、选马下注、起跑倒计时、竞速与节奏输入、三次检查点选牌、冲线结算、分享出图、再来一局构成一条完整动线。Demo 在浏览器内完成全部比赛流程，由本地 mock 代替链交互；游戏时逻辑全部由前端执行，没有服务端，也没有运营方裁判。将来接链时沿用两笔交易：入场交易存入下注并派生本场 seed，结算交易提交浏览器算出的名次。
+当前的[最小 Demo](docs/plan/demo.md) 已经可玩：加载页、首页、选马下注、起跑倒计时、竞速与节奏输入、三次检查点选牌、冲线结算、分享出图、再来一局构成一条完整动线。游戏时逻辑全部由前端执行，没有服务端，也没有运营方裁判。
 
-比赛结果不在开局确定：seed 只固定发到玩家手里的一副 14 张牌堆（互不重复），电脑马用橡皮筋 AI 实时追赶玩家位置，名次在冲线那一刻才产生。当前 Demo 不接真实链，不设计任何防作弊机制；将来合约也不复算比赛过程，名次以浏览器的运行结果为准。
+**钱包已接 Monad 测试网**：首页的注册先让你给通行密钥取个名字（默认 `ponygogogo`），确认后用 Mera 建密钥、派生出地址并自动领一次测试币；登录唤起同一把通行密钥回到同一个地址。钱包牌子上能看到地址摘要、链上余额和退出登录，点开是完整地址、重新领币和导出助记词。比赛的入场与结算仍由本地 mock 代替，接链时沿用两笔交易：入场交易存入下注并派生本场 seed，结算交易提交浏览器算出的名次。
+
+比赛结果不在开局确定：seed 只固定发到玩家手里的一副 14 张牌堆（互不重复），电脑马用橡皮筋 AI 实时追赶玩家位置，名次在冲线那一刻才产生。当前不设计任何防作弊机制；将来合约也不复算比赛过程，名次以浏览器的运行结果为准。
 
 ## 运行
 
 ```bash
-bash scripts/dev.sh          # 环境自检 → 素材与清单 → 无链边界检查 → 启动 Vite → 健康检查
+bash scripts/dev.sh          # 环境自检 → 素材与清单 → 端口释放 → 启动 Vite → 健康检查
 ```
 
 首次运行会自动补齐占位素材（`scripts/process-assets.py` 从 `assrt/` 的渲染图切片、`scripts/fetch-audio.sh` 拉取 CC0 音频）。
+
+用 **http://localhost:5173** 打开，不要用 `http://127.0.0.1:5173`：通行密钥的 rpId 不接受 IP 字面量，浏览器会直接拒绝创建。桌面版 Chrome 还要求把通行密钥存进 Google 密码管理器才带 PRF 扩展，存在本地 profile 的用不了；1Password、iCloud 钥匙串、Windows 密码管理器与 YubiKey 均可。手动领测试币用 `bash scripts/get_faucet.sh <address>`，它和游戏内领币打的是同一个水龙头端点。
 
 调试参数：`?seed=0x…` 固定发牌、`?mockDelay=0|5000` 调 mock 出块延迟、`?mockFail=enter|settle` 注入失败、`?mockAssetFail=<key片段>` 注入资源加载失败、`?raceSpeed=1..40` 加速模拟时钟（只改每 tick 对应的现实毫秒，结果逐字段不变）。
 
@@ -20,11 +24,10 @@ bash scripts/dev.sh          # 环境自检 → 素材与清单 → 无链边界
 
 ```bash
 bun run typecheck                    # bun tsc -b
-bun run check:no-chain               # 无链边界的机械检查
 bun test src                         # L1 规则内核与效果模块
-bun test tests/api                   # L2 ChainPort 契约与记录编码
+bun test tests/api                   # L2 ChainPort 契约、记录编码与通行密钥钱包契约
 bun run sweep -- --seeds 500         # 批量交互回归
-bun run test:e2e                     # L3 完整动线、失败路径、动效与确定性
+bun run test:e2e                     # L3 完整动线、钱包动线、失败路径、动效与确定性
 ```
 
 React 相关体检由使用者自行执行 `npx -y react-doctor@latest`。
@@ -38,7 +41,7 @@ React 相关体检由使用者自行执行 `npx -y react-doctor@latest`。
 | [总体架构](docs/architecture/overall.md) | 纯前端模块与合约边界、技术选型 |
 | [效果系统架构](docs/architecture/effect-system.md) | 比赛骨架与可插拔效果模块的边界、扩展点与写权限 |
 | [链上与经济](docs/chain-and-economy.md) | 一次性比赛、Vault、0 下注和结算记录 |
-| [无链 Demo 计划](docs/plan/demo.md) | **当前已实现的计划**：不碰链，把游戏做完整做好玩 |
+| [最小 Demo 计划](docs/plan/demo.md) | **当前正在执行的计划**：把游戏做完整做好玩，并接上通行密钥钱包 |
 | [交付计划](docs/plan/delivery.md) | 含链的完整阶段划分与验收 |
 | [无服务端方案探索](docs/_reaserch/serverless.md) | demo 阶段的信任边界，以及将来怎么加验证 |
 
