@@ -35,7 +35,9 @@ src/race/__vectors__/    规则内核的确定性终态向量
 src/cards/               卡面视觉与动画：样式、发牌、悬浮、选定消失（第 9 节）
 src/result/              结算展示：名次、收益与本场三张牌的回顾（第 9 节）
 src/export/              出图与分享：Canvas 合成 PNG、剪贴板、X、Instagram（第 10 节）
-src/chain/               Mera、viem、合约 ABI 和交易状态
+src/chain/               network.ts 网络与端点的唯一事实来源；derive.ts 账户派生；
+                         wallet.ts 通行密钥钱包（账户身份的唯一持有者）；faucet.ts 领测试币；
+                         store.ts localStorage 封装；port.ts + mock.ts 一局比赛的进出账
 contracts/               PonyRaceVault、AlwaysAccept 校验器
 contracts/test/          Foundry 单元与不变量测试
 ```
@@ -121,7 +123,19 @@ React 不驱动逐帧位置；Phaser 只呈现规则状态，不使用引擎物�
 
 ## 8. 钱包与交易
 
-Mera 使用 `createPasskeyWithPrfOutput` / `getPasskeyPrfOutput` 创建及恢复，使用官方 `toViemAccount` 适配为 LocalAccount。账户派生和 rpId 固定，余额从 RPC 读取。[Mera 接口](https://github.com/category-labs/mera/blob/main/docs/src/content/docs/reference/to-viem-account.md)
+账户身份只有一个持有者：`src/chain/wallet.ts`。`ChainPort` 不知道谁在玩，它只管一局比赛的进出账，两者换实现时互不牵动。
+
+注册用 `createPasskeyWithPrfOutput` 建一把通行密钥（rp 名 `Ponygogogo`，用户名由注册前的取名窗口给出、默认 `ponygogogo`），登录用 `getPasskeyPrfOutput` 唤起同一把，两条路径拿到同一个 32 字节 PRF 输出。**用户名只是认证器列表里的标签，不参与派生**——它存在的理由是同一个 rpId 下可以有多把密钥，改名字不换地址，同名再注册一次也仍然是另一把密钥、另一个地址。派生链固定为 **PRF 输出 → BIP-39 助记词（24 词）→ BIP-32 主种子 → BIP-44 路径 `m/44'/60'/0'/0/0`**，签名会话由 `createSecp256k1SigningSession` 建立、`toViemAccount` 适配为 LocalAccount。**这条链一旦发布就不能再改**：改动等于让所有已注册的通行密钥指向另一个地址。走标准助记词而不是把 PRF 直接当私钥，是为了让玩家能把这把钥匙导入任何标准钱包——导出助记词这个功能才成立。
+
+rpId 取 `location.hostname`，因此**换域名等于换一整套账户**，这是 WebAuthn 的性质而非实现选择；IP 字面量不是合法 rpId，本地开发必须用 `http://localhost`，代码里对此单独报错而不是混进「操作失败」。余额从 RPC 读，`ChainPort` 的游戏余额是另一笔账，界面分开列示、不互相换算。
+
+**登录的断言不限定凭据**，由系统自己列出该 rpId 下的全部通行密钥让玩家挑。这样一台设备上有多个账户时不必再画一个选择界面，从另一台设备同步过来的密钥也走同一条路；选中哪把以平台返回的凭据为准。
+
+因此**钱包模块不往持久存储写任何东西**：密钥在认证器里，玩家起的名字也在认证器里（它是 WebAuthn 的 `user.name`，系统弹窗就靠它区分多个账户），浏览器这边除了内存中的会话什么都不留，私钥、助记词与 PRF 输出更不进存储或日志。登出调用 `session.end()` 把私钥清零，刷新页面即回到未登录。
+
+导出助记词会重新验证一次通行密钥再现算，不在内存里长期留副本，并且**必须限定到当前账户那一把**：本机记着多把时，若不限定，平台会挑它自己认为合适的那把，导出的就是另一个钱包的助记词。因此登录与注册都会记下「当前账户由哪一把派生」，导出直接用它。
+
+账户完全由 PRF 扩展决定，认证器不给 PRF 就没有账户，没有降级路径，兼容性约束见[交付计划第 2 节](../plan/delivery.md)。[Mera 接口](https://github.com/category-labs/mera/blob/main/docs/src/content/docs/reference/to-viem-account.md)
 
 入场与结算两笔交易均由玩家钱包签署、前端广播，玩家自付两笔 gas。合约不限制调用方为 EOA：seed 在入场交易内即可求值，合约钱包能读出它、重算整副牌堆、不满意就 `revert` 重 roll。demo 阶段不防这件事，账户抽象路径保持开放，理由见[链上文档 2.2](../chain-and-economy.md)。
 
