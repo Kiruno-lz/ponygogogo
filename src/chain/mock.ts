@@ -8,9 +8,35 @@
 import { makeSeed } from '../race/core/rng.ts'
 import type { RaceResult } from '../race/core/types.ts'
 import { MON, type ChainPort } from './port.ts'
-import { store } from './store.ts'
 
 const LAST_RESULT_KEY = 'ponygogogo:last-result'
+
+/**
+ * 战绩落盘。localStorage 在隐私模式与无头环境下访问会抛错，这里统一退回进程内存，
+ * 让契约行为在两种环境里完全一致。**只放非机密数据**——钱包那边一个字节都不落盘。
+ */
+const memoryStore = new Map<string, string>()
+
+function readStored(key: string): string | null {
+  try {
+    if (typeof localStorage !== 'undefined') return localStorage.getItem(key)
+  } catch {
+    /* 隐私模式下访问会抛错 */
+  }
+  return memoryStore.get(key) ?? null
+}
+
+function writeStored(key: string, value: string): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(key, value)
+      return
+    }
+  } catch {
+    /* 同上 */
+  }
+  memoryStore.set(key, value)
+}
 
 function params(): URLSearchParams {
   if (typeof window === 'undefined') return new URLSearchParams()
@@ -59,7 +85,7 @@ export class MockChainPort implements ChainPort {
     if (params().get('mockFail') === 'settle') {
       throw new Error('SETTLE_FAILED')
     }
-    store.set(LAST_RESULT_KEY, JSON.stringify(result))
+    writeStored(LAST_RESULT_KEY, JSON.stringify(result))
     // 本地随机串：命名刻意与链上凭据无关、不以 0x 开头、界面不展示
     return { receiptId: 'receipt-' + randomHex(8) }
   }
@@ -70,7 +96,7 @@ export class MockChainPort implements ChainPort {
   }
 
   lastResult(): RaceResult | null {
-    const raw = store.get(LAST_RESULT_KEY)
+    const raw = readStored(LAST_RESULT_KEY)
     if (!raw) return null
     try {
       return JSON.parse(raw) as RaceResult
