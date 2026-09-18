@@ -1,7 +1,7 @@
 /**
- * L2 契约测试。这个项目没有后端也没有跨语言契约，所以 L2 只有一件事：
- * ChainPort 的契约。**这份测试是给将来的真实实现准备的**——真实实现接上时，
- * 同一份测试必须原样通过。
+ * L2 契约测试：一局比赛的进出账。**这份测试是给将来的真实实现准备的**——
+ * 合约接上时，同一份测试必须原样通过。
+ * 账户身份不在这个端口里，那部分契约在 wallet.test.ts。
  */
 import { describe, expect, test } from 'bun:test'
 import { MockChainPort } from '../../../src/chain/mock.ts'
@@ -16,18 +16,7 @@ function makePort(): ChainPort {
 }
 
 describe('ChainPort 契约', () => {
-  test('未连接时没有账户；连接后返回地址与摘要', async () => {
-    const port = makePort()
-    expect(port.getAccount()).toBeNull()
-    const acc = await port.connect()
-    expect(acc.address).toMatch(/^0x[0-9a-f]{40}$/)
-    expect(acc.label.length).toBeGreaterThan(4)
-    expect(port.getAccount()).toEqual(acc)
-    await port.disconnect()
-    expect(port.getAccount()).toBeNull()
-  })
-
-  test('初始余额为 10 MON', async () => {
+  test('游戏余额从 10 MON 起算', async () => {
     const port = makePort()
     expect(await port.getBalance()).toBe(10n * MON)
     expect(formatMon(10n * MON)).toBe('10.00')
