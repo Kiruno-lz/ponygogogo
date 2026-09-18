@@ -1,19 +1,13 @@
 /**
- * 这个文件是全项目唯一允许出现「链」这个概念的地方。
- * 整个项目与链之间只有这一个接口。Demo 阶段由 mock.ts 实现，不连接钱包、RPC 或合约。
+ * 一局比赛与链之间的唯一接口：入场、结算、游戏余额。
+ * 账户身份不在这里——那是 wallet.ts 的事，这个端口不知道「谁」在玩。
+ *
+ * 当前由 mock.ts 实现：还没有合约，下注与返还都是本地账，与钱包里的真实 MON 无关。
  */
 import type { RaceResult } from '../race/core/types.ts'
 
-export interface AccountInfo {
-  /** 账户摘要，mock 生成，不对应任何真实账户 */
-  address: string
-  label: string
-}
-
 export interface ChainPort {
-  connect(): Promise<AccountInfo>
-  disconnect(): Promise<void>
-  getAccount(): AccountInfo | null
+  /** 游戏余额。合约上线前是本地账，不等于钱包链上余额 */
   getBalance(): Promise<bigint>
   enterRace(stake: bigint): Promise<{ seed: string; raceId: string }>
   settleRace(result: RaceResult): Promise<{ receiptId: string }>
