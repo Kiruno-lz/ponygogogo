@@ -4,7 +4,8 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 PORT="${PORT:-5173}"
-HOST=127.0.0.1
+# 通行密钥的 rpId 不接受 IP 字面量，必须用 localhost 打开
+HOST=localhost
 
 say() { printf '\033[1;36m[dev]\033[0m %s\n' "$1"; }
 die() { printf '\033[1;31m[dev]\033[0m %s\n' "$1"; exit 1; }
