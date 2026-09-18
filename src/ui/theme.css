@@ -226,6 +226,36 @@ html, body, #root {
 .wallet-row { display: flex; align-items: center; gap: 14px; height: 55px; font-size: 22px; color: #281c14; font-weight: 750; }
 .wallet-row img { width: 45px; height: 45px; object-fit: contain; }
 .wallet-logout { position: absolute; right: 34px; top: 349px; width: 63px; height: 32px; font-size: 13px; font-weight: 800; background: #e8c495; transform: rotate(-7deg); }
+.wallet-content { text-align: left; cursor: pointer; }
+.home-wallet-error { position: absolute; left: 86px; bottom: 116px; width: 640px; margin: 0; padding: 10px 16px; background: rgba(48, 20, 12, .88); color: #ffe9c9; font-size: 18px; font-weight: 700; line-height: 1.45; border-radius: 12px; }
+
+/* 钱包管理面板：地址、链上余额、领测试币、导出助记词。 */
+.wallet-modal-host { position: absolute; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; }
+.wallet-modal-scrim { position: absolute; inset: 0; background: rgba(20, 10, 4, .58); }
+.wallet-modal { position: relative; width: 980px; max-height: 94%; overflow: auto; padding: 22px 30px 34px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.wallet-modal h2 { margin: 0; font-size: 38px; }
+.wallet-facts { display: grid; grid-template-columns: 210px 1fr; gap: 8px 20px; width: 100%; margin: 0; font-size: 22px; align-items: center; }
+.wallet-facts dt { font-weight: 800; opacity: .78; }
+.wallet-facts dd { margin: 0; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.wallet-facts dd small { flex-basis: 100%; font-size: 15px; opacity: .72; line-height: 1.4; }
+.wallet-full-address { font-size: 20px; word-break: break-all; }
+.wallet-message { width: 100%; margin: 0; font-size: 18px; font-weight: 700; color: #7a3512; line-height: 1.45; }
+.wallet-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; }
+.wallet-actions .chip { font-size: 20px; padding: 8px 16px; }
+.wallet-mnemonic { width: 100%; padding: 10px 16px; border: 3px dashed #a8642f; border-radius: 14px; background: rgba(255, 246, 228, .75); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.wallet-warn { margin: 0; font-size: 15px; font-weight: 800; color: #8d2b12; line-height: 1.45; }
+.wallet-mnemonic ol { width: 100%; margin: 0; padding-left: 30px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px 14px; font-size: 18px; }
+.wallet-mnemonic li { line-height: 1.4; }
+
+/* 注册前的取名窗口，与钱包面板共用外壳，只是窄一些。 */
+.wallet-dialog { width: 760px; gap: 16px; }
+.wallet-dialog-hint { width: 100%; margin: 0; font-size: 16px; line-height: 1.5; opacity: .75; }
+.wallet-dialog-actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: center; }
+.wallet-dialog-actions .chip { font-size: 20px; padding: 8px 16px; }
+.wallet-name-field { width: 100%; display: flex; flex-direction: column; gap: 8px; font-size: 22px; font-weight: 800; }
+.wallet-name-field input { width: 100%; box-sizing: border-box; padding: 10px 14px; border: 3px solid #a8642f; border-radius: 12px; background: rgba(255, 246, 228, .85); color: var(--ink); font-family: inherit; font-size: 24px; font-weight: 700; }
+.wallet-name-field input:focus-visible { outline: 4px solid var(--gold-lite); outline-offset: 2px; }
+.wallet-name-field input:disabled { opacity: .6; }
 
 /* 侧视赛道的美术层与 HUD。 */
 .select-screen { background: #82b7ed; overflow: hidden; }
