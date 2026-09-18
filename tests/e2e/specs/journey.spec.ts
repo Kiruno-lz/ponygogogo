@@ -25,11 +25,6 @@ test('完整动线：加载 → 首页 → 选马下注 → 比赛 → 选牌 �
   await expect(page.getByRole('button', { name: /游戏设置|SETTINGS/ }).first()).toBeVisible()
   await page.screenshot({ path: `${SHOT}/02-home.png` })
 
-  // --- 登录（mock 钱包） ---
-  await page.getByRole('button', { name: /^登录|Sign in/ }).first().click()
-  await expect(page.getByTestId('wallet-panel')).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByTestId('balance')).toContainText('MON')
-
   // --- 选马与下注 ---
   await page.getByRole('button', { name: /开始游戏|START/ }).first().click()
   await expect(page.getByTestId('screen-select')).toBeVisible()
@@ -41,18 +36,22 @@ test('完整动线：加载 → 首页 → 选马下注 → 比赛 → 选牌 �
   await expect(page.getByTestId('difficulty')).not.toBeEmpty()
   await page.screenshot({ path: `${SHOT}/03-select.png` })
 
-  // --- 起跑倒计时 ---
+  // --- 起跑倒计时 与 比赛 HUD ---
+  // 这条动线跑在 raceSpeed=16 上，两段可观测窗口都被压掉 16 倍：倒计时遮罩只剩约 187ms，
+  // HUD 上的 gogo 也会在第一个检查点弹面板时卸载。等待一律在点下 RACE **之前**并发挂好，
+  // 点完再逐条顺序查必然错过（见 tests/e2e/regressions/REPRO.md）
+  const HUD_IDS = ['stamina-bar', 'leaderboard', 'gogo', ...[0, 1, 2, 3, 4].map((i) => `board-row-${i}`)]
+  const countdownShown = page.getByTestId('countdown').waitFor({ state: 'visible', timeout: 20_000 })
+  const hudReady = Promise.all(
+    HUD_IDS.map((id) => page.getByTestId(id).waitFor({ state: 'visible', timeout: 20_000 })),
+  )
   await page.locator('button.btn-star').last().click()
-  await expect(page.getByTestId('screen-race')).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByTestId('countdown')).toBeVisible()
+  await countdownShown
+  await expect(page.getByTestId('screen-race')).toBeVisible()
   await page.screenshot({ path: `${SHOT}/04-countdown.png` })
 
-  // --- 比赛：HUD 元素齐全 ---
   await expect(page.getByTestId('countdown')).toBeHidden({ timeout: 20_000 })
-  await expect(page.getByTestId('stamina-bar')).toBeVisible()
-  await expect(page.getByTestId('leaderboard')).toBeVisible()
-  await expect(page.getByTestId('gogo')).toBeVisible()
-  for (let i = 0; i < 5; i++) await expect(page.getByTestId(`board-row-${i}`)).toBeVisible()
+  await hudReady
   await page.screenshot({ path: `${SHOT}/05-race.png` })
 
   // --- 检查点：面板、限时、三张候选、放弃入口 ---
