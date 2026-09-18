@@ -210,17 +210,38 @@ html, body, #root {
 .scrolly::-webkit-scrollbar { width: 10px; }
 .scrolly::-webkit-scrollbar-thumb { background: #a3714c; border-radius: 6px; }
 
-/* 目标图原始切片：保持木牌、图标和原画字形的共同注册位置。 */
-.home-screen { background: #fff; }
+/* 首页：无字木牌按原画版位摆放，牌面文字在这里排版。
+   版位由新素材的实体包围盒对到 assrt/tittle.png 里同一块牌的包围盒得出，
+   横纵缩放各算各的——素材不是原生尺寸，允许按版位比例拉伸。 */
+.home-screen { background: #8fc0ea; }
+.home-bg { position: absolute; left: 0; top: 0; width: 1611px; height: 976px; }
 .home-artboard { position: absolute; width: 1611px; height: 976px; left: 0; top: 0; transform: none; transform-origin: top left; }
-.home-logo { position: absolute; left: 250px; top: 0; width: 1095px; height: 485px; }
+.home-logo { position: absolute; left: 230px; top: -25px; width: 1103px; height: 562px; }
 .home-artboard > .btn { position: absolute; }
-.home-artboard > .btn img { display: block; width: 100%; height: 100%; pointer-events: none; }
-.home-start { left: 486px; top: 482px; width: 654px; height: 168px; }
-.home-collection { left: 536px; top: 645px; width: 530px; height: 141px; }
-.home-settings { left: 541px; top: 781px; width: 514px; height: 155px; }
-.home-login { left: 1310px; top: 0; width: 301px; height: 161px; }
-.home-register { left: 1325px; top: 159px; width: 286px; height: 233px; }
+.home-artboard > .btn > img { display: block; width: 100%; height: 100%; pointer-events: none; }
+.home-artboard > .btn > .lbl { position: absolute; display: flex; flex-direction: column;
+  align-items: center; pointer-events: none; color: #3a2411; text-align: center; white-space: nowrap; }
+.home-artboard > .btn .zh { font-weight: 800; line-height: 1; }
+.home-artboard > .btn .en { font-weight: 700; opacity: .72; line-height: 1; }
+.home-start { left: 495px; top: 465px; width: 632px; height: 213px; }
+.home-start > .lbl { left: 194px; top: 54px; width: 300px; gap: 9px; }
+.home-start .zh { font-size: 52px; letter-spacing: 6px; text-indent: 6px; }
+.home-start .en { font-size: 15px; letter-spacing: 6px; text-indent: 6px; }
+.home-collection { left: 538px; top: 627px; width: 526px; height: 174px; }
+.home-collection > .lbl { left: 183px; top: 43px; width: 230px; gap: 14px; }
+.home-collection .zh { font-size: 36px; letter-spacing: 6px; text-indent: 6px; }
+.home-collection .en { font-size: 14px; letter-spacing: 6px; text-indent: 6px; }
+.home-settings { left: 546px; top: 769px; width: 503px; height: 165px; }
+.home-settings > .lbl { left: 177px; top: 42px; width: 210px; gap: 12px; }
+.home-settings .zh { font-size: 35px; letter-spacing: 4px; text-indent: 4px; }
+.home-settings .en { font-size: 15px; letter-spacing: 6px; text-indent: 6px; }
+.home-login { left: 1324px; top: 20px; width: 249px; height: 142px; }
+/* 两块吊牌在原画里是斜挂的，字跟着牌面的中线走；角度 = 素材中线斜率再乘上版位的纵横缩放比 */
+.home-login > .lbl { left: 51px; top: 57px; width: 160px; transform: rotate(-9.2deg); }
+.home-login .zh { font-size: 42px; letter-spacing: 5px; text-indent: 5px; }
+.home-register { left: 1335px; top: 151px; width: 269px; height: 219px; }
+.home-register > .lbl { left: 50px; top: 33px; width: 160px; transform: rotate(-5.6deg); }
+.home-register .zh { font-size: 44px; letter-spacing: 5px; text-indent: 5px; }
 .home-wallet { position: absolute; right: 0; top: 0; width: 386px; height: 448px; background: url('/assets/art/ui/wallet-trimmed.png') center / 100% 100% no-repeat; }
 .wallet-content { position: absolute; left: 82px; top: 76px; width: 250px; height: 175px; transform: rotate(-5deg); padding: 4px 0; }
 .wallet-row { display: flex; align-items: center; gap: 14px; height: 55px; font-size: 22px; color: #281c14; font-weight: 750; }
