@@ -13,13 +13,16 @@
     "assets": "python3 scripts/process-assets.py && python3 scripts/postprocess-assets.py && bun run scripts/gen-manifest.ts",
     "test:api": "bun test tests/api",
     "test:e2e": "playwright test --config tests/e2e/playwright.config.ts",
-    "sweep": "bun run scripts/race-sweep.ts",
-    "check:no-chain": "bash scripts/check-no-chain.sh"
+    "sweep": "bun run scripts/race-sweep.ts"
   },
   "dependencies": {
+    "@category-labs/mera": "^0.2.0",
+    "@scure/bip32": "^2.4.0",
+    "@scure/bip39": "^2.4.0",
     "phaser": "^3.90.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "viem": "^2.56.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0",

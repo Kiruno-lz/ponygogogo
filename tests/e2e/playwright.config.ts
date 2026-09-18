@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 5177
-export const BASE_URL = `http://127.0.0.1:${PORT}`
+export const BASE_URL = `http://localhost:${PORT}`
 
 export default defineConfig({
   testDir: '.',
@@ -19,7 +19,7 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `bun run scripts/gen-manifest.ts && bunx vite --port ${PORT} --strictPort --host 127.0.0.1`,
+    command: `bun run scripts/gen-manifest.ts && bunx vite --port ${PORT} --strictPort --host localhost`,
     url: BASE_URL,
     reuseExistingServer: true,
     timeout: 120_000,

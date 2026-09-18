@@ -2,13 +2,13 @@
 
 ## 1. 交付方式
 
-首要目标是让游戏动起来、真正形成好玩。因此可玩性验证全部前置：A、B 两阶段在本地无链环境跑通完整比赛与手感调参，链上闭环排在其后。每一阶段都以可运行入口、可重复测试和实际演示验收；没有验收证据不标完成。当前所有实现阶段均未开始，仓库只有设计文档。
+首要目标是让游戏动起来、真正形成好玩。因此可玩性验证全部前置：A、B 两阶段在本地无链环境跑通完整比赛与手感调参，链上闭环排在其后。每一阶段都以可运行入口、可重复测试和实际演示验收；没有验收证据不标完成。A、B 两阶段已完成，第 2 节那条动线全程可玩；D 阶段的钱包那一半被提前取出来做完了（见该阶段行），合约仍未开始。
 
 固定的长期边界是纯 TypeScript 规则内核、独立渲染、合约只管资金与记录。合约对玩法无知：不重放、不校验完成时间、不派生电脑马，因此不存在 Solidity 版规则内核，也不做规则的跨语言一致性向量。两端唯一需要给出相同结果的是发牌派生，而它只吃链上 seed；注意它是**有状态的十四次抽取**（无放回，第 k 张取决于前 k−1 张抽走了谁），不是一个无状态的下标函数，复算方必须按同一顺序走完十四次。验证方式是任何第三方用链上 seed 复算整副牌堆。A 阶段的规则内核是贯穿全部阶段的长期资产，不是需要丢弃的原型。
 
 当前目标是测试网 demo：可行、可运行、有效果。名次以浏览器的运行状态为准，合约受理后按赔付表付款；校验能力以 `IResultValidator` 钩子预留，demo 期指向 `AlwaysAccept`。验收条目不得把任何一项写成防作弊能力。
 
-产品形态只有链上比赛，下注可以为 0 MON。A、B 阶段的本地无链运行是开发预览，不对外作为产品形态展示，也不显示任何 tx。
+产品形态只有链上比赛，下注可以为 0 MON。当前运行形态里钱包已真接 Monad 测试网，比赛的入场与结算仍是本地 mock，属于开发预览，不对外作为产品形态展示，也不显示任何 tx。
 
 ## 2. 阶段与完成条件
 
@@ -17,10 +17,10 @@
 | A：能跑起来的比赛 | 纯 TS 规则内核（固定种子、mock 时钟、可批量模拟）+ Vite + React + Phaser 渲染：固定五匹马（一名玩家 + 四匹橡皮筋 CPU）、跟随镜头、idle 起跑、快跑、体力、冲线名次；本地无链 | 关闭渲染层后同一 `(seed, 按 tick 对齐的输入序列)` 给出相同名次，证明渲染不参与规则；同一输入在 30/60/120fps 下终态逐字段相等；CPU 速度的计算路径不引用任何名次或目标完成时间（代码审查项）；狂点到力竭、卡准节拍匀速、慢而稳、完全不点均可完赛且名次关系符合直觉，且不存在单一最优策略（狂点与卡准的完成 tick 差距在 5% 以内、卡准与休息交替严格优于两者）；只改时机不改频率时完成 tick 随命中度单调改善且幅度可测；死亡后即使处于力竭也能靠 `aMax/2` 的保底加速度爬回 `vLow`；固定 seed 下改变输入能改变名次，名次不退化为常数；窄屏与移动横屏操作可用，五条赛道可读 |
 | B：完整玩法与手感 | 14 张有序牌堆 + 游标发牌、里程检查点与刷新机制、效果模块骨架（速度 / 状态 / 装备 / 能力绑定 / 实体 / 场 / 发牌修正）、至少 14 张卡池（含强效果子集 ≥ 2，玩家的卡全部自作用）、慢放与超时、结算卡片、中英文、设置 | **手感指标是本阶段的核心门禁**：固定 seed 批量模拟下，最优玩法与放任不管的名次差期望落在 `[2, 3]`，名次差为 0 的样本比例低于 5%；牌堆十四张互不重复、末两张必为强效果卡，展示序列与 0–3 次选择及任意刷新组合都可回放一致；遍历 10000 个 seed 断言上述两条，另以静态断言检查总卡池 ≥ 14、强效果子集 ≥ 2（卡池不足是对所有 seed 成立的静态事实，遍历碰不出来）；全场 0.1 倍速、现实 20 秒到期、最后 5 秒提醒、隐藏按钮不能通过快捷键触发；一次 20 秒慢放最多前进 2 秒模拟距离，不越过下个检查点或终点；「落后追赶」的增益在不读取任何电脑马状态的前提下可复现；**里程与位置分离可验证**：反复交换 20 次后抽卡次数仍等于里程跨过的档位数，且提前冲线的场次抽卡次数少于三次而非报错；**效果模块可插拔可验证**：打乱模块注册顺序后终态逐字段不变，缺模块的卡在构建期失败，清空全部装备资源后同一输入序列的名次与编码逐字段相等 |
 | C：薄合约 | Foundry 实现 `enterRace` / `settleRace`（主体约 60 行）、`IResultValidator` 与 `AlwaysAccept`、可配置赔付表、`rulesVersion` 随场记录；本地链跑通两笔交易 | 合约内没有任何玩法断言（代码审查项：不存在对完成时间、名次合法性或输入内容的比较）；validator 换成恒 false 实现后 `settleRace` 被拒、`enterRace` 不受影响、主合约地址与字节码不变，换回后同一场可结算；链上 seed 与 TS 发牌派生复算出的十四张牌逐张相等且两两不重复；`settleRace` 成功后槽位删除，重复结算 revert；任何 calldata 输入下单场赔付不超过赔付表上限，Vault 余额不为负 |
-| D：测试网闭环 | Mera 创建/恢复、余额、真实两笔交易、Vault 偿付上限、Submitted / Included / Finalized 状态、从 calldata 取回比赛记录 | 实际测试网交易证明：创建或登录后同地址；入场交易确认后 seed 可读、整副牌堆据此生成并起跑；赢家返还到账；最后两名 `G = 0` 仍成功提交 `settleRace` 并留下 event；任何第三方仅凭链上 seed 与结算 calldata 离线复算出发牌与完整比赛记录，与前端展示一致；广播失败重试不产生第二场比赛 |
+| D：测试网闭环 | ~~Mera 创建/恢复、余额~~（已完成）、真实两笔交易、Vault 偿付上限、Submitted / Included / Finalized 状态、从 calldata 取回比赛记录 | 钱包部分已验收：注册与登录落在同一地址、链上余额从 RPC 读出、助记词可导出并能导入标准钱包。余下部分要实际测试网交易证明：入场交易确认后 seed 可读、整副牌堆据此生成并起跑；赢家返还到账；最后两名 `G = 0` 仍成功提交 `settleRace` 并留下 event；任何第三方仅凭链上 seed 与结算 calldata 离线复算出发牌与完整比赛记录，与前端展示一致；广播失败重试不产生第二场比赛 |
 | E：分享与收尾 | 结算海报与分享（卡面、出图、剪贴板、X、系统分享面板）、目标设备适配、资金不变量审查、正式部署配置 | 资金不变量测试全通过；设备矩阵通过（含四处分发路径实测）；结算延迟分位数测量完成。**赔付表取一组让手感成立的数即可，不做收益标定**——它是可配置项，改赔率不需要重新部署 |
 
-合约薄到不构成架构风险：`settleRace` 只做一次校验器调用、一次赔付表查表和一次转账，gas 在数万量级，主要成本是 calldata 长度，不需要提前做 gas 证伪。唯一会反过来决定架构是否成立的外部依赖是 **Mera 的设备兼容性**，在 A 阶段用本地实验页验证目标设备的 Passkey/PRF 往返，不拖到 D 阶段才第一次接触。
+合约薄到不构成架构风险：`settleRace` 只做一次校验器调用、一次赔付表查表和一次转账，gas 在数万量级，主要成本是 calldata 长度，不需要提前做 gas 证伪。唯一会反过来决定架构是否成立的外部依赖是 **Mera 的设备兼容性**，已在钱包接入时验证完往返，没有拖到 D 阶段。结论是它确实构成产品约束而非工程风险：账户完全由 WebAuthn 的 PRF 扩展决定，认证器不给 PRF 就没有账户，没有降级路径。桌面版 Chrome 只有存进 Google 密码管理器的通行密钥带 PRF，存在本地 profile 的会直接失败；1Password、iCloud 钥匙串、Windows 密码管理器与 YubiKey 5C Nano 已确认可用。因此界面必须把 `PRF_UNAVAILABLE` 单独成一类错误并给出改存位置的指引，不能混进「操作失败」。
 
 结算 calldata 承载完整比赛记录而非只存哈希，长度直接决定 gas，编码与上限在 C 阶段定死。
 
@@ -64,13 +64,11 @@
 
 `//TODO -` 表示尚未完成，必须同时附验证方法；本文件不是已完成事项清单。
 
-//TODO - A 阶段初始化前核验 npm 实际可安装版本与 peer dependencies，锁定依赖和 Node LTS；判据为 `bun install` 无 peer 冲突、`bun tsc -b` 通过、浏览器可启动、Mera 类型检查通过。不直接将官方 main 分支版本号当作发布版本。
-
 //TODO - B 阶段测量手感指标：`cd frontend && bun run scripts/feel-sweep.ts --seeds 1000`，每个 seed 各跑最优玩法与完全放任两条策略。判据：名次差期望落在 `[2, 3]`，且名次差为 0 的样本比例低于 5%。任一不满足，调橡皮筋强度与性格分布，不得靠改赔付表或放宽判据掩盖。该数值表是 B 阶段的验收物，E 阶段的赔付表定价直接引用它，不得另起一套。
 
 //TODO - C 阶段实测 `settleRace` gas：`forge test --gas-report`，用例覆盖最短与最长比赛记录。判据为不含 calldata 的合约逻辑不超过 35k gas、整笔不超过 60k gas，且最好与最坏输入的本体 gas 差值为 0；单笔总 gas 随记录字节数线性增长，回归斜率与每非零字节 16 gas 的理论值偏差不超过 10%，否则说明合约在解析记录内容，回查实现。
 
-//TODO - D 前完成钱包 PRF 创建、刷新后恢复、跨设备恢复、不支持认证器、用户取消、余额不足和生产 rpId 的真实设备矩阵；记录浏览器、系统、认证器及结果。
+//TODO - D 前完成钱包 PRF 的**真实设备**矩阵：创建、刷新后恢复、跨设备恢复、不支持 PRF 的认证器、用户取消、余额不足和生产 rpId 各跑一遍，记录浏览器、系统、认证器与结果。虚拟认证器只证明代码路径正确，证明不了设备差异，两者不可互相替代；判据为目标设备清单上每一项都有实测结论，`PRF_UNAVAILABLE` 的占比与对应认证器写进文档。
 
 //TODO - D 阶段确定结算交易的 gas limit 设定。Monad 按 gas limit 而非实际消耗收费，结算成本只随记录长度变化，而长度在封存输入的那一刻已知。判据为按实际记录长度逐场估算后，100 笔真实交易零 out-of-gas，且实际消耗与 limit 的差值不超过 10%。
 
@@ -80,7 +78,7 @@
 
 ## 4. 文档维护边界
 
-当前正在执行的是[无链 Demo 计划](demo.md)，它覆盖本文 A、B 两阶段并把它们做成一个完整可玩的产品；C 阶段之前不引入任何链交互。
+当前正在执行的是[最小 Demo 计划](demo.md)，它覆盖本文 A、B 两阶段并把它们做成一个完整可玩的产品，边界在该文第 1 节；钱包管理已按 D 阶段的标准接上真实测试网，比赛的入场与结算在 C 阶段有合约之前仍是 mock。
 
 玩法规则仅在[玩法设计](../game-design.md)定义，其中卡牌逐张的词条、数值与美术需求在[卡牌设计](../card-design.md)展开；模块与时钟在[架构](../architecture/overall.md)定义，效果模块的边界与写权限在[效果系统架构](../architecture/effect-system.md)定义；资金、交易与合约状态机在[链上文档](../chain-and-economy.md)定义；信任边界与将来加校验的升级路径在[无服务端探索](../_reaserch/serverless.md)定义。本文件只管理交付与验收，避免相同数值在多个文件反复复制。
 
@@ -97,10 +95,10 @@
 | 资料 | 对设计的影响 |
 | --- | --- |
 | [Phaser 项目模板](https://docs.phaser.io/phaser/getting-started/project-templates) | 采用已有 React + TypeScript + Vite 组合 |
-| [Mera 仓库](https://github.com/category-labs/mera) | Passkey 账户库仍为 preview，派生和产品流程由应用负责 |
-| [Mera 入门](https://github.com/category-labs/mera/blob/main/docs/src/content/docs/getting-started.mdx) | 创建、恢复及账户派生流程 |
+| [Mera 仓库](https://github.com/category-labs/mera) | Passkey 账户库仍为 preview（已接入 0.2.0），派生和产品流程由应用负责 |
+| [Mera 入门](https://github.com/category-labs/mera/blob/main/docs/src/content/docs/getting-started.mdx) | 创建、恢复及账户派生流程；本项目按官方推荐走 BIP-39/BIP-32，派生路径见[架构第 8 节](../architecture/overall.md) |
 | [Mera viem 适配](https://github.com/category-labs/mera/blob/main/docs/src/content/docs/reference/to-viem-account.md) | 使用官方 LocalAccount 接口，无需自行封装签名算法 |
-| [Mera 认证器支持](https://github.com/category-labs/mera/blob/main/docs/src/content/docs/authenticator-support.md) | PRF 支持需要具体浏览器/认证器实测 |
+| [Mera 认证器支持](https://github.com/category-labs/mera/blob/main/docs/src/content/docs/authenticator-support.md) | PRF 支持需要具体浏览器/认证器实测；桌面版 Chrome 的本地 profile 通行密钥不带 PRF，必须存进 Google 密码管理器 |
 | [Mera 安全模型](https://github.com/category-labs/mera/blob/main/docs/src/content/docs/concepts/security-model.mdx) | 软件密钥、域名恢复与会话边界 |
 | [Monad 网络信息](https://docs.monad.xyz/developer-essentials/network-information) | 部署时核对网络、chainId 和 RPC，不混用测试网/主网 |
 | [Monad Gas 定价](https://docs.monad.xyz/developer-essentials/gas-on-monad) | 按 gas limit 而非实际消耗收费；结算成本只随记录长度变化，前端可逐场精确估算 limit |
