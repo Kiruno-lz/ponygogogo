@@ -48,7 +48,7 @@ function keyOf(file: string): string {
 }
 
 const manifest: Record<string, Entry> = {}
-for (const file of [...walk(ROOT), ...walk('public/assets/art').filter(p => !/storyboard|-(running|idle)-(\d+|animated)\.png$|generation-prompts|animation-metadata|wallet-reference|scene-(loop|bridge)|\/fidelity\//.test(p) && (!p.includes('/ui/') || /-trimmed\.png$|\/(flag|leaderboard-avatar)-\d\.png$|\/(star|avatar|stamina)-reference(-blank|-empty)?\.png$|\/(avatar|star-(race|gogo))-source\.png$/.test(p)))]) {
+for (const file of [...walk(ROOT), ...walk('public/assets/art').filter(p => !/storyboard|-(running|idle)-(\d+|animated)\.png$|generation-prompts|animation-metadata|wallet-reference|scene-(loop|bridge)|\/fidelity\/|-meta\.json$|\/ui-kit\.png$/.test(p) && (!p.includes('/ui/') || /-trimmed\.png$|\/bg-title\.png$|\/(flag|leaderboard-avatar)-\d\.png$|\/(star|avatar|stamina)-reference(-blank|-empty)?\.png$|\/(avatar|star-(race|gogo))-source\.png$/.test(p)))]) {
   const ext = file.slice(file.lastIndexOf('.')).toLowerCase()
   const kind = KIND_BY_EXT[ext]
   if (!kind) continue
