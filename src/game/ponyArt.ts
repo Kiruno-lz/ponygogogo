@@ -1,6 +1,6 @@
 /**
  * 小马造型。唯一一份美术定义，菜单（DOM/SVG）与赛道（Phaser 贴图）共用。
- * 造型对齐 assrt/pony classic.png 的侧面站立稿：圆钝身体、方腿、锯齿鬃毛、大眼睛。
+ * 造型对齐 art-src/renders/pony classic.png 的侧面站立稿：圆钝身体、方腿、锯齿鬃毛、大眼睛。
  */
 import { hexCss, type HorseProfile } from './horses.ts'
 

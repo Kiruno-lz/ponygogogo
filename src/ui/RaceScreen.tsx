@@ -189,7 +189,7 @@ export function RaceScreen(p: RaceScreenProps) {
         : null
 
   return (
-    <div className="screen" data-testid="screen-race" style={{ background: "url('/assets/art/track/scene.png') center / 100% 100% no-repeat" }}>
+    <div className="screen" data-testid="screen-race" style={{ background: "url('/assets/art/track/scene.webp') center / 100% 100% no-repeat" }}>
       <div
         ref={hostRef}
         style={{ position: 'absolute', inset: 0, width: DESIGN_W, height: DESIGN_H }}

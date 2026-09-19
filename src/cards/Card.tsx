@@ -10,14 +10,14 @@ import { t } from '../ui/i18n.ts'
 /** 来自 public/assets/placeholder/ui/card_frame.json 的实测矩形 */
 const FRAME = {
   common: {
-    src: '/assets/placeholder/ui/card_frame_common.png',
+    src: '/assets/placeholder/ui/card_frame_common.webp',
     w: 798,
     h: 900,
     art: [100, 111, 589, 546],
     ribbon: [72, 661, 698, 150],
   },
   rare: {
-    src: '/assets/placeholder/ui/card_frame_rare.png',
+    src: '/assets/placeholder/ui/card_frame_rare.webp',
     w: 757,
     h: 900,
     art: [87, 142, 572, 528],
@@ -109,7 +109,7 @@ export function Card({
         }}
       >
         <img
-          src={`/assets/placeholder/icons/${def.art.icon}.png`}
+          src={`/assets/placeholder/icons/${def.art.icon}.webp`}
           alt=""
           draggable={false}
           style={{

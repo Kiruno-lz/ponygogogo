@@ -1,5 +1,5 @@
 /**
- * 竞速 HUD。布局对齐 assrt/race_gaming.png：
+ * 竞速 HUD。布局对齐 art-src/renders/race_gaming.png：
  * 左上玩家头像牌、顶部体力条、体力条下方的状态图标行、右侧羊皮纸名次榜、右下 GOGOGO 星形按钮。
  */
 import { useEffect, useRef, useState } from 'react'
@@ -95,7 +95,7 @@ function StatusBadge({ slot, reduced }: { slot: Slot; reduced: boolean }) {
         }}
       >
         <img
-          src={slot.icon.startsWith('buff-') ? `/assets/art/ui/${slot.icon}-trimmed.png` : `/assets/placeholder/icons/${slot.icon}.png`}
+          src={slot.icon.startsWith('buff-') ? `/assets/art/ui/${slot.icon}-trimmed.webp` : `/assets/placeholder/icons/${slot.icon}.webp`}
           alt=""
           style={{
             width: 54,
@@ -275,7 +275,7 @@ export function Hud(p: HudProps) {
 
 export function HorseAvatar({ horseId, size }: { horseId: number; size: number }) {
   return <div className="horse-avatar" style={{ width: size, height: size }}>
-    <img src={`/assets/art/ui/leaderboard-avatar-${horseId}.png`} alt={HORSE_PROFILES[horseId]!.name} draggable={false}/>
+    <img src={`/assets/art/ui/leaderboard-avatar-${horseId}.webp`} alt={HORSE_PROFILES[horseId]!.name} draggable={false}/>
   </div>
 }
 
