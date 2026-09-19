@@ -13,6 +13,10 @@ const zh: Dict = {
   'loading.enter': '进入游戏',
   'loading.ready': '全部就绪',
 
+  // 后台预取还没跑完就点进去了，或者预取失败了要补
+  'assets.preparing': '正在准备这一部分的资源',
+  'assets.later': '稍后再说',
+
   'home.start': '开始游戏',
   'home.startEn': 'START',
   'home.collection': '卡牌图鉴',
@@ -155,6 +159,9 @@ const en: Dict = {
   'loading.retry': 'Retry failed items',
   'loading.enter': 'Enter',
   'loading.ready': 'All ready',
+
+  'assets.preparing': 'Preparing assets for this screen',
+  'assets.later': 'Not now',
 
   'home.start': 'START',
   'home.startEn': 'START',

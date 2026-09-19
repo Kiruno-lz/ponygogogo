@@ -4,11 +4,23 @@
  */
 export type AssetKind = 'image' | 'audio' | 'json'
 
+/**
+ * 资源分级：这一项「在哪个阻塞点之前必须就绪」。
+ * 归属由 scripts/measure-display-sizes.ts 实测每张图首次出现在哪个页面得出，不是按目录猜的。
+ */
+export type AssetTier = 'boot' | 'home' | 'race' | 'result'
+
+/** 加载顺序。靠前的先就绪；boot+home 阻塞进首页，race+result 在首页之后后台预取 */
+export const TIER_ORDER: readonly AssetTier[] = ['boot', 'home', 'race', 'result']
+
+const TIERS = new Set<string>(TIER_ORDER)
+
 export interface ManifestEntry {
   kind: AssetKind
   path: string
   bytes: number
   sha256: string
+  tier: AssetTier
   alt?: string
   cid?: string
 }
@@ -25,14 +37,31 @@ export interface AssetSource {
   /** 加载并返回可直接使用的资源 URL */
   load(key: AssetKey): Promise<LoadedAsset>
   keys(): AssetKey[]
+  /** 某一级的全部 key。调用方按级取，仍然不知道路径怎么拼 */
+  keysOf(tier: AssetTier): AssetKey[]
   entry(key: AssetKey): ManifestEntry | undefined
+}
+
+/**
+ * 缺 tier 即报错，不按最早的级兜底。
+ * 构建产物一定带 tier，缺失只可能是清单来自旧构建；兜底会让整份清单退化成「全部阻塞」，
+ * 分级优化被悄悄抹掉而表面一切正常——这种静默降级比直接报错难查得多。
+ */
+export function assertTiered(manifest: AssetManifest): AssetManifest {
+  const bad = Object.keys(manifest).filter((k) => !TIERS.has(manifest[k]!.tier))
+  if (bad.length > 0) {
+    throw new Error(
+      `资源清单缺少分级字段（${bad.length} 项，例如 ${bad.slice(0, 3).join('、')}）：请用当前构建脚本重新生成 manifest.json`,
+    )
+  }
+  return manifest
 }
 
 /** 拉取资源清单。清单是进入加载流程前的第一份数据，必须可取消 */
 export async function fetchManifest(signal?: AbortSignal): Promise<AssetManifest> {
   const res = await fetch('/assets/manifest.json', { signal })
   if (!res.ok) throw new Error(`资源清单加载失败：${res.status}`)
-  return (await res.json()) as AssetManifest
+  return assertTiered((await res.json()) as AssetManifest)
 }
 
 function canPlay(path: string): boolean {
@@ -43,12 +72,20 @@ function canPlay(path: string): boolean {
   return true
 }
 
+function keysOfTier(manifest: AssetManifest, tier: AssetTier): AssetKey[] {
+  return Object.keys(manifest).filter((k) => manifest[k]!.tier === tier)
+}
+
 /** 从构建产物读取 manifest[key].path，通过浏览器资源加载事件报告完成 */
 export class LocalAssetSource implements AssetSource {
   constructor(private readonly manifest: AssetManifest, private readonly base = '/') {}
 
   keys(): AssetKey[] {
     return Object.keys(this.manifest)
+  }
+
+  keysOf(tier: AssetTier): AssetKey[] {
+    return keysOfTier(this.manifest, tier)
   }
 
   entry(key: AssetKey): ManifestEntry | undefined {
@@ -76,6 +113,10 @@ export class RemoteAssetSource implements AssetSource {
 
   keys(): AssetKey[] {
     return Object.keys(this.manifest)
+  }
+
+  keysOf(tier: AssetTier): AssetKey[] {
+    return keysOfTier(this.manifest, tier)
   }
 
   entry(key: AssetKey): ManifestEntry | undefined {
