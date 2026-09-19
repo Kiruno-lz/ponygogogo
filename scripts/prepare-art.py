@@ -5,10 +5,10 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-ART = ROOT / 'public/assets/art'
+ART = ROOT / 'art-src/art'
 
 UI = ART / 'ui'
-race_source = Image.open(ROOT / 'assrt/race_start.png').convert('RGBA')
+race_source = Image.open(ROOT / 'art-src/renders/race_start.png').convert('RGBA')
 for name, matte_name, box in [
     ('avatar-source', 'avatar-reference', (35, 25, 253, 247)),
     ('star-race-source', 'star-reference', (1190, 565, 1619, 955)),
