@@ -255,6 +255,8 @@ html, body, #root {
 .wallet-content { text-align: left; cursor: pointer; }
 .home-wallet-error { position: absolute; left: 86px; bottom: 116px; width: 640px; margin: 0; padding: 10px 16px; background: rgba(48, 20, 12, .88); color: #ffe9c9; font-size: 18px; font-weight: 700; line-height: 1.45; border-radius: 12px; }
 
+/* 分级资源没就绪时的兜底遮罩。底下那一页照常渲染，所以不会白屏。 */
+.tier-gate { position: absolute; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; background: rgba(20, 10, 4, .58); }
 
 /* 钱包管理面板：地址、链上余额、领测试币、导出助记词。 */
 .wallet-modal-host { position: absolute; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; }
