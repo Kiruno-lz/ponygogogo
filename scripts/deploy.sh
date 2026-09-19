@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# 一键部署到 Cloudflare Pages：环境自检 → 类型检查 → 构建 → 产物体积与限制核验 → wrangler 部署
+# 一键部署到 Cloudflare Workers 静态资源：环境自检 → 类型检查 → 构建 → 产物体积与限制核验 → wrangler 部署
 # DRY_RUN=1 只跑到核验为止，不执行部署
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-# Pages 的项目名与自定义域绑定在 Cloudflare 侧管理，这里只留一个可覆盖的默认值
+# Worker 名与自定义域绑定在 Cloudflare 侧管理；名字的真源是 wrangler.toml 的 name，
+# 这里只用来在日志里显示
 PROJECT_NAME="${PROJECT_NAME:-ponygogogo}"
 SITE_URL="${SITE_URL:-https://ponygo.kiruno.cc}"
 DIST_DIR="dist"
-# Cloudflare Pages 硬限制：单文件 25 MiB、单次部署文件数免费计划 20000（付费计划 100000）
+# Workers 静态资源硬限制：单文件 25 MiB、单次版本文件数免费计划 20000（付费计划 100000）
 # 本项目未声明付费计划，按免费计划的上限核验
 MAX_FILE_BYTES=$((25 * 1024 * 1024))
 MAX_FILE_COUNT=20000
@@ -53,7 +54,7 @@ say "体积最大的 10 个文件（一眼看出是否把素材原图误打进�
 find "$DIST_DIR" -type f -exec du -k {} + 2>/dev/null | sort -rn | head -10 | awk -F'\t' '{printf "  %8s KiB  %s\n", $1, $2}'
 
 # ---- 5. Cloudflare Pages 硬限制核验 ----
-say "核验 Cloudflare Pages 限制（单文件 ≤ 25 MiB，单次部署 ≤ ${MAX_FILE_COUNT} 个文件）…"
+say "核验 Workers 静态资源限制（单文件 ≤ 25 MiB，单次版本 ≤ ${MAX_FILE_COUNT} 个文件）…"
 FILE_COUNT=$(find "$DIST_DIR" -type f | wc -l | tr -d ' ')
 say "文件数：$FILE_COUNT"
 if [ "$FILE_COUNT" -gt "$MAX_FILE_COUNT" ]; then
@@ -64,7 +65,7 @@ OVERSIZED=$(find "$DIST_DIR" -type f -size +"${MAX_FILE_BYTES}"c -print 2>/dev/n
 if [ -n "$OVERSIZED" ]; then
   say "以下文件超过 25 MiB："
   echo "$OVERSIZED" | sed 's/^/  /'
-  die "存在超过单文件大小上限的产物，部署会被 Cloudflare Pages 拒绝"
+  die "存在超过单文件大小上限的产物，部署会被 Cloudflare 拒绝"
 fi
 say "限制核验通过"
 
@@ -72,9 +73,8 @@ say "限制核验通过"
 # public/_headers 里素材的缓存规则按子目录写死（/assets/art/*、/assets/placeholder/*、
 # /assets/manifest.json），换来规则互不重叠、不依赖 Cloudflare 的头撤销语义。
 # 代价是管线新增顶层目录时会静默漏掉规则，所以在这里守住。
-for f in _headers _redirects; do
-  [ -f "$DIST_DIR/$f" ] || die "$f 没有进入产物，Cloudflare Pages 会失去缓存与回退配置"
-done
+# SPA 回退不走 _redirects，由 wrangler.toml 的 not_found_handling 负责。
+[ -f "$DIST_DIR/_headers" ] || die "_headers 没有进入产物，站点会失去全部缓存策略"
 UNCOVERED=$(find "$DIST_DIR/assets" -type f 2>/dev/null \
   | sed "s|^$DIST_DIR/||" \
   | grep -v -e '^assets/art/' -e '^assets/placeholder/' -e '^assets/manifest\.json$' || true)
@@ -91,6 +91,7 @@ if [ "${DRY_RUN:-0}" = "1" ]; then
   exit 0
 fi
 
-say "部署到 Cloudflare Pages（项目：$PROJECT_NAME）…"
-npx wrangler pages deploy "$DIST_DIR" --project-name="$PROJECT_NAME" || die "wrangler 部署失败"
+# 目录与名字都从 wrangler.toml 读，命令行不重复一遍，避免两处打架
+say "部署到 Cloudflare（Worker：$PROJECT_NAME）…"
+npx wrangler deploy || die "wrangler 部署失败"
 say "部署完成 → $SITE_URL"

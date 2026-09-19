@@ -1,3 +1,11 @@
+# Workers 静态资源部署。没有 Worker 脚本（不设 main），所以每个请求都落在静态资源上——
+# 官方计费口径是「静态资源请求免费且无限量」，与 Pages 一致。
 name = "ponygogogo"
-pages_build_output_dir = "dist"
 compatibility_date = "2026-09-19"
+
+[assets]
+directory = "./dist"
+# 只对导航请求（Sec-Fetch-Mode: navigate）回退到 index.html。
+# 这比 _redirects 里的 `/* /index.html 200` 更准：拼错的图片路径会正常 404，
+# 而不是拿一份 HTML 冒充图片返回。
+not_found_handling = "single-page-application"
