@@ -1,18 +1,46 @@
 /**
  * 结算页。冲线封存后立即可显示，不等结算流程——
  * 比赛结果由浏览器决定，资金状态是另一条独立的进度，两者不合并成一个转圈。
+ *
+ * 画面按 assrt/result.png 的原始坐标摆放：1620×971 的画板上，
+ * 背景、奖章名牌、标题木牌、数据木纸和三个按钮都是各自的透明切片，
+ * 文字层压在切片被抹空的位置上。改版面等于改这里的绝对坐标，不靠自动流式布局。
  */
 import { CARD_BY_ID } from '../race/cards/pool.ts'
 import { PAYOUT_TABLE, SIM_HZ, STAKE_PRESETS } from '../race/core/constants.ts'
 import { FP } from '../race/core/fixed.ts'
 import type { RaceResult } from '../race/core/types.ts'
-import { Card } from '../cards/Card.tsx'
 import { HORSE_PROFILES } from '../game/horses.ts'
-import { StarButton, WoodButton, Chip } from '../ui/Button.tsx'
+import { Chip, usePress } from '../ui/Button.tsx'
 import { t, type Lang } from '../ui/i18n.ts'
-import { PonyPortrait } from '../ui/PonyPortrait.tsx'
 
 export type SettleStatus = 'preparing' | 'submitted' | 'settled' | 'failed'
+
+/** 原画里奖台前沿的地平线与角色中轴，五匹马都对到这两条线上 */
+const HERO_BASELINE = 719
+const HERO_CENTER_X = 380
+/** 五匹马统一缩到 hero-0 的 515×393 画布；每匹的实体位置不同，各自记下中轴与蹄底 */
+const HERO_FRAMES = [
+  { centerX: 247, bottom: 379 },
+  { centerX: 263, bottom: 382 },
+  { centerX: 259, bottom: 376 },
+  { centerX: 262, bottom: 380 },
+  { centerX: 260, bottom: 378 },
+]
+const HERO_W = 515
+const HERO_H = 393
+
+/** 五档奖章各一张，名次数字画在牌面上，所以这一层不再叠文字 */
+const MEDAL_COUNT = 5
+function medalSrc(rank: number): string {
+  return `/assets/art/result/medal-${Math.min(Math.max(rank, 1), MEDAL_COUNT)}.png`
+}
+/** 三个卡槽在原画里的锚点：序号小页签的左缘，以及卡面图标与卡名的共同中心 */
+const PICK_SLOTS = [
+  { tab: 912, center: 986 },
+  { tab: 1109, center: 1188 },
+  { tab: 1313, center: 1395 },
+]
 
 export interface ResultScreenProps {
   lang: Lang
@@ -32,112 +60,57 @@ export function ResultScreen(p: ResultScreenProps) {
   const net = payout - stake
   const prof = HORSE_PROFILES[p.result.horseId]!
   const combo = p.result.endReason === 'forced-combo'
+  const hero = HERO_FRAMES[p.result.horseId] ?? HERO_FRAMES[0]!
 
   return (
-    <div
-      className="screen"
-      data-testid="screen-result"
-      style={{
-        background: 'linear-gradient(#f7e9d8,#e2c6a9)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 26,
-      }}
-    >
-      <h1 className="h-title" style={{ margin: 0, fontSize: 46 }}>
-                {t(p.lang, 'result.title')}
-      </h1>
+    <div className="screen result-screen" data-testid="screen-result">
+      <div className={`result-artboard${p.lang === 'en' ? ' en' : ''}`}>
+        <img className="result-bg" src="/assets/art/result/background.png" alt="" draggable={false} />
+        <img
+          className="result-hero"
+          src={`/assets/art/result/hero-${p.result.horseId}.png`}
+          alt={prof.name}
+          draggable={false}
+          style={{
+            left: HERO_CENTER_X - hero.centerX,
+            top: HERO_BASELINE - hero.bottom,
+            width: HERO_W,
+            height: HERO_H,
+          }}
+        />
 
-      <div style={{ display: 'flex', gap: 26, alignItems: 'center' }}>
-        <div className="panel" style={{ width: 290, height: 320, display: 'grid', placeItems: 'center', padding: 0 }}>
-          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <PonyPortrait horseId={p.result.horseId} width={176} />
+        <img className="result-stats-board" src="/assets/art/result/stats-board.png" alt="" draggable={false} />
+        <div className="result-rows">
+          <Row label={t(p.lang, 'result.time')} value={`${(p.result.finishTick / SIM_HZ).toFixed(2)}s`} top={264} />
+          <Row label={t(p.lang, 'result.stake')} value={`${stake} MON`} top={308} testId="result-stake" />
+          <Row label={t(p.lang, 'result.payout')} value={`${payout} MON`} top={352} testId="result-payout" />
+        </div>
+        <div className="result-net-label">{t(p.lang, 'result.net')}</div>
+        <div className="result-net-value" data-testid="result-net">
+          {`${net >= 0 ? '+' : '−'}${Math.abs(net)} MON`}
+        </div>
+
+        <div className="result-picks-title">{t(p.lang, 'result.choices')}</div>
+        {p.result.choices.map((c, i) => {
+          const def = c.cardId ? CARD_BY_ID[c.cardId] : null
+          const slot = PICK_SLOTS[i] ?? PICK_SLOTS[0]!
+          return (
             <div
-              style={{
-                fontSize: 21,
-                fontWeight: 800,
-                marginTop: 2,
-                padding: '2px 16px',
-                borderRadius: 9,
-                background: 'rgba(249,199,79,0.5)',
-                border: '2px solid rgba(90,58,34,0.35)',
-              }}
+              key={c.checkpoint}
+              className="result-pick"
+              data-testid={`result-choice-${c.checkpoint}`}
+              style={{ left: slot.tab, ['--pick-center' as string]: `${slot.center - slot.tab}px` }}
             >
-              {prof.name}
-            </div>
-          </div>
-        </div>
-
-        <div className="panel" style={{ width: 430, height: 320, padding: '2px 22px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-            <span style={{ fontSize: 20 }}>{t(p.lang, 'result.rank')}</span>
-            <span
-              className="h-title mono"
-              data-testid="result-rank"
-              style={{ fontSize: 74, lineHeight: 1, color: p.result.rank === 1 ? '#d98f12' : '#57250c' }}
-            >
-              {p.result.rank}
-            </span>
-            <span style={{ fontSize: 26 }}>/ 5</span>
-          </div>
-          {combo && (
-            <div data-testid="result-combo" style={{ color: '#b5451f', fontWeight: 900, fontSize: 22 }}>
-              ✦ {t(p.lang, 'result.combo')}
-            </div>
-          )}
-          <Line label={t(p.lang, 'result.time')} value={`${(p.result.finishTick / SIM_HZ).toFixed(2)}s`} />
-          <Line label={t(p.lang, 'result.stake')} value={`${stake} MON`} testId="result-stake" />
-          <Line label={t(p.lang, 'result.payout')} value={`${payout} MON`} testId="result-payout" />
-          <Line
-            label={t(p.lang, 'result.net')}
-            value={`${net >= 0 ? '+' : ''}${net} MON`}
-            strong
-            testId="result-net"
-          />
-          <div style={{ height: 6 }} />
-        </div>
-
-        <div className="panel" style={{ width: 430, height: 320, padding: '2px 18px' }}>
-          <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 4 }}>
-            {t(p.lang, 'result.choices')}
-          </div>
-          {p.result.choices.map((c) => {
-            const def = c.cardId ? CARD_BY_ID[c.cardId] : null
-            return (
-              <div
-                key={c.checkpoint}
-                data-testid={`result-choice-${c.checkpoint}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  height: 82,
-                  borderBottom: '2px solid rgba(120,80,50,0.18)',
-                }}
-              >
-                <span className="mono" style={{ width: 22, opacity: 0.7 }}>
-                  {c.checkpoint + 1}
-                </span>
-                {def ? (
-                  <>
-                    <Card def={def} lang={p.lang} size="hud" />
-                    <span
-                      style={{
-                        fontSize: 17,
-                        fontWeight: 700,
-                        lineHeight: 1.2,
-                        flex: 1,
-                        minWidth: 0,
-                      }}
-                    >
-                      {def.name[p.lang]}
-                    </span>
-                  </>
-                ) : (
-                  <span style={{ fontSize: 16, opacity: 0.7 }}>
-                    {t(
+              <span className="result-pick-no mono">{c.checkpoint + 1}</span>
+              {def ? (
+                <img className="result-pick-icon" src={`/assets/placeholder/icons/${def.art.icon}.png`} alt="" draggable={false} />
+              ) : (
+                <span className="result-pick-icon result-pick-empty" aria-hidden="true" />
+              )}
+              <span className="result-pick-name">
+                {def
+                  ? def.name[p.lang]
+                  : t(
                       p.lang,
                       c.reason === 'not-reached'
                         ? 'result.notReached'
@@ -145,85 +118,90 @@ export function ResultScreen(p: ResultScreenProps) {
                           ? 'result.timeout'
                           : 'result.forfeited',
                     )}
-                  </span>
-                )}
-              </div>
-            )
-          })}
+              </span>
+            </div>
+          )
+        })}
+
+        {/* 资金状态独立于名次：木纸上只盖一枚短印章，失败的原委与重试放到按钮行下方 */}
+        <div className="result-settle" data-testid="settle-status">
+          <span className={`result-settle-stamp${p.settle === 'failed' ? ' failed' : ''}`}>
+            {p.settle === 'settled'
+              ? t(p.lang, 'result.settled')
+              : p.settle === 'failed'
+                ? t(p.lang, 'result.settleFailedShort')
+                : t(p.lang, 'result.settlingShort')}
+          </span>
+          {p.settle === 'failed' && (
+            <span className="result-settle-retry">
+              <span className="result-settle-why">{t(p.lang, 'result.settleFailed')}</span>
+              <Chip label={t(p.lang, 'result.settleRetry')} onClick={p.onRetrySettle} style={{ fontSize: 22 }} />
+            </span>
+          )}
         </div>
-      </div>
 
-      {/* 资金状态独立于名次 */}
-      <div
-        data-testid="settle-status"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          fontSize: 19,
-          fontWeight: 700,
-          color: p.settle === 'failed' ? '#a32c17' : '#57250c',
-        }}
-      >
-        {p.settle === 'settled' ? t(p.lang, 'result.settled') : null}
-        {p.settle === 'failed' ? t(p.lang, 'result.settleFailed') : null}
-        {p.settle !== 'settled' && p.settle !== 'failed' ? t(p.lang, 'result.settling') : null}
-        {p.settle === 'failed' && (
-          <Chip
-            label={t(p.lang, 'result.settleRetry')}
-            onClick={p.onRetrySettle}
-            style={{ fontSize: 17 }}
-          />
+        <img className="result-nameplate" src="/assets/art/result/nameplate.png" alt="" draggable={false} />
+        <img
+          className="result-medal-art"
+          src={medalSrc(p.result.rank)}
+          alt={`${t(p.lang, 'result.rank')} ${p.result.rank}`}
+          draggable={false}
+        />
+        {/* 名次已经画在奖章上，这里只留一个供读屏与测试取值的节点 */}
+        <span className="sr-only" data-testid="result-rank">{p.result.rank}</span>
+        <span className="result-name">{prof.name}</span>
+        <span className="result-rank-line">
+          <span className="result-rank-label">{t(p.lang, 'result.rank')}</span>
+          <span className="result-rank-total mono">/ {HORSE_PROFILES.length}</span>
+        </span>
+        {combo && (
+          <span className="result-combo" data-testid="result-combo">
+            ✦ {t(p.lang, 'result.combo')}
+          </span>
         )}
-      </div>
 
-      <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginTop: 2 }}>
-        <WoodButton
-          zh={t(p.lang, 'result.home')}
-          onClick={p.onHome}
-          style={{ minWidth: 280, minHeight: 84 }}
-        />
-        <WoodButton
-          zh={p.shared ? t(p.lang, 'result.shared') : t(p.lang, 'result.share')}
+        {/* 标题木牌整块无字，主副标题在这里排版 */}
+        <img className="result-header" src="/assets/art/result/header.png" alt="" draggable={false} />
+        <span className="result-title">{t(p.lang, 'result.title')}</span>
+        {/* 英文时主副标题说的是同一句话，只留主标题 */}
+        {p.lang === 'zh' && <span className="result-title-en">RACE COMPLETE</span>}
+
+        <ArtButton art="home" className="result-btn-home" label={t(p.lang, 'result.home')} onClick={p.onHome} />
+        <ArtButton
+          art="share"
+          className="result-btn-share"
+          label={p.shared ? t(p.lang, 'result.shared') : t(p.lang, 'result.share')}
           onClick={p.onShare}
-          style={{ minWidth: 330, minHeight: 84 }}
         />
-        <StarButton
-          big={t(p.lang, 'result.again')}
-          onClick={p.onAgain}
-          style={{ minWidth: 300, minHeight: 190 }}
-        />
+        <ArtButton art="again" className="result-btn-again" label={t(p.lang, 'result.again')} onClick={p.onAgain} />
       </div>
     </div>
   )
 }
 
-function Line({
-  label,
-  value,
-  strong,
-  testId,
-}: {
-  label: string
-  value: string
-  strong?: boolean
-  testId?: string
-}) {
+function Row({ label, value, top, testId }: { label: string; value: string; top: number; testId?: string }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        fontSize: strong ? 22 : 19,
-        fontWeight: strong ? 900 : 600,
-        padding: '2px 0',
-        borderBottom: '2px solid rgba(120,80,50,0.18)',
-      }}
-    >
-      <span>{label}</span>
-      <span className="mono" data-testid={testId}>
+    <div className="result-row" style={{ top }}>
+      <span className="result-row-label">{label}</span>
+      <span className="result-row-value mono" data-testid={testId}>
         {value}
       </span>
     </div>
+  )
+}
+
+/** 木牌与星形都是带 alpha 的整块原画，按钮本身不画任何底色，悬浮滤镜才不会溢出轮廓 */
+function ArtButton({ art, className, label, onClick }: {
+  art: 'home' | 'share' | 'again'
+  className: string
+  label: string
+  onClick: () => void
+}) {
+  const { pressed, handlers } = usePress(onClick)
+  return (
+    <button type="button" className={`btn ${className}${pressed ? ' pressed' : ''}`} {...handlers}>
+      <img src={`/assets/art/result/button-${art}.png`} alt="" draggable={false} />
+      <span className="lbl">{label}</span>
+    </button>
   )
 }
