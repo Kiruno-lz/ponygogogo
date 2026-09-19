@@ -1,6 +1,6 @@
 /**
  * 赛道场景。渲染层订阅规则状态，规则层不知道渲染层存在。
- * 构图对齐 assrt/race_gaming.png：分层视差背景 + 五条泥土赛道 + 只沿横轴跟随的镜头。
+ * 构图对齐 art-src/renders/race_gaming.png：分层视差背景 + 五条泥土赛道 + 只沿横轴跟随的镜头。
  */
 import Phaser from 'phaser'
 import { TRACK_LEN } from '../race/core/constants.ts'

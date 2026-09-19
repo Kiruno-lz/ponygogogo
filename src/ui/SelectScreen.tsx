@@ -23,7 +23,7 @@ export function SelectScreen(p: SelectScreenProps) {
   const affordable = stake <= p.balance
 
   return <div className="screen select-screen" data-testid="screen-select">
-    <img className="select-track" src="/assets/art/track/scene.png" alt="" draggable={false}/>
+    <img className="select-track" src="/assets/art/track/scene.webp" alt="" draggable={false}/>
     <div className="select-start-line"/>
     <PlayerPlaque horseId={horseId ?? 0}/>
     <StaminaArt fraction={1}/>
@@ -33,18 +33,18 @@ export function SelectScreen(p: SelectScreenProps) {
       return <button key={h.horseId} type="button" className={`horse-choice${on ? ' selected' : ''}`}
         data-testid={`horse-${h.horseId}`} aria-label={h.name} aria-pressed={on}
         onClick={() => setHorseId(h.horseId)} style={{ top: laneGroundY(h.horseId) - 112 }}>
-        <img className="lane-pennant" src={`/assets/art/ui/flag-${h.horseId}.png`} alt={`${h.horseId + 1}`} draggable={false}/>
+        <img className="lane-pennant" src={`/assets/art/ui/flag-${h.horseId}.webp`} alt={`${h.horseId + 1}`} draggable={false}/>
         <PonyPortrait horseId={h.horseId} width={178} action="idle" style={{ left: portraitLeft }}/>
-        <img className="horse-ground-ring" style={{ left: portraitLeft - 8 }} src="/assets/art/ui/gold-ring-trimmed.png" alt="" draggable={false}/>
+        <img className="horse-ground-ring" style={{ left: portraitLeft - 8 }} src="/assets/art/ui/gold-ring-trimmed.webp" alt="" draggable={false}/>
       </button>
     })}
     <div className="bet-art-panel" data-testid="bet-panel">
-      <div className="bet-balance"><img src="/assets/art/ui/coin-trimmed.png" alt=""/><span>{formatMon(p.balance)} MON</span></div>
+      <div className="bet-balance"><img src="/assets/art/ui/coin-trimmed.webp" alt=""/><span>{formatMon(p.balance)} MON</span></div>
       <h2>{p.lang === 'en' ? 'Choose your bet' : t(p.lang, 'select.chooseBet')}</h2>
       <div className="bet-chips">
         {STAKE_PRESETS.map((v, i) => <Chip key={v} label={v} on={i === tier} onClick={() => setTier(i)} />)}
       </div>
-      <div className="bet-win"><img src="/assets/art/ui/coin-trimmed.png" alt=""/><span data-testid="potential-win">{t(p.lang, 'select.uwin', { n: potential })}</span><img src="/assets/art/ui/horseshoe-trimmed.png" alt=""/></div>
+      <div className="bet-win"><img src="/assets/art/ui/coin-trimmed.webp" alt=""/><span data-testid="potential-win">{t(p.lang, 'select.uwin', { n: potential })}</span><img src="/assets/art/ui/horseshoe-trimmed.webp" alt=""/></div>
       <div className="bet-difficulty"><span>{t(p.lang, 'select.difficulty')}</span><strong data-testid="difficulty">{t(p.lang, `select.tier${tier}`)}</strong></div>
       {!affordable && <div className="bet-error">{t(p.lang, 'select.insufficient')}</div>}
     </div>

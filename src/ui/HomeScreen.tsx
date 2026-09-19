@@ -24,17 +24,17 @@ export function HomeScreen({ lang, account, balance, busy, error, onStart, onCol
     lang === 'zh' ? t(lang, key) : undefined
   return <div className="screen home-screen" data-testid="screen-home">
     <div className="home-artboard">
-      <img className="home-bg" src="/assets/art/ui/bg-title.png" alt="" draggable={false} />
-      <img className="home-logo" src="/assets/art/home/logo.png" alt={t(lang, 'app.title')} draggable={false} />
+      <img className="home-bg" src="/assets/art/ui/bg-title.webp" alt="" draggable={false} />
+      <img className="home-logo" src="/assets/art/home/logo.webp" alt={t(lang, 'app.title')} draggable={false} />
       <ArtButton art="start" label={t(lang, 'home.start')} sub={sub('home.startEn')} onClick={onStart} />
       <ArtButton art="collection" label={t(lang, 'home.collection')} sub={sub('home.collectionEn')} onClick={onCollection} />
       <ArtButton art="settings" label={t(lang, 'home.settings')} sub={sub('home.settingsEn')} onClick={onSettings} />
       {account ? <div className="home-wallet" data-testid="wallet-panel">
         <button type="button" className="btn wallet-content" data-testid="wallet-open"
           aria-label={t(lang, 'wallet.title')} onClick={onOpenWallet}>
-          <div className="wallet-row"><img src="/assets/art/ui/avatar-trimmed.png" alt=""/><span className="mono" data-testid="wallet-label">{account.label}</span></div>
-          <div className="wallet-row"><img src="/assets/art/ui/coin-trimmed.png" alt=""/><span className="mono" data-testid="balance">{balance === null ? '—' : `${formatMon(balance)} ${CURRENCY}`}</span></div>
-          <div className="wallet-row"><img src="/assets/placeholder/icons/icon_13.png" alt=""/><span>0 / {CARD_POOL.length}</span></div>
+          <div className="wallet-row"><img src="/assets/art/ui/avatar-trimmed.webp" alt=""/><span className="mono" data-testid="wallet-label">{account.label}</span></div>
+          <div className="wallet-row"><img src="/assets/art/ui/coin-trimmed.webp" alt=""/><span className="mono" data-testid="balance">{balance === null ? '—' : `${formatMon(balance)} ${CURRENCY}`}</span></div>
+          <div className="wallet-row"><img src="/assets/placeholder/icons/icon_13.webp" alt=""/><span>0 / {CARD_POOL.length}</span></div>
         </button>
         <button className="wallet-logout btn" data-testid="wallet-logout" onClick={onLogout} aria-label={t(lang, 'home.logout')} title={t(lang, 'home.logout')}>{t(lang, 'home.logout')}</button>
       </div> : <>
@@ -53,7 +53,7 @@ function ArtButton({ art, label, sub, onClick, disabled }: {
   const { pressed, handlers } = usePress(onClick, disabled)
   return <button type="button" className={`btn home-${art}${pressed ? ' pressed' : ''}`}
     aria-label={sub ? `${label} ${sub}` : label} disabled={disabled} {...handlers}>
-    <img src={`/assets/art/home/${art}.png`} alt="" draggable={false}/>
+    <img src={`/assets/art/home/${art}.webp`} alt="" draggable={false}/>
     <span className="lbl">
       <span className="zh">{label}</span>
       {sub ? <span className="en">{sub}</span> : null}
