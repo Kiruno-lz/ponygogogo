@@ -1,4 +1,4 @@
-/** 赛道美术对象：只订阅速度、停步、飞行和外观状态，PNG 帧不参与规则。 */
+/** 赛道美术对象：只订阅速度、停步、飞行和外观状态，分镜帧不参与规则。 */
 import Phaser from 'phaser'
 import type { HorseProfile } from './horses.ts'
 import { decodeImage } from './images.ts'
@@ -18,7 +18,7 @@ export async function preparePonyImages(profiles: HorseProfile[]): Promise<PonyI
   await Promise.all(profiles.flatMap(p => {
     const keys = ponyTextureKeys(p.horseId)
     return (['running', 'idle'] as const).map(action =>
-      decodeImage(`/assets/art/ponies/${p.horseId}-${action}.png`).then(img => { out[keys[action]] = img }))
+      decodeImage(`/assets/art/ponies/${p.horseId}-${action}.webp`).then(img => { out[keys[action]] = img }))
   }))
   return out
 }

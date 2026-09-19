@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from PIL import Image
 
-PONIES = Path(__file__).resolve().parents[2] / 'public/assets/art/ponies'
+PONIES = Path(__file__).resolve().parents[2] / 'art-src/art/ponies'
 
 class PonySilhouetteTest(unittest.TestCase):
     def test_every_frame_has_reference_proportions_and_registered_hooves(self):

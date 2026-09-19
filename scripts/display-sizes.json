@@ -1,0 +1,790 @@
+{
+  "note": "实测显示尺寸（设计画布 px）。[0,0] = 禁止降采样，理由见 scripts/measure-display-sizes.ts",
+  "measuredAt": "2026-09-19",
+  "sizes": {
+    "/assets/art/home/collection": [
+      526,
+      174
+    ],
+    "/assets/art/home/login": [
+      249,
+      142
+    ],
+    "/assets/art/home/logo": [
+      1103,
+      562
+    ],
+    "/assets/art/home/register": [
+      269,
+      219
+    ],
+    "/assets/art/home/settings": [
+      503,
+      165
+    ],
+    "/assets/art/home/start": [
+      632,
+      213
+    ],
+    "/assets/art/ponies/0-idle": [
+      1424,
+      134
+    ],
+    "/assets/art/ponies/0-portrait": [
+      360,
+      270
+    ],
+    "/assets/art/ponies/1-idle": [
+      1424,
+      134
+    ],
+    "/assets/art/ponies/1-portrait": [
+      146,
+      148
+    ],
+    "/assets/art/ponies/2-idle": [
+      1424,
+      134
+    ],
+    "/assets/art/ponies/2-portrait": [
+      146,
+      148
+    ],
+    "/assets/art/ponies/3-idle": [
+      1424,
+      134
+    ],
+    "/assets/art/ponies/3-portrait": [
+      146,
+      148
+    ],
+    "/assets/art/ponies/4-idle": [
+      1424,
+      134
+    ],
+    "/assets/art/ponies/4-portrait": [
+      146,
+      148
+    ],
+    "/assets/art/result/background": [
+      1620,
+      971
+    ],
+    "/assets/art/result/button-again": [
+      467,
+      247
+    ],
+    "/assets/art/result/button-home": [
+      356,
+      124
+    ],
+    "/assets/art/result/button-share": [
+      377,
+      123
+    ],
+    "/assets/art/result/header": [
+      780,
+      250
+    ],
+    "/assets/art/result/hero-4": [
+      515,
+      393
+    ],
+    "/assets/art/result/medal-5": [
+      262,
+      237
+    ],
+    "/assets/art/result/nameplate": [
+      326,
+      170
+    ],
+    "/assets/art/result/stats-board": [
+      804,
+      592
+    ],
+    "/assets/art/track/far": [
+      0,
+      0
+    ],
+    "/assets/art/track/front": [
+      0,
+      0
+    ],
+    "/assets/art/track/scene": [
+      1619,
+      971
+    ],
+    "/assets/art/track/track": [
+      0,
+      0
+    ],
+    "/assets/art/ui/avatar-reference-blank": [
+      218,
+      222
+    ],
+    "/assets/art/ui/avatar-source": [
+      218,
+      222
+    ],
+    "/assets/art/ui/avatar-trimmed": [
+      56,
+      52
+    ],
+    "/assets/art/ui/bet-chip-selected-trimmed": [
+      96,
+      68
+    ],
+    "/assets/art/ui/bet-chip-trimmed": [
+      141,
+      68
+    ],
+    "/assets/art/ui/bet-panel-trimmed": [
+      360,
+      475
+    ],
+    "/assets/art/ui/bg-title": [
+      1611,
+      976
+    ],
+    "/assets/art/ui/buff-eye-trimmed": [
+      54,
+      54
+    ],
+    "/assets/art/ui/buff-fire-trimmed": [
+      54,
+      54
+    ],
+    "/assets/art/ui/buff-frame-trimmed": [
+      70,
+      74
+    ],
+    "/assets/art/ui/buff-leaf-trimmed": [
+      54,
+      54
+    ],
+    "/assets/art/ui/buff-wing-trimmed": [
+      54,
+      54
+    ],
+    "/assets/art/ui/coin-trimmed": [
+      59,
+      59
+    ],
+    "/assets/art/ui/dust-trimmed": [
+      0,
+      0
+    ],
+    "/assets/art/ui/flag-0": [
+      101,
+      74
+    ],
+    "/assets/art/ui/flag-1": [
+      101,
+      74
+    ],
+    "/assets/art/ui/flag-2": [
+      101,
+      74
+    ],
+    "/assets/art/ui/flag-3": [
+      101,
+      74
+    ],
+    "/assets/art/ui/flag-4": [
+      101,
+      74
+    ],
+    "/assets/art/ui/gold-ring-trimmed": [
+      194,
+      48
+    ],
+    "/assets/art/ui/horseshoe-trimmed": [
+      41,
+      44
+    ],
+    "/assets/art/ui/leaderboard-avatar-0": [
+      50,
+      50
+    ],
+    "/assets/art/ui/leaderboard-avatar-1": [
+      50,
+      50
+    ],
+    "/assets/art/ui/leaderboard-avatar-2": [
+      50,
+      50
+    ],
+    "/assets/art/ui/leaderboard-avatar-3": [
+      50,
+      50
+    ],
+    "/assets/art/ui/leaderboard-avatar-4": [
+      50,
+      50
+    ],
+    "/assets/art/ui/stamina-reference": [
+      415,
+      83
+    ],
+    "/assets/art/ui/stamina-reference-empty": [
+      415,
+      83
+    ],
+    "/assets/art/ui/star-gogo-source": [
+      429,
+      390
+    ],
+    "/assets/art/ui/star-race-source": [
+      429,
+      390
+    ],
+    "/assets/art/ui/star-reference": [
+      429,
+      390
+    ],
+    "/assets/art/ui/wallet-trimmed": [
+      355,
+      404
+    ],
+    "/assets/art/ui/win-strip-trimmed": [
+      291,
+      74
+    ],
+    "/assets/placeholder/icons/icon_01": [
+      106,
+      161
+    ],
+    "/assets/placeholder/icons/icon_02": [
+      138,
+      197
+    ],
+    "/assets/placeholder/icons/icon_03": [
+      103,
+      127
+    ],
+    "/assets/placeholder/icons/icon_04": [
+      106,
+      150
+    ],
+    "/assets/placeholder/icons/icon_05": [
+      103,
+      127
+    ],
+    "/assets/placeholder/icons/icon_06": [
+      103,
+      127
+    ],
+    "/assets/placeholder/icons/icon_07": [
+      103,
+      127
+    ],
+    "/assets/placeholder/icons/icon_08": [
+      103,
+      127
+    ],
+    "/assets/placeholder/icons/icon_09": [
+      106,
+      133
+    ],
+    "/assets/placeholder/icons/icon_10": [
+      106,
+      150
+    ],
+    "/assets/placeholder/icons/icon_11": [
+      135,
+      168
+    ],
+    "/assets/placeholder/icons/icon_12": [
+      103,
+      127
+    ],
+    "/assets/placeholder/icons/icon_13": [
+      103,
+      127
+    ],
+    "/assets/placeholder/icons/icon_14": [
+      99,
+      167
+    ],
+    "/assets/placeholder/icons/icon_15": [
+      103,
+      110
+    ],
+    "/assets/placeholder/icons/icon_16": [
+      106,
+      150
+    ],
+    "/assets/placeholder/icons/icon_17": [
+      103,
+      127
+    ],
+    "/assets/placeholder/icons/icon_18": [
+      103,
+      127
+    ],
+    "/assets/placeholder/icons/icon_19": [
+      138,
+      197
+    ],
+    "/assets/placeholder/ui/btn_wood_1": [
+      360,
+      100
+    ],
+    "/assets/placeholder/ui/btn_wood_2": [
+      126,
+      53
+    ],
+    "/assets/placeholder/ui/card_frame_common": [
+      381,
+      430
+    ],
+    "/assets/placeholder/ui/card_frame_rare": [
+      362,
+      430
+    ],
+    "/assets/placeholder/ui/logo_title": [
+      700,
+      305
+    ],
+    "/assets/placeholder/ui/panel_parchment": [
+      950,
+      462
+    ]
+  },
+  "seenAt": {
+    "/assets/art/home/collection": [
+      "home"
+    ],
+    "/assets/art/home/login": [
+      "home"
+    ],
+    "/assets/art/home/logo": [
+      "home"
+    ],
+    "/assets/art/home/register": [
+      "home"
+    ],
+    "/assets/art/home/settings": [
+      "home"
+    ],
+    "/assets/art/home/start": [
+      "home"
+    ],
+    "/assets/art/ponies/0-idle": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ponies/0-portrait": [
+      "canvas"
+    ],
+    "/assets/art/ponies/1-idle": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ponies/1-portrait": [
+      "select-horse-1"
+    ],
+    "/assets/art/ponies/2-idle": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ponies/2-portrait": [
+      "select-horse-2"
+    ],
+    "/assets/art/ponies/3-idle": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ponies/3-portrait": [
+      "select-horse-3"
+    ],
+    "/assets/art/ponies/4-idle": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ponies/4-portrait": [
+      "select-horse-4",
+      "select-bet",
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/result/background": [
+      "result"
+    ],
+    "/assets/art/result/button-again": [
+      "result"
+    ],
+    "/assets/art/result/button-home": [
+      "result"
+    ],
+    "/assets/art/result/button-share": [
+      "result"
+    ],
+    "/assets/art/result/header": [
+      "result"
+    ],
+    "/assets/art/result/hero-4": [
+      "result"
+    ],
+    "/assets/art/result/medal-5": [
+      "result"
+    ],
+    "/assets/art/result/nameplate": [
+      "result"
+    ],
+    "/assets/art/result/stats-board": [
+      "result"
+    ],
+    "/assets/art/track/far": [
+      "canvas"
+    ],
+    "/assets/art/track/front": [
+      "canvas"
+    ],
+    "/assets/art/track/scene": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet",
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/track/track": [
+      "canvas"
+    ],
+    "/assets/art/ui/avatar-reference-blank": [
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet",
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/ui/avatar-source": [
+      "select",
+      "select-horse-0"
+    ],
+    "/assets/art/ui/avatar-trimmed": [
+      "detached"
+    ],
+    "/assets/art/ui/bet-chip-selected-trimmed": [
+      "collection",
+      "settings",
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ui/bet-chip-trimmed": [
+      "home",
+      "collection",
+      "settings",
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet",
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/ui/bet-panel-trimmed": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet",
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/ui/bg-title": [
+      "home"
+    ],
+    "/assets/art/ui/buff-eye-trimmed": [
+      "detached"
+    ],
+    "/assets/art/ui/buff-fire-trimmed": [
+      "detached"
+    ],
+    "/assets/art/ui/buff-frame-trimmed": [
+      "detached"
+    ],
+    "/assets/art/ui/buff-leaf-trimmed": [
+      "detached"
+    ],
+    "/assets/art/ui/buff-wing-trimmed": [
+      "detached"
+    ],
+    "/assets/art/ui/coin-trimmed": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ui/dust-trimmed": [
+      "canvas"
+    ],
+    "/assets/art/ui/flag-0": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ui/flag-1": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ui/flag-2": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ui/flag-3": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ui/flag-4": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ui/gold-ring-trimmed": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet",
+      "canvas"
+    ],
+    "/assets/art/ui/horseshoe-trimmed": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ui/leaderboard-avatar-0": [
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/ui/leaderboard-avatar-1": [
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/ui/leaderboard-avatar-2": [
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/ui/leaderboard-avatar-3": [
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/ui/leaderboard-avatar-4": [
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/ui/stamina-reference": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet",
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/ui/stamina-reference-empty": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet",
+      "race",
+      "card-choice"
+    ],
+    "/assets/art/ui/star-gogo-source": [
+      "race"
+    ],
+    "/assets/art/ui/star-race-source": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/art/ui/star-reference": [
+      "detached"
+    ],
+    "/assets/art/ui/wallet-trimmed": [
+      "detached"
+    ],
+    "/assets/art/ui/win-strip-trimmed": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/placeholder/icons/icon_01": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_02": [
+      "collection",
+      "card-choice"
+    ],
+    "/assets/placeholder/icons/icon_03": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_04": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_05": [
+      "collection",
+      "result"
+    ],
+    "/assets/placeholder/icons/icon_06": [
+      "collection",
+      "result"
+    ],
+    "/assets/placeholder/icons/icon_07": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_08": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_09": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_10": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_11": [
+      "collection",
+      "card-choice",
+      "result"
+    ],
+    "/assets/placeholder/icons/icon_12": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_13": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_14": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_15": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_16": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_17": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_18": [
+      "collection"
+    ],
+    "/assets/placeholder/icons/icon_19": [
+      "collection",
+      "card-choice"
+    ],
+    "/assets/placeholder/ui/btn_wood_1": [
+      "loading",
+      "collection",
+      "settings"
+    ],
+    "/assets/placeholder/ui/btn_wood_2": [
+      "select",
+      "select-horse-0",
+      "select-horse-1",
+      "select-horse-2",
+      "select-horse-3",
+      "select-horse-4",
+      "select-bet"
+    ],
+    "/assets/placeholder/ui/card_frame_common": [
+      "collection",
+      "card-choice"
+    ],
+    "/assets/placeholder/ui/card_frame_rare": [
+      "collection",
+      "card-choice"
+    ],
+    "/assets/placeholder/ui/logo_title": [
+      "loading"
+    ],
+    "/assets/placeholder/ui/panel_parchment": [
+      "settings"
+    ]
+  }
+}

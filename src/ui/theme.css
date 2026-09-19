@@ -72,7 +72,7 @@ html, body, #root {
 .btn:focus-visible { outline: 4px solid var(--gold-lite); outline-offset: 4px; border-radius: 10px; }
 
 .btn-wood {
-  /* 边框图与厚度由 .btn-wood-1/2/3 修饰类给出，对应 assrt/tittle.png 里三块木牌各自的造型 */
+  /* 边框图与厚度由 .btn-wood-1/2/3 修饰类给出，对应 art-src/renders/tittle.png 里三块木牌各自的造型 */
   border-style: solid;
   min-height: 100px;
   min-width: 380px;
@@ -82,15 +82,15 @@ html, body, #root {
   gap: 18px;
 }
 .btn-wood-1 {
-  border-image: url('/assets/placeholder/ui/btn_wood_1.png') 92 185 71 196 fill stretch;
+  border-image: url('/assets/placeholder/ui/btn_wood_1.webp') 92 185 71 196 fill stretch;
   border-width: 38px 76px 29px 80px;
 }
 .btn-wood-2 {
-  border-image: url('/assets/placeholder/ui/btn_wood_2.png') 95 157 74 173 fill stretch;
+  border-image: url('/assets/placeholder/ui/btn_wood_2.webp') 95 157 74 173 fill stretch;
   border-width: 39px 64px 30px 71px;
 }
 .btn-wood-3 {
-  border-image: url('/assets/placeholder/ui/btn_wood_3.png') 57 130 66 142 fill stretch;
+  border-image: url('/assets/placeholder/ui/btn_wood_3.webp') 57 130 66 142 fill stretch;
   border-width: 23px 53px 27px 58px;
 }
 .btn-wood .lbl { display: flex; flex-direction: column; align-items: center; line-height: 1.05; }
@@ -99,7 +99,7 @@ html, body, #root {
 .btn-wood .ico { font-size: 34px; }
 
 .btn-star {
-  /* 完整透明 PNG 保留原画的不对称尖角；按钮画布对应原画裁框。 */
+  /* 完整透明位图保留原画的不对称尖角；按钮画布对应原画裁框。 */
   position: relative;
   min-width: 360px;
   min-height: 250px;
@@ -107,7 +107,8 @@ html, body, #root {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: url('/assets/placeholder/ui/btn_star.png') center / 100% 100% no-repeat;
+  /* 图由下方 .btn-star 规则给（theme.css 末段），这里只保留简写对 background-color 的重置 */
+  background: center / 100% 100% no-repeat;
 }
 .btn-star .big,
 .btn-star .sub {
@@ -126,7 +127,7 @@ html, body, #root {
 
 .panel {
   /* 木纸边缘按主体像素厚度注册，内容区不被边框挤占。 */
-  border-image: url('/assets/placeholder/ui/panel_parchment.png') 96 48 97 92 fill stretch;
+  border-image: url('/assets/placeholder/ui/panel_parchment.webp') 96 48 97 92 fill stretch;
   border-width: 53px 26px 54px 51px;
   border-style: solid;
   color: var(--ink);
@@ -215,7 +216,7 @@ html, body, #root {
 .scrolly::-webkit-scrollbar-thumb { background: #a3714c; border-radius: 6px; }
 
 /* 首页：无字木牌按原画版位摆放，牌面文字在这里排版。
-   版位由新素材的实体包围盒对到 assrt/tittle.png 里同一块牌的包围盒得出，
+   版位由新素材的实体包围盒对到 art-src/renders/tittle.png 里同一块牌的包围盒得出，
    横纵缩放各算各的——素材不是原生尺寸，允许按版位比例拉伸。 */
 .home-screen { background: #8fc0ea; }
 .home-bg { position: absolute; left: 0; top: 0; width: 1611px; height: 976px; }
@@ -246,13 +247,16 @@ html, body, #root {
 .home-register { left: 1335px; top: 151px; width: 269px; height: 219px; }
 .home-register > .lbl { left: 50px; top: 33px; width: 160px; transform: rotate(-5.6deg); }
 .home-register .zh { font-size: 44px; letter-spacing: 5px; text-indent: 5px; }
-.home-wallet { position: absolute; right: 0; top: 0; width: 386px; height: 448px; background: url('/assets/art/ui/wallet-trimmed.png') center / 100% 100% no-repeat; }
+.home-wallet { position: absolute; right: 0; top: 0; width: 386px; height: 448px; background: url('/assets/art/ui/wallet-trimmed.webp') center / 100% 100% no-repeat; }
 .wallet-content { position: absolute; left: 82px; top: 76px; width: 250px; height: 175px; transform: rotate(-5deg); padding: 4px 0; }
 .wallet-row { display: flex; align-items: center; gap: 14px; height: 55px; font-size: 22px; color: #281c14; font-weight: 750; }
 .wallet-row img { width: 45px; height: 45px; object-fit: contain; }
 .wallet-logout { position: absolute; right: 34px; top: 349px; width: 63px; height: 32px; font-size: 13px; font-weight: 800; background: #e8c495; transform: rotate(-7deg); }
 .wallet-content { text-align: left; cursor: pointer; }
 .home-wallet-error { position: absolute; left: 86px; bottom: 116px; width: 640px; margin: 0; padding: 10px 16px; background: rgba(48, 20, 12, .88); color: #ffe9c9; font-size: 18px; font-weight: 700; line-height: 1.45; border-radius: 12px; }
+
+/* 分级资源没就绪时的兜底遮罩。底下那一页照常渲染，所以不会白屏。 */
+.tier-gate { position: absolute; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; background: rgba(20, 10, 4, .58); }
 
 /* 钱包管理面板：地址、链上余额、领测试币、导出助记词。 */
 .wallet-modal-host { position: absolute; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; }
@@ -305,15 +309,15 @@ html, body, #root {
 .horse-choice.selected > .pony-portrait { filter: drop-shadow(0 0 5px #ffde83); }
 .horse-choice:hover > .pony-portrait { filter: brightness(1.08); }
 .horse-choice:focus-visible { outline: 3px solid #ffe39b; border-radius: 10px; }
-.bet-art-panel { position: absolute; left: 1259px; top: 72px; width: 360px; height: 475px; background: url('/assets/art/ui/bet-panel-trimmed.png') center / 100% 100% no-repeat; padding: 64px 29px 18px 40px; color: #2c2019; font-family: 'Trebuchet MS', 'PingFang SC', sans-serif; font-style: italic; }
+.bet-art-panel { position: absolute; left: 1259px; top: 72px; width: 360px; height: 475px; background: url('/assets/art/ui/bet-panel-trimmed.webp') center / 100% 100% no-repeat; padding: 64px 29px 18px 40px; color: #2c2019; font-family: 'Trebuchet MS', 'PingFang SC', sans-serif; font-style: italic; }
 .bet-balance { display: flex; align-items: center; gap: 14px; height: 73px; padding: 0 8px; font-size: 27px; font-weight: 800; }
 .bet-balance img { width: 59px; height: 59px; object-fit: contain; }
 .bet-art-panel h2 { font-size: 25px; font-weight: 700; margin: 9px 0 17px 9px; }
 .bet-chips { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-.bet-chips .chip { grid-column: span 2; border: 0; border-radius: 0; background: url('/assets/art/ui/bet-chip-trimmed.png') center / 100% 100% no-repeat; box-shadow: none; height: 68px; padding: 0; font-size: 27px; font-style: italic; }
+.bet-chips .chip { grid-column: span 2; border: 0; border-radius: 0; background: url('/assets/art/ui/bet-chip-trimmed.webp') center / 100% 100% no-repeat; box-shadow: none; height: 68px; padding: 0; font-size: 27px; font-style: italic; }
 .bet-chips .chip:nth-child(n+4) { grid-column: span 3; }
-.bet-chips .chip.on { background-image: url('/assets/art/ui/bet-chip-selected-trimmed.png'); filter: drop-shadow(0 0 6px #ffd240); font-size: 34px; }
-.bet-win { display: flex; align-items: center; justify-content: center; gap: 9px; height: 70px; background: url('/assets/art/ui/win-strip-trimmed.png') center / 100% 100% no-repeat; margin-top: 29px; font-size: 21px; font-weight: 700; color: #fff6e5; white-space: nowrap; }
+.bet-chips .chip.on { background-image: url('/assets/art/ui/bet-chip-selected-trimmed.webp'); filter: drop-shadow(0 0 6px #ffd240); font-size: 34px; }
+.bet-win { display: flex; align-items: center; justify-content: center; gap: 9px; height: 70px; background: url('/assets/art/ui/win-strip-trimmed.webp') center / 100% 100% no-repeat; margin-top: 29px; font-size: 21px; font-weight: 700; color: #fff6e5; white-space: nowrap; }
 .bet-win img { width: 38px; height: 44px; object-fit: contain; }
 .bet-win img:last-child { width: 41px; }
 .bet-difficulty { display: flex; justify-content: space-between; padding-top: 8px; font-size: 14px; color: #4e3828; }
@@ -322,31 +326,31 @@ html, body, #root {
 .select-race-cta .btn-star { width: 100%; height: 100%; }
 .select-race-cta .big { position: absolute; left: 84px; top: 126px; width: 276px; transform: rotate(-12deg); font-size: 91px; line-height: 1; }
 .select-race-cta .sub { position: absolute; left: 65px; right: 49px; top: 241px; font-size: 16px; transform: rotate(-12deg); }
-.select-race-cta .source-race { background-image: url('/assets/art/ui/star-race-source.png'); }
+.select-race-cta .source-race { background-image: url('/assets/art/ui/star-race-source.webp'); }
 .select-race-cta .source-race > .big { opacity: 0; }
 .select-back { position: absolute; left: 35px; bottom: 14px; }
-.select-back .btn-wood { border: 0; background: url('/assets/placeholder/ui/btn_wood_2.png') center / 100% 100% no-repeat; }
+.select-back .btn-wood { border: 0; background: url('/assets/placeholder/ui/btn_wood_2.webp') center / 100% 100% no-repeat; }
 .select-back .zh { font-size: 16px; letter-spacing: 0; }
 .select-error { position: absolute; left: 515px; bottom: 45px; width: 580px; text-align: center; font-size: 20px; padding: 4px 20px; }
-.btn-star { background-image: url('/assets/art/ui/star-reference.png'); background-size: contain; background-repeat: no-repeat; }
+.btn-star { background-image: url('/assets/art/ui/star-reference.webp'); background-size: contain; background-repeat: no-repeat; }
 .btn-star .big { font-family: 'Trebuchet MS', 'Arial Black', sans-serif; font-style: italic; color: #1f1b14; text-shadow: none; font-weight: 1000; }
 .pony-portrait { background-repeat: no-repeat; animation: pony-idle 1.2s steps(8, jump-none) infinite; }
 @keyframes pony-idle { to { background-position: 100% 0; } }
 .reduced .pony-portrait { animation: none; }
 @media (prefers-reduced-motion: reduce) { .pony-portrait { animation: none; } }
 
-.leaderboard-art { background: url('/assets/art/ui/bet-panel-trimmed.png') center / 100% 100% no-repeat; color: #2b221a; font-family: 'Trebuchet MS', 'PingFang SC', sans-serif; font-style: italic; }
+.leaderboard-art { background: url('/assets/art/ui/bet-panel-trimmed.webp') center / 100% 100% no-repeat; color: #2b221a; font-family: 'Trebuchet MS', 'PingFang SC', sans-serif; font-style: italic; }
 .horse-avatar { flex: 0 0 auto; overflow: visible; border: 0; border-radius: 0; background: none; }
 .horse-avatar img { width: 100%; height: 100%; object-fit: contain; }
 .stamina-exhausted { position: absolute; left: 55px; right: 15px; top: 23px; color: #ffe3af; font-size: 19px; font-weight: 900; text-align: center; }
 .gogo .big { position: absolute; left: 65px; top: 126px; width: 310px; font-size: 72px; line-height: 1; letter-spacing: -3px; transform: rotate(-12deg); }
 .gogo .sub { position: absolute; left: 113px; top: 231px; width: 212px; font-size: 26px; color: #201b14; transform: rotate(-8deg); margin-top: 0; }
-.gogo.source-gogo { background-image: url('/assets/art/ui/star-gogo-source.png'); }
+.gogo.source-gogo { background-image: url('/assets/art/ui/star-gogo-source.webp'); }
 .gogo.source-gogo > .big { opacity: 0; }
 
-@font-face { font-family: Knewave; src: url('/assets/art/fonts/Knewave-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
-@font-face { font-family: Kalam; src: url('/assets/art/fonts/Kalam-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
-@font-face { font-family: Kalam; src: url('/assets/art/fonts/Kalam-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: Knewave; src: url('/assets/art/fonts/Knewave-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Kalam; src: url('/assets/art/fonts/Kalam-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Kalam; src: url('/assets/art/fonts/Kalam-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
 .btn-star .big { font-family: Knewave, 'PingFang SC', sans-serif; font-weight: 400; font-style: normal; }
 .player-plaque > span, .leaderboard-art, .bet-art-panel, .bet-chips .chip, .gogo .sub { font-family: Kalam, 'PingFang SC', sans-serif; font-style: normal; }
 .bet-balance { font-weight: 700; }
@@ -354,16 +358,16 @@ html, body, #root {
 
 /* 次级界面沿用同一木纸素材，保持控件内容的可用区域。 */
 .btn-wood { border: 0; padding: 18px 46px; background-position: center; background-size: 100% 100%; background-repeat: no-repeat; }
-.btn-wood-1 { background-image: url('/assets/placeholder/ui/btn_wood_1.png'); }
-.btn-wood-2 { background-image: url('/assets/placeholder/ui/btn_wood_2.png'); }
-.btn-wood-3 { background-image: url('/assets/placeholder/ui/btn_wood_3.png'); }
+.btn-wood-1 { background-image: url('/assets/placeholder/ui/btn_wood_1.webp'); }
+.btn-wood-2 { background-image: url('/assets/placeholder/ui/btn_wood_2.webp'); }
+.btn-wood-3 { background-image: url('/assets/placeholder/ui/btn_wood_3.webp'); }
 .panel { border-width: 32px 22px 33px 30px; }
 [data-testid='screen-collection'], [data-testid='screen-settings'], [data-testid='screen-loading'] { background: #fbf7f0 !important; }
 [data-testid='screen-collection'] .scrolly { padding-top: 18px !important; }
 [data-testid='screen-settings'] .panel { width: 950px !important; padding: 34px 55px !important; gap: 27px !important; }
 [data-testid='screen-settings'] input[type='range'] { height: 9px; }
-.chip { border: 0; border-radius: 0; background: url('/assets/art/ui/bet-chip-trimmed.png') center / 100% 100% no-repeat; padding: 12px 22px; }
-.chip.on { border: 0; background: url('/assets/art/ui/bet-chip-selected-trimmed.png') center / 100% 100% no-repeat; box-shadow: 0 0 7px #ffd45d55; }
+.chip { border: 0; border-radius: 0; background: url('/assets/art/ui/bet-chip-trimmed.webp') center / 100% 100% no-repeat; padding: 12px 22px; }
+.chip.on { border: 0; background: url('/assets/art/ui/bet-chip-selected-trimmed.webp') center / 100% 100% no-repeat; box-shadow: 0 0 7px #ffd45d55; }
 .wallet-logout { right: 8px; top: 278px; width: 96px; height: 170px; color: transparent; font-size: 0; background: transparent; transform: none; }
 .pony-running { animation-duration: .667s; }
 .bet-chips .chip:nth-child(2) { grid-column: 5 / span 2; grid-row: 1; }
@@ -382,7 +386,7 @@ html, body, #root {
 .wallet-logout { right: 6px; top: 251px; width: 92px; height: 153px; }
 .stamina-art { left: 263px; width: 382px; }
 .race-hud .stamina-art { width: 415px; left: 263px; }
-.badge > div { border: 0 !important; border-radius: 0 !important; background: url('/assets/art/ui/buff-frame-trimmed.png') center / 100% 100% no-repeat !important; }
+.badge > div { border: 0 !important; border-radius: 0 !important; background: url('/assets/art/ui/buff-frame-trimmed.webp') center / 100% 100% no-repeat !important; }
 .badge > div > img { margin-top: -7px; }
 .wallet-content { left: 81px; top: 77px; }
 .wallet-row { gap: 24px; }
@@ -392,7 +396,7 @@ html, body, #root {
 .bet-balance { padding-left: 16px; gap: 20px; }
 .card-root .h-title { font-family: Kalam, 'PingFang SC', sans-serif; font-weight: 700; }
 
-/* ---------------- 结算页：assrt/result.png 的原始坐标 ---------------- */
+/* ---------------- 结算页：art-src/renders/result.png 的原始坐标 ---------------- */
 
 .result-screen { background: #8a6a4a; }
 .result-artboard { position: absolute; left: 0; top: 0; width: 1620px; height: 971px; color: #4a2c14; }

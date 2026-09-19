@@ -1,0 +1,42 @@
+# Cloudflare Pages 从部署产物根目录读取本文件；Vite 把 public/ 原样拷到 dist/，故放在 public/_headers。
+# 语法：路径行顶格，头部行缩进两格，注释用 #。
+# 注意：同一响应命中多条规则时，重复的头按逗号拼接而非覆盖——Cache-Control 是单值头，拼接即失效。
+# 所以这里的素材规则按子目录写死而不是一条 /assets/*：产物只有 art/、placeholder/ 和 manifest.json
+# 三样，逐个列出即可做到规则互不重叠，不必依赖 "! 头名" 的撤销语义。
+# scripts/deploy.sh 会核对 dist/assets/ 下没有落在这些规则之外的文件。
+
+# Vite 的 JS/CSS 产物落在 dist/build/，文件名带 content hash，内容一变文件名必变，可判永久不变。
+/build/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# 素材文件名不带 hash——CSS 里约 30 处写死 /assets/... 路径，加 hash 需重写全部引用，成本不值。
+# 用 stale-while-revalidate 换更新可见性：命中缓存立即返回旧图，同时后台向源站校验，下一次请求换新版本。
+/assets/art/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/assets/placeholder/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+# manifest 是资源加载流程的前置数据，素材新旧全靠它的内容判断，必须每次向源站校验。
+# 它不落在上面两条规则里，因此不需要撤销，直接赋值。
+/assets/manifest.json
+  Cache-Control: no-cache
+
+# 入口文档决定加载哪一版 JS/CSS；缓存住会让用户拿着旧壳去配新资源，必须每次校验。
+/index.html
+  Cache-Control: no-cache
+
+/
+  Cache-Control: no-cache
+
+# 安全头对全站生效：本项目无嵌入需求、不解析用户上传内容，三条足够，不需要逐路径区分。
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+
+# 不加 Content-Security-Policy：Phaser 与 WebAuthn（PRF 扩展、认证器弹窗）各自会触发哪些资源加载
+# 与脚本执行路径，尚未逐一测过；未验证就上线，策略拦掉某条路径时表现是功能静默失效而非报错，难定位。
+# //TODO - 加 CSP 前用 Content-Security-Policy-Report-Only 跑满一次完整流程（首页、比赛、结算、
+# 通行密钥注册与登录、导出助记词），Chrome/Safari 桌面与移动各一遍，确认上报为零 violation 后
+# 再切换成强制头。

@@ -2,14 +2,16 @@ import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { HORSE_PROFILES } from './horses.ts'
 
-const folder = new URL('../../public/assets/art/ponies/', import.meta.url)
+// 校验的是母版，不是产物：帧尺寸与透明通道的约束属于出图环节，
+// public/assets 下的 WebP 由 scripts/build-web-assets.py 从这里派生。
+const folder = new URL('../../art-src/art/ponies/', import.meta.url)
 function header(file: string) {
   const bytes = readFileSync(new URL(file, folder))
   expect(bytes.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')
   return { w: bytes.readUInt32BE(16), h: bytes.readUInt32BE(20), color: bytes[25], bytes }
 }
 
-describe('production pony PNG artwork', () => {
+describe('pony master artwork (art-src)', () => {
   for (const horse of HORSE_PROFILES) for (const action of ['running', 'idle']) {
     test(`${horse.name} ${action}: eight complete transparent frames usable by both renderers`, () => {
       const sheet = header(`${horse.horseId}-${action}.png`)

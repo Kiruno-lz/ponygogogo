@@ -2,7 +2,7 @@
  * 结算页。冲线封存后立即可显示，不等结算流程——
  * 比赛结果由浏览器决定，资金状态是另一条独立的进度，两者不合并成一个转圈。
  *
- * 画面按 assrt/result.png 的原始坐标摆放：1620×971 的画板上，
+ * 画面按 art-src/renders/result.png 的原始坐标摆放：1620×971 的画板上，
  * 背景、奖章名牌、标题木牌、数据木纸和三个按钮都是各自的透明切片，
  * 文字层压在切片被抹空的位置上。改版面等于改这里的绝对坐标，不靠自动流式布局。
  */
@@ -65,10 +65,10 @@ export function ResultScreen(p: ResultScreenProps) {
   return (
     <div className="screen result-screen" data-testid="screen-result">
       <div className={`result-artboard${p.lang === 'en' ? ' en' : ''}`}>
-        <img className="result-bg" src="/assets/art/result/background.png" alt="" draggable={false} />
+        <img className="result-bg" src="/assets/art/result/background.webp" alt="" draggable={false} />
         <img
           className="result-hero"
-          src={`/assets/art/result/hero-${p.result.horseId}.png`}
+          src={`/assets/art/result/hero-${p.result.horseId}.webp`}
           alt={prof.name}
           draggable={false}
           style={{
@@ -79,7 +79,7 @@ export function ResultScreen(p: ResultScreenProps) {
           }}
         />
 
-        <img className="result-stats-board" src="/assets/art/result/stats-board.png" alt="" draggable={false} />
+        <img className="result-stats-board" src="/assets/art/result/stats-board.webp" alt="" draggable={false} />
         <div className="result-rows">
           <Row label={t(p.lang, 'result.time')} value={`${(p.result.finishTick / SIM_HZ).toFixed(2)}s`} top={264} />
           <Row label={t(p.lang, 'result.stake')} value={`${stake} MON`} top={308} testId="result-stake" />
@@ -103,7 +103,7 @@ export function ResultScreen(p: ResultScreenProps) {
             >
               <span className="result-pick-no mono">{c.checkpoint + 1}</span>
               {def ? (
-                <img className="result-pick-icon" src={`/assets/placeholder/icons/${def.art.icon}.png`} alt="" draggable={false} />
+                <img className="result-pick-icon" src={`/assets/placeholder/icons/${def.art.icon}.webp`} alt="" draggable={false} />
               ) : (
                 <span className="result-pick-icon result-pick-empty" aria-hidden="true" />
               )}
@@ -140,7 +140,7 @@ export function ResultScreen(p: ResultScreenProps) {
           )}
         </div>
 
-        <img className="result-nameplate" src="/assets/art/result/nameplate.png" alt="" draggable={false} />
+        <img className="result-nameplate" src="/assets/art/result/nameplate.webp" alt="" draggable={false} />
         <img
           className="result-medal-art"
           src={medalSrc(p.result.rank)}
@@ -161,7 +161,7 @@ export function ResultScreen(p: ResultScreenProps) {
         )}
 
         {/* 标题木牌整块无字，主副标题在这里排版 */}
-        <img className="result-header" src="/assets/art/result/header.png" alt="" draggable={false} />
+        <img className="result-header" src="/assets/art/result/header.webp" alt="" draggable={false} />
         <span className="result-title">{t(p.lang, 'result.title')}</span>
         {/* 英文时主副标题说的是同一句话，只留主标题 */}
         {p.lang === 'zh' && <span className="result-title-en">RACE COMPLETE</span>}
@@ -200,7 +200,7 @@ function ArtButton({ art, className, label, onClick }: {
   const { pressed, handlers } = usePress(onClick)
   return (
     <button type="button" className={`btn ${className}${pressed ? ' pressed' : ''}`} {...handlers}>
-      <img src={`/assets/art/result/button-${art}.png`} alt="" draggable={false} />
+      <img src={`/assets/art/result/button-${art}.webp`} alt="" draggable={false} />
       <span className="lbl">{label}</span>
     </button>
   )

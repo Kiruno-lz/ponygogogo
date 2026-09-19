@@ -4,9 +4,9 @@ Ponygogogo — Asset Processing Script
 Run: python3 scripts/process-assets.py
 Idempotent: re-running produces identical output.
 
-Inputs:  assrt/card_icon.png, assrt/card_normal.png, assrt/card_rare.png
-         assrt/race_gaming.png, assrt/race_start.png, assrt/tittle.png
-Outputs: public/assets/placeholder/icons/**, bg/**, ui/**
+Inputs:  art-src/renders/card_icon.png, art-src/renders/card_normal.png, art-src/renders/card_rare.png
+         art-src/renders/race_gaming.png, art-src/renders/race_start.png, art-src/renders/tittle.png
+Outputs: art-src/placeholder/icons/**, bg/**, ui/**
 """
 
 import json
@@ -21,10 +21,10 @@ from PIL import Image, ImageDraw
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
 BASE   = Path(__file__).resolve().parent.parent
-ASSRT  = BASE / "assrt"
-ICONS  = BASE / "public/assets/placeholder/icons"
-BG     = BASE / "public/assets/placeholder/bg"
-UI     = BASE / "public/assets/placeholder/ui"
+ASSRT  = BASE / "art-src" / "renders"
+ICONS  = BASE / "art-src/placeholder/icons"
+BG     = BASE / "art-src/placeholder/bg"
+UI     = BASE / "art-src/placeholder/ui"
 
 for d in (ICONS, BG, UI):
     d.mkdir(parents=True, exist_ok=True)

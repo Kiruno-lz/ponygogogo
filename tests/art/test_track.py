@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from PIL import Image, ImageChops, ImageStat
 
-ART = Path(__file__).resolve().parents[2] / 'public/assets/art/track'
+ART = Path(__file__).resolve().parents[2] / 'art-src/art/track'
 
 class TrackArtTest(unittest.TestCase):
     def test_parallax_art_has_no_hard_edge_when_it_wraps(self):

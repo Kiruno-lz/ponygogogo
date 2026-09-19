@@ -1,16 +1,578 @@
 {
+  "art.home.collection": {
+    "kind": "image",
+    "path": "assets/art/home/collection.webp",
+    "bytes": 37328,
+    "sha256": "bd7af50e65c55512",
+    "tier": "home"
+  },
+  "art.home.login": {
+    "kind": "image",
+    "path": "assets/art/home/login.webp",
+    "bytes": 29440,
+    "sha256": "4e4f588d8ffe494e",
+    "tier": "home"
+  },
+  "art.home.logo": {
+    "kind": "image",
+    "path": "assets/art/home/logo.webp",
+    "bytes": 263668,
+    "sha256": "31414fefe929dbaf",
+    "tier": "home"
+  },
+  "art.home.register": {
+    "kind": "image",
+    "path": "assets/art/home/register.webp",
+    "bytes": 24408,
+    "sha256": "5a958f49bbfd6c58",
+    "tier": "home"
+  },
+  "art.home.settings": {
+    "kind": "image",
+    "path": "assets/art/home/settings.webp",
+    "bytes": 36104,
+    "sha256": "f886eb5f49704314",
+    "tier": "home"
+  },
+  "art.home.start": {
+    "kind": "image",
+    "path": "assets/art/home/start.webp",
+    "bytes": 63838,
+    "sha256": "e0845ac13e4f3000",
+    "tier": "home"
+  },
+  "art.ponies.0-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/0-idle-0.webp",
+    "bytes": 14646,
+    "sha256": "e5a15ff9c9cae2dc",
+    "tier": "race"
+  },
+  "art.ponies.0-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/0-idle.webp",
+    "bytes": 115408,
+    "sha256": "a8d1a0afd96cf5df",
+    "tier": "race"
+  },
+  "art.ponies.0-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/0-portrait.webp",
+    "bytes": 16754,
+    "sha256": "ea4b9a29ab075caa",
+    "tier": "race"
+  },
+  "art.ponies.0-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/0-running.webp",
+    "bytes": 111414,
+    "sha256": "d692a09ccb4c662a",
+    "tier": "race"
+  },
+  "art.ponies.1-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/1-idle-0.webp",
+    "bytes": 11840,
+    "sha256": "5b828f42f6077137",
+    "tier": "race"
+  },
+  "art.ponies.1-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/1-idle.webp",
+    "bytes": 90334,
+    "sha256": "f116435a345a74de",
+    "tier": "race"
+  },
+  "art.ponies.1-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/1-portrait.webp",
+    "bytes": 14488,
+    "sha256": "9fe8875a23f62b66",
+    "tier": "race"
+  },
+  "art.ponies.1-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/1-running.webp",
+    "bytes": 89104,
+    "sha256": "b347b68061a563fb",
+    "tier": "race"
+  },
+  "art.ponies.2-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/2-idle-0.webp",
+    "bytes": 13330,
+    "sha256": "db3aa7b3a322c8d2",
+    "tier": "race"
+  },
+  "art.ponies.2-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/2-idle.webp",
+    "bytes": 103028,
+    "sha256": "ec926dc2d2d8de07",
+    "tier": "race"
+  },
+  "art.ponies.2-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/2-portrait.webp",
+    "bytes": 13534,
+    "sha256": "5b78a709bbd5bfc6",
+    "tier": "race"
+  },
+  "art.ponies.2-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/2-running.webp",
+    "bytes": 97866,
+    "sha256": "5d0671e863c7ca1c",
+    "tier": "race"
+  },
+  "art.ponies.3-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/3-idle-0.webp",
+    "bytes": 10500,
+    "sha256": "88609f16ed4e0e6f",
+    "tier": "race"
+  },
+  "art.ponies.3-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/3-idle.webp",
+    "bytes": 82530,
+    "sha256": "65c565662a15b229",
+    "tier": "race"
+  },
+  "art.ponies.3-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/3-portrait.webp",
+    "bytes": 14400,
+    "sha256": "15e9c2681a85d733",
+    "tier": "race"
+  },
+  "art.ponies.3-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/3-running.webp",
+    "bytes": 82068,
+    "sha256": "123d550d917dafcb",
+    "tier": "race"
+  },
+  "art.ponies.4-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/4-idle-0.webp",
+    "bytes": 12982,
+    "sha256": "e9d5f62c535501f5",
+    "tier": "race"
+  },
+  "art.ponies.4-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/4-idle.webp",
+    "bytes": 101864,
+    "sha256": "94d9f1d96eb40ce4",
+    "tier": "race"
+  },
+  "art.ponies.4-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/4-portrait.webp",
+    "bytes": 17376,
+    "sha256": "252e04180fcb9dda",
+    "tier": "race"
+  },
+  "art.ponies.4-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/4-running.webp",
+    "bytes": 104534,
+    "sha256": "1f2e3bde205857d1",
+    "tier": "race"
+  },
+  "art.result.background": {
+    "kind": "image",
+    "path": "assets/art/result/background.webp",
+    "bytes": 244302,
+    "sha256": "5d9eb35d11577e99",
+    "tier": "result"
+  },
+  "art.result.button-again": {
+    "kind": "image",
+    "path": "assets/art/result/button-again.webp",
+    "bytes": 40038,
+    "sha256": "61ed557518657ad3",
+    "tier": "result"
+  },
+  "art.result.button-home": {
+    "kind": "image",
+    "path": "assets/art/result/button-home.webp",
+    "bytes": 13598,
+    "sha256": "5fcec8b37f121e1f",
+    "tier": "result"
+  },
+  "art.result.button-share": {
+    "kind": "image",
+    "path": "assets/art/result/button-share.webp",
+    "bytes": 14114,
+    "sha256": "76fd134e86a6f2d0",
+    "tier": "result"
+  },
+  "art.result.header": {
+    "kind": "image",
+    "path": "assets/art/result/header.webp",
+    "bytes": 132628,
+    "sha256": "552c9f88ef1bb721",
+    "tier": "result"
+  },
+  "art.result.hero-0": {
+    "kind": "image",
+    "path": "assets/art/result/hero-0.webp",
+    "bytes": 41758,
+    "sha256": "8ee1af3ef246c57b",
+    "tier": "result"
+  },
+  "art.result.hero-1": {
+    "kind": "image",
+    "path": "assets/art/result/hero-1.webp",
+    "bytes": 94976,
+    "sha256": "febffa8ae7f9a2ce",
+    "tier": "result"
+  },
+  "art.result.hero-2": {
+    "kind": "image",
+    "path": "assets/art/result/hero-2.webp",
+    "bytes": 98004,
+    "sha256": "14f0bcd60d73ec54",
+    "tier": "result"
+  },
+  "art.result.hero-3": {
+    "kind": "image",
+    "path": "assets/art/result/hero-3.webp",
+    "bytes": 99336,
+    "sha256": "76e0893f406a8418",
+    "tier": "result"
+  },
+  "art.result.hero-4": {
+    "kind": "image",
+    "path": "assets/art/result/hero-4.webp",
+    "bytes": 97820,
+    "sha256": "fc5d6171be9f0ae2",
+    "tier": "result"
+  },
+  "art.result.medal-1": {
+    "kind": "image",
+    "path": "assets/art/result/medal-1.webp",
+    "bytes": 47486,
+    "sha256": "e9889ba041cc837e",
+    "tier": "result"
+  },
+  "art.result.medal-2": {
+    "kind": "image",
+    "path": "assets/art/result/medal-2.webp",
+    "bytes": 38862,
+    "sha256": "e38e7aae17af87bd",
+    "tier": "result"
+  },
+  "art.result.medal-3": {
+    "kind": "image",
+    "path": "assets/art/result/medal-3.webp",
+    "bytes": 47262,
+    "sha256": "fa2b824c988cc5f7",
+    "tier": "result"
+  },
+  "art.result.medal-4": {
+    "kind": "image",
+    "path": "assets/art/result/medal-4.webp",
+    "bytes": 51510,
+    "sha256": "630077e1d8e8d70a",
+    "tier": "result"
+  },
+  "art.result.medal-5": {
+    "kind": "image",
+    "path": "assets/art/result/medal-5.webp",
+    "bytes": 49496,
+    "sha256": "3bb153e50fdbe2dd",
+    "tier": "result"
+  },
+  "art.result.nameplate": {
+    "kind": "image",
+    "path": "assets/art/result/nameplate.webp",
+    "bytes": 32490,
+    "sha256": "940ce323897b3dc7",
+    "tier": "result"
+  },
+  "art.result.stats-board": {
+    "kind": "image",
+    "path": "assets/art/result/stats-board.webp",
+    "bytes": 62284,
+    "sha256": "70d4039c1fe183a8",
+    "tier": "result"
+  },
+  "art.track.far": {
+    "kind": "image",
+    "path": "assets/art/track/far.webp",
+    "bytes": 185180,
+    "sha256": "e2778a4c318581e1",
+    "tier": "race"
+  },
+  "art.track.front": {
+    "kind": "image",
+    "path": "assets/art/track/front.webp",
+    "bytes": 76590,
+    "sha256": "a76886ce1e3827dd",
+    "tier": "race"
+  },
+  "art.track.scene": {
+    "kind": "image",
+    "path": "assets/art/track/scene.webp",
+    "bytes": 215666,
+    "sha256": "1ae1464afa8577a5",
+    "tier": "race"
+  },
+  "art.track.track": {
+    "kind": "image",
+    "path": "assets/art/track/track.webp",
+    "bytes": 154430,
+    "sha256": "8d0a30508c487bda",
+    "tier": "race"
+  },
+  "art.ui.avatar-reference-blank": {
+    "kind": "image",
+    "path": "assets/art/ui/avatar-reference-blank.webp",
+    "bytes": 38584,
+    "sha256": "efb145a9825e8ab1",
+    "tier": "race"
+  },
+  "art.ui.avatar-source": {
+    "kind": "image",
+    "path": "assets/art/ui/avatar-source.webp",
+    "bytes": 19160,
+    "sha256": "bc7dc467f2041de6",
+    "tier": "race"
+  },
+  "art.ui.avatar-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/avatar-trimmed.webp",
+    "bytes": 8472,
+    "sha256": "876ee8f7125728bf",
+    "tier": "race"
+  },
+  "art.ui.bet-chip-selected-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/bet-chip-selected-trimmed.webp",
+    "bytes": 9286,
+    "sha256": "55eb6b27bea793a9",
+    "tier": "race"
+  },
+  "art.ui.bet-chip-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/bet-chip-trimmed.webp",
+    "bytes": 10892,
+    "sha256": "771070eb08642d36",
+    "tier": "home"
+  },
+  "art.ui.bet-panel-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/bet-panel-trimmed.webp",
+    "bytes": 78736,
+    "sha256": "4105c1415ccc6677",
+    "tier": "race"
+  },
+  "art.ui.bg-title": {
+    "kind": "image",
+    "path": "assets/art/ui/bg-title.webp",
+    "bytes": 232524,
+    "sha256": "f161b1e387dfb339",
+    "tier": "home"
+  },
+  "art.ui.buff-eye-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/buff-eye-trimmed.webp",
+    "bytes": 9390,
+    "sha256": "e6892aa2fcc18025",
+    "tier": "race"
+  },
+  "art.ui.buff-fire-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/buff-fire-trimmed.webp",
+    "bytes": 8550,
+    "sha256": "b93e740fe750ac0d",
+    "tier": "race"
+  },
+  "art.ui.buff-frame-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/buff-frame-trimmed.webp",
+    "bytes": 3498,
+    "sha256": "9da41e2e6342ba5c",
+    "tier": "race"
+  },
+  "art.ui.buff-leaf-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/buff-leaf-trimmed.webp",
+    "bytes": 5142,
+    "sha256": "4d1926e11c64c34f",
+    "tier": "race"
+  },
+  "art.ui.buff-wing-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/buff-wing-trimmed.webp",
+    "bytes": 6408,
+    "sha256": "88fbdceac4ce9e20",
+    "tier": "race"
+  },
+  "art.ui.coin-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/coin-trimmed.webp",
+    "bytes": 7576,
+    "sha256": "e5847dc61a691a52",
+    "tier": "race"
+  },
+  "art.ui.dust-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/dust-trimmed.webp",
+    "bytes": 4426,
+    "sha256": "343fa6801fd0d6be",
+    "tier": "race"
+  },
+  "art.ui.flag-0": {
+    "kind": "image",
+    "path": "assets/art/ui/flag-0.webp",
+    "bytes": 8448,
+    "sha256": "6feed854a8245506",
+    "tier": "race"
+  },
+  "art.ui.flag-1": {
+    "kind": "image",
+    "path": "assets/art/ui/flag-1.webp",
+    "bytes": 8960,
+    "sha256": "b67b3cf0f91ce61d",
+    "tier": "race"
+  },
+  "art.ui.flag-2": {
+    "kind": "image",
+    "path": "assets/art/ui/flag-2.webp",
+    "bytes": 8456,
+    "sha256": "6842058a84f96efe",
+    "tier": "race"
+  },
+  "art.ui.flag-3": {
+    "kind": "image",
+    "path": "assets/art/ui/flag-3.webp",
+    "bytes": 8604,
+    "sha256": "01d91d1e708940e3",
+    "tier": "race"
+  },
+  "art.ui.flag-4": {
+    "kind": "image",
+    "path": "assets/art/ui/flag-4.webp",
+    "bytes": 9052,
+    "sha256": "1dac1abadcdf8195",
+    "tier": "race"
+  },
+  "art.ui.gold-ring-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/gold-ring-trimmed.webp",
+    "bytes": 21860,
+    "sha256": "80a6993f09c7a852",
+    "tier": "race"
+  },
+  "art.ui.horseshoe-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/horseshoe-trimmed.webp",
+    "bytes": 5012,
+    "sha256": "3aa0628d42c81578",
+    "tier": "race"
+  },
+  "art.ui.leaderboard-avatar-0": {
+    "kind": "image",
+    "path": "assets/art/ui/leaderboard-avatar-0.webp",
+    "bytes": 6282,
+    "sha256": "1bc4abcf47ca302d",
+    "tier": "race"
+  },
+  "art.ui.leaderboard-avatar-1": {
+    "kind": "image",
+    "path": "assets/art/ui/leaderboard-avatar-1.webp",
+    "bytes": 4658,
+    "sha256": "503ca236fd09f333",
+    "tier": "race"
+  },
+  "art.ui.leaderboard-avatar-2": {
+    "kind": "image",
+    "path": "assets/art/ui/leaderboard-avatar-2.webp",
+    "bytes": 5146,
+    "sha256": "b5a293209a7080cb",
+    "tier": "race"
+  },
+  "art.ui.leaderboard-avatar-3": {
+    "kind": "image",
+    "path": "assets/art/ui/leaderboard-avatar-3.webp",
+    "bytes": 5084,
+    "sha256": "b62f326d757945a0",
+    "tier": "race"
+  },
+  "art.ui.leaderboard-avatar-4": {
+    "kind": "image",
+    "path": "assets/art/ui/leaderboard-avatar-4.webp",
+    "bytes": 4874,
+    "sha256": "7c08e0d5b6365763",
+    "tier": "race"
+  },
+  "art.ui.stamina-reference-empty": {
+    "kind": "image",
+    "path": "assets/art/ui/stamina-reference-empty.webp",
+    "bytes": 21066,
+    "sha256": "7f9925db694e9dff",
+    "tier": "race"
+  },
+  "art.ui.stamina-reference": {
+    "kind": "image",
+    "path": "assets/art/ui/stamina-reference.webp",
+    "bytes": 22786,
+    "sha256": "83518a09649b78a8",
+    "tier": "race"
+  },
+  "art.ui.star-gogo-source": {
+    "kind": "image",
+    "path": "assets/art/ui/star-gogo-source.webp",
+    "bytes": 34670,
+    "sha256": "151eae9165332f19",
+    "tier": "race"
+  },
+  "art.ui.star-race-source": {
+    "kind": "image",
+    "path": "assets/art/ui/star-race-source.webp",
+    "bytes": 35752,
+    "sha256": "38c1f2b7a356fa0d",
+    "tier": "race"
+  },
+  "art.ui.star-reference": {
+    "kind": "image",
+    "path": "assets/art/ui/star-reference.webp",
+    "bytes": 97220,
+    "sha256": "9bd8b53ba6fbde37",
+    "tier": "race"
+  },
+  "art.ui.wallet-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/wallet-trimmed.webp",
+    "bytes": 84542,
+    "sha256": "6dfcdb195cfec5b2",
+    "tier": "race"
+  },
+  "art.ui.win-strip-trimmed": {
+    "kind": "image",
+    "path": "assets/art/ui/win-strip-trimmed.webp",
+    "bytes": 18392,
+    "sha256": "90929c6ab0dc5f56",
+    "tier": "race"
+  },
   "audio.bgm_home": {
     "kind": "audio",
     "path": "assets/placeholder/audio/bgm_home.ogg",
-    "bytes": 1147279,
-    "sha256": "5c8f058e977b3fa1",
+    "bytes": 717286,
+    "sha256": "50747c83d5fcb53b",
+    "tier": "home",
     "alt": "assets/placeholder/audio/bgm_home.mp3"
   },
   "audio.bgm_race": {
     "kind": "audio",
     "path": "assets/placeholder/audio/bgm_race.ogg",
-    "bytes": 1018509,
-    "sha256": "1ac2738974c274c5",
+    "bytes": 632126,
+    "sha256": "a26865eb53f094ba",
+    "tier": "race",
     "alt": "assets/placeholder/audio/bgm_race.mp3"
   },
   "audio.jingle_lose": {
@@ -18,6 +580,7 @@
     "path": "assets/placeholder/audio/jingle_lose.ogg",
     "bytes": 24554,
     "sha256": "0982af07ff167f30",
+    "tier": "result",
     "alt": "assets/placeholder/audio/jingle_lose.mp3"
   },
   "audio.jingle_win": {
@@ -25,19 +588,15 @@
     "path": "assets/placeholder/audio/jingle_win.ogg",
     "bytes": 25779,
     "sha256": "416063260257245d",
+    "tier": "result",
     "alt": "assets/placeholder/audio/jingle_win.mp3"
-  },
-  "audio.manifest": {
-    "kind": "json",
-    "path": "assets/placeholder/audio/manifest.json",
-    "bytes": 4644,
-    "sha256": "eabe8d38a5fa6ceb"
   },
   "audio.sfx_card_deal": {
     "kind": "audio",
     "path": "assets/placeholder/audio/sfx_card_deal.ogg",
     "bytes": 1837,
     "sha256": "86230db7b002a626",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_card_deal.mp3"
   },
   "audio.sfx_card_hover": {
@@ -45,6 +604,7 @@
     "path": "assets/placeholder/audio/sfx_card_hover.ogg",
     "bytes": 1024,
     "sha256": "cf930e04d1ac2b0c",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_card_hover.mp3"
   },
   "audio.sfx_card_pick": {
@@ -52,6 +612,7 @@
     "path": "assets/placeholder/audio/sfx_card_pick.ogg",
     "bytes": 2739,
     "sha256": "65e0df426562a610",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_card_pick.mp3"
   },
   "audio.sfx_card_refresh": {
@@ -59,6 +620,7 @@
     "path": "assets/placeholder/audio/sfx_card_refresh.ogg",
     "bytes": 1637,
     "sha256": "2166fbf660021319",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_card_refresh.mp3"
   },
   "audio.sfx_checkpoint": {
@@ -66,6 +628,7 @@
     "path": "assets/placeholder/audio/sfx_checkpoint.ogg",
     "bytes": 5008,
     "sha256": "b8f63b2ac4af2532",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_checkpoint.mp3"
   },
   "audio.sfx_countdown_tick": {
@@ -73,6 +636,7 @@
     "path": "assets/placeholder/audio/sfx_countdown_tick.ogg",
     "bytes": 861,
     "sha256": "396648c11a174aea",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_countdown_tick.mp3"
   },
   "audio.sfx_equip": {
@@ -80,6 +644,7 @@
     "path": "assets/placeholder/audio/sfx_equip.ogg",
     "bytes": 1852,
     "sha256": "5c5544513d792ca0",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_equip.mp3"
   },
   "audio.sfx_exhaust_enter": {
@@ -87,6 +652,7 @@
     "path": "assets/placeholder/audio/sfx_exhaust_enter.ogg",
     "bytes": 3349,
     "sha256": "b9c85109c2d4d5fb",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_exhaust_enter.mp3"
   },
   "audio.sfx_exhaust_exit": {
@@ -94,6 +660,7 @@
     "path": "assets/placeholder/audio/sfx_exhaust_exit.ogg",
     "bytes": 3383,
     "sha256": "e674180b62d3a8b7",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_exhaust_exit.mp3"
   },
   "audio.sfx_explosion": {
@@ -101,6 +668,7 @@
     "path": "assets/placeholder/audio/sfx_explosion.ogg",
     "bytes": 11499,
     "sha256": "8c84fdc6efab2e65",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_explosion.mp3"
   },
   "audio.sfx_finish": {
@@ -108,6 +676,7 @@
     "path": "assets/placeholder/audio/sfx_finish.ogg",
     "bytes": 23801,
     "sha256": "01735bde3a5ee88b",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_finish.mp3"
   },
   "audio.sfx_gogo_early": {
@@ -115,6 +684,7 @@
     "path": "assets/placeholder/audio/sfx_gogo_early.ogg",
     "bytes": 3836,
     "sha256": "9caad945120c6a20",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_gogo_early.mp3"
   },
   "audio.sfx_gogo_good": {
@@ -122,6 +692,7 @@
     "path": "assets/placeholder/audio/sfx_gogo_good.ogg",
     "bytes": 3866,
     "sha256": "ae5e6a84153d5747",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_gogo_good.mp3"
   },
   "audio.sfx_gogo_late": {
@@ -129,6 +700,7 @@
     "path": "assets/placeholder/audio/sfx_gogo_late.ogg",
     "bytes": 3743,
     "sha256": "eb09c26ee12f9934",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_gogo_late.mp3"
   },
   "audio.sfx_race_start": {
@@ -136,6 +708,7 @@
     "path": "assets/placeholder/audio/sfx_race_start.ogg",
     "bytes": 5044,
     "sha256": "a00c828e6bb8998c",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_race_start.mp3"
   },
   "audio.sfx_result_open": {
@@ -143,6 +716,7 @@
     "path": "assets/placeholder/audio/sfx_result_open.ogg",
     "bytes": 1802,
     "sha256": "0adea29b0a53c7fd",
+    "tier": "result",
     "alt": "assets/placeholder/audio/sfx_result_open.mp3"
   },
   "audio.sfx_swap": {
@@ -150,6 +724,7 @@
     "path": "assets/placeholder/audio/sfx_swap.ogg",
     "bytes": 748,
     "sha256": "b1becf0774d41005",
+    "tier": "race",
     "alt": "assets/placeholder/audio/sfx_swap.mp3"
   },
   "audio.sfx_ui_back": {
@@ -157,6 +732,7 @@
     "path": "assets/placeholder/audio/sfx_ui_back.ogg",
     "bytes": 1403,
     "sha256": "2255fe3bd9ddb1ac",
+    "tier": "home",
     "alt": "assets/placeholder/audio/sfx_ui_back.mp3"
   },
   "audio.sfx_ui_click": {
@@ -164,6 +740,7 @@
     "path": "assets/placeholder/audio/sfx_ui_click.ogg",
     "bytes": 1860,
     "sha256": "c8f0007cc061ae13",
+    "tier": "home",
     "alt": "assets/placeholder/audio/sfx_ui_click.mp3"
   },
   "audio.sfx_ui_hover": {
@@ -171,762 +748,196 @@
     "path": "assets/placeholder/audio/sfx_ui_hover.ogg",
     "bytes": 2299,
     "sha256": "e0dd8fac9b704fa7",
+    "tier": "home",
     "alt": "assets/placeholder/audio/sfx_ui_hover.mp3"
-  },
-  "bg.far_clean": {
-    "kind": "image",
-    "path": "assets/placeholder/bg/far_clean.png",
-    "bytes": 474419,
-    "sha256": "2386c5526a2c35b2"
-  },
-  "bg.fence_clean": {
-    "kind": "image",
-    "path": "assets/placeholder/bg/fence_clean.png",
-    "bytes": 425764,
-    "sha256": "461fec349c135549"
-  },
-  "bg.front_clean": {
-    "kind": "image",
-    "path": "assets/placeholder/bg/front_clean.png",
-    "bytes": 634278,
-    "sha256": "88b0e233b4983679"
-  },
-  "bg.layer_far": {
-    "kind": "image",
-    "path": "assets/placeholder/bg/layer_far.png",
-    "bytes": 677312,
-    "sha256": "2a4d84bbcf0b1075"
-  },
-  "bg.layer_fence": {
-    "kind": "image",
-    "path": "assets/placeholder/bg/layer_fence.png",
-    "bytes": 264163,
-    "sha256": "e1bb911fe63b0188"
-  },
-  "bg.layer_fence_tile": {
-    "kind": "image",
-    "path": "assets/placeholder/bg/layer_fence_tile.png",
-    "bytes": 527240,
-    "sha256": "df42869de9b26469"
-  },
-  "bg.layer_front": {
-    "kind": "image",
-    "path": "assets/placeholder/bg/layer_front.png",
-    "bytes": 493566,
-    "sha256": "d3581ac76764b10d"
-  },
-  "bg.layer_front_tile": {
-    "kind": "image",
-    "path": "assets/placeholder/bg/layer_front_tile.png",
-    "bytes": 985170,
-    "sha256": "7bf37c8ac54da993"
-  },
-  "bg.palette": {
-    "kind": "json",
-    "path": "assets/placeholder/bg/palette.json",
-    "bytes": 228,
-    "sha256": "1daf2da27355f9f0"
-  },
-  "bg.track_dirt": {
-    "kind": "image",
-    "path": "assets/placeholder/bg/track_dirt.png",
-    "bytes": 47473,
-    "sha256": "2dfd416b54c9268c"
   },
   "icons.icon_01": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_01.png",
-    "bytes": 112251,
-    "sha256": "58d1fadc8b94779d"
+    "path": "assets/placeholder/icons/icon_01.webp",
+    "bytes": 28192,
+    "sha256": "64c1e4111f0ff095",
+    "tier": "race"
   },
   "icons.icon_02": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_02.png",
-    "bytes": 131516,
-    "sha256": "a8de84cb03c20f46"
+    "path": "assets/placeholder/icons/icon_02.webp",
+    "bytes": 34490,
+    "sha256": "574a472da09be233",
+    "tier": "race"
   },
   "icons.icon_03": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_03.png",
-    "bytes": 105532,
-    "sha256": "5f425752878e4171"
+    "path": "assets/placeholder/icons/icon_03.webp",
+    "bytes": 25886,
+    "sha256": "73ff6e2b31b62434",
+    "tier": "race"
   },
   "icons.icon_04": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_04.png",
-    "bytes": 104381,
-    "sha256": "fb25a8a4c7caa94b"
+    "path": "assets/placeholder/icons/icon_04.webp",
+    "bytes": 22004,
+    "sha256": "b470fea4df25cc52",
+    "tier": "race"
   },
   "icons.icon_05": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_05.png",
-    "bytes": 118235,
-    "sha256": "4573779cb75129ad"
+    "path": "assets/placeholder/icons/icon_05.webp",
+    "bytes": 28664,
+    "sha256": "93b9d656ca3cf2c7",
+    "tier": "race"
   },
   "icons.icon_06": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_06.png",
-    "bytes": 117973,
-    "sha256": "176e205bcb7f9561"
+    "path": "assets/placeholder/icons/icon_06.webp",
+    "bytes": 31734,
+    "sha256": "28206ebcc7f2366c",
+    "tier": "race"
   },
   "icons.icon_07": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_07.png",
-    "bytes": 123200,
-    "sha256": "299c21ff55f597eb"
+    "path": "assets/placeholder/icons/icon_07.webp",
+    "bytes": 26906,
+    "sha256": "1af2c14e279dbab3",
+    "tier": "race"
   },
   "icons.icon_08": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_08.png",
-    "bytes": 113834,
-    "sha256": "f70607c7fd6983a5"
+    "path": "assets/placeholder/icons/icon_08.webp",
+    "bytes": 30024,
+    "sha256": "00f9bc4a740c822f",
+    "tier": "race"
   },
   "icons.icon_09": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_09.png",
-    "bytes": 131316,
-    "sha256": "b47316ffef48d8b3"
+    "path": "assets/placeholder/icons/icon_09.webp",
+    "bytes": 33202,
+    "sha256": "91bee68bcb5c614e",
+    "tier": "race"
   },
   "icons.icon_10": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_10.png",
-    "bytes": 106335,
-    "sha256": "001b67be0e6bf39b"
+    "path": "assets/placeholder/icons/icon_10.webp",
+    "bytes": 25462,
+    "sha256": "b267a4d3d69144e8",
+    "tier": "race"
   },
   "icons.icon_11": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_11.png",
-    "bytes": 110160,
-    "sha256": "17c5667e4244d4aa"
+    "path": "assets/placeholder/icons/icon_11.webp",
+    "bytes": 28036,
+    "sha256": "1b9f494b034ca477",
+    "tier": "race"
   },
   "icons.icon_12": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_12.png",
-    "bytes": 107398,
-    "sha256": "2250e94c5fa5ce56"
+    "path": "assets/placeholder/icons/icon_12.webp",
+    "bytes": 28086,
+    "sha256": "e135643f890a61f8",
+    "tier": "race"
   },
   "icons.icon_13": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_13.png",
-    "bytes": 115652,
-    "sha256": "1841199b60e03e15"
+    "path": "assets/placeholder/icons/icon_13.webp",
+    "bytes": 29120,
+    "sha256": "4da82e53a328a7b4",
+    "tier": "race"
   },
   "icons.icon_14": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_14.png",
-    "bytes": 116879,
-    "sha256": "ade1347dced598c1"
+    "path": "assets/placeholder/icons/icon_14.webp",
+    "bytes": 25910,
+    "sha256": "a9d8f3469127c6c1",
+    "tier": "race"
   },
   "icons.icon_15": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_15.png",
-    "bytes": 119134,
-    "sha256": "7603dafc49bda7e3"
+    "path": "assets/placeholder/icons/icon_15.webp",
+    "bytes": 29836,
+    "sha256": "132d9522a7a77907",
+    "tier": "race"
   },
   "icons.icon_16": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_16.png",
-    "bytes": 99394,
-    "sha256": "69c897fe939a53cd"
+    "path": "assets/placeholder/icons/icon_16.webp",
+    "bytes": 19704,
+    "sha256": "aaf32508dbff38f5",
+    "tier": "race"
   },
   "icons.icon_17": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_17.png",
-    "bytes": 108432,
-    "sha256": "604558982a5521c2"
+    "path": "assets/placeholder/icons/icon_17.webp",
+    "bytes": 26982,
+    "sha256": "d176ea60e52a8073",
+    "tier": "race"
   },
   "icons.icon_18": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_18.png",
-    "bytes": 108728,
-    "sha256": "81135237b0796dce"
+    "path": "assets/placeholder/icons/icon_18.webp",
+    "bytes": 29324,
+    "sha256": "205bc57fd16a5201",
+    "tier": "race"
   },
   "icons.icon_19": {
     "kind": "image",
-    "path": "assets/placeholder/icons/icon_19.png",
-    "bytes": 83484,
-    "sha256": "281935222b2a53c7"
+    "path": "assets/placeholder/icons/icon_19.webp",
+    "bytes": 24448,
+    "sha256": "c7ce1a50a9fb142b",
+    "tier": "race"
   },
   "ui.btn_star": {
-    "kind": "image",
-    "path": "assets/placeholder/ui/btn_star.png",
-    "bytes": 672477,
-    "sha256": "283b129e108fabae"
+    "kind": "json",
+    "path": "assets/placeholder/ui/btn_star.json",
+    "bytes": 49,
+    "sha256": "1ad8139dbac4e4ab",
+    "tier": "home"
   },
   "ui.btn_wood_1": {
     "kind": "image",
-    "path": "assets/placeholder/ui/btn_wood_1.png",
-    "bytes": 1292599,
-    "sha256": "d898d4fb2fb5b40a"
+    "path": "assets/placeholder/ui/btn_wood_1.webp",
+    "bytes": 131204,
+    "sha256": "aa81715d15173a05",
+    "tier": "boot"
   },
   "ui.btn_wood_2": {
     "kind": "image",
-    "path": "assets/placeholder/ui/btn_wood_2.png",
-    "bytes": 1298155,
-    "sha256": "5e2c84380faaf4fb"
+    "path": "assets/placeholder/ui/btn_wood_2.webp",
+    "bytes": 104368,
+    "sha256": "5f4eb33e8bcf1953",
+    "tier": "boot"
   },
   "ui.btn_wood_3": {
     "kind": "image",
-    "path": "assets/placeholder/ui/btn_wood_3.png",
-    "bytes": 1001483,
-    "sha256": "c4a1e575d41452a0"
-  },
-  "ui.card_frame": {
-    "kind": "json",
-    "path": "assets/placeholder/ui/card_frame.json",
-    "bytes": 363,
-    "sha256": "ede9ee0ecad19e8e"
+    "path": "assets/placeholder/ui/btn_wood_3.webp",
+    "bytes": 90900,
+    "sha256": "cfef709da49d7623",
+    "tier": "boot"
   },
   "ui.card_frame_common": {
     "kind": "image",
-    "path": "assets/placeholder/ui/card_frame_common.png",
-    "bytes": 912834,
-    "sha256": "ebe40c076df2750f"
+    "path": "assets/placeholder/ui/card_frame_common.webp",
+    "bytes": 80772,
+    "sha256": "f02b6dd513b89791",
+    "tier": "race"
   },
   "ui.card_frame_rare": {
     "kind": "image",
-    "path": "assets/placeholder/ui/card_frame_rare.png",
-    "bytes": 903149,
-    "sha256": "13058e9fe2a8b6c0"
+    "path": "assets/placeholder/ui/card_frame_rare.webp",
+    "bytes": 84534,
+    "sha256": "bf32417123de812c",
+    "tier": "race"
   },
   "ui.logo_title": {
     "kind": "image",
-    "path": "assets/placeholder/ui/logo_title.png",
-    "bytes": 1326281,
-    "sha256": "4e948df6ae556fc3"
+    "path": "assets/placeholder/ui/logo_title.webp",
+    "bytes": 170554,
+    "sha256": "3e075aece3e7aa65",
+    "tier": "boot"
   },
   "ui.panel_parchment": {
     "kind": "image",
-    "path": "assets/placeholder/ui/panel_parchment.png",
-    "bytes": 1699173,
-    "sha256": "4ee249a2aaac2cc9"
-  },
-  "ui.start_gate": {
-    "kind": "image",
-    "path": "assets/placeholder/ui/start_gate.png",
-    "bytes": 926550,
-    "sha256": "3fd16df69d1c3fc8"
-  },
-  "art.home.collection": {
-    "kind": "image",
-    "path": "assets/art/home/collection.png",
-    "bytes": 1276911,
-    "sha256": "e24ee73b20169b5a"
-  },
-  "art.home.login": {
-    "kind": "image",
-    "path": "assets/art/home/login.png",
-    "bytes": 1332004,
-    "sha256": "ba8f2e3a6798be44"
-  },
-  "art.home.logo": {
-    "kind": "image",
-    "path": "assets/art/home/logo.png",
-    "bytes": 1240873,
-    "sha256": "89dc718835b999bf"
-  },
-  "art.home.register": {
-    "kind": "image",
-    "path": "assets/art/home/register.png",
-    "bytes": 702311,
-    "sha256": "0e5437a9dc919759"
-  },
-  "art.home.settings": {
-    "kind": "image",
-    "path": "assets/art/home/settings.png",
-    "bytes": 1340656,
-    "sha256": "e852bbe62c14a7fc"
-  },
-  "art.home.start": {
-    "kind": "image",
-    "path": "assets/art/home/start.png",
-    "bytes": 1287664,
-    "sha256": "947fadfc173a23f0"
-  },
-  "art.ponies.0-idle": {
-    "kind": "image",
-    "path": "assets/art/ponies/0-idle.png",
-    "bytes": 371459,
-    "sha256": "544e224c5ea5cfc5"
-  },
-  "art.ponies.0-portrait": {
-    "kind": "image",
-    "path": "assets/art/ponies/0-portrait.png",
-    "bytes": 81965,
-    "sha256": "0965fa0c85bf19f9"
-  },
-  "art.ponies.0-running": {
-    "kind": "image",
-    "path": "assets/art/ponies/0-running.png",
-    "bytes": 359354,
-    "sha256": "3f1223bff96098fa"
-  },
-  "art.ponies.1-idle": {
-    "kind": "image",
-    "path": "assets/art/ponies/1-idle.png",
-    "bytes": 319078,
-    "sha256": "630dc57acf7c3c3b"
-  },
-  "art.ponies.1-portrait": {
-    "kind": "image",
-    "path": "assets/art/ponies/1-portrait.png",
-    "bytes": 68191,
-    "sha256": "c499c1fa88940c1a"
-  },
-  "art.ponies.1-running": {
-    "kind": "image",
-    "path": "assets/art/ponies/1-running.png",
-    "bytes": 296551,
-    "sha256": "a010774870ed9543"
-  },
-  "art.ponies.2-idle": {
-    "kind": "image",
-    "path": "assets/art/ponies/2-idle.png",
-    "bytes": 338796,
-    "sha256": "de2404f862469b6d"
-  },
-  "art.ponies.2-portrait": {
-    "kind": "image",
-    "path": "assets/art/ponies/2-portrait.png",
-    "bytes": 75836,
-    "sha256": "a862e0aacd162eba"
-  },
-  "art.ponies.2-running": {
-    "kind": "image",
-    "path": "assets/art/ponies/2-running.png",
-    "bytes": 318311,
-    "sha256": "79f1e9031a36681a"
-  },
-  "art.ponies.3-idle": {
-    "kind": "image",
-    "path": "assets/art/ponies/3-idle.png",
-    "bytes": 328203,
-    "sha256": "bd965fff3e789c85"
-  },
-  "art.ponies.3-portrait": {
-    "kind": "image",
-    "path": "assets/art/ponies/3-portrait.png",
-    "bytes": 68580,
-    "sha256": "5aaa05d7fb11f90b"
-  },
-  "art.ponies.3-running": {
-    "kind": "image",
-    "path": "assets/art/ponies/3-running.png",
-    "bytes": 316876,
-    "sha256": "d5783decef949ddd"
-  },
-  "art.ponies.4-idle": {
-    "kind": "image",
-    "path": "assets/art/ponies/4-idle.png",
-    "bytes": 335695,
-    "sha256": "d36683779c69469b"
-  },
-  "art.ponies.4-portrait": {
-    "kind": "image",
-    "path": "assets/art/ponies/4-portrait.png",
-    "bytes": 72297,
-    "sha256": "e0e99d4bbf614c11"
-  },
-  "art.ponies.4-running": {
-    "kind": "image",
-    "path": "assets/art/ponies/4-running.png",
-    "bytes": 343704,
-    "sha256": "ed76dd4d315461d3"
-  },
-  "art.ponies.running-v3.0-contact": {
-    "kind": "image",
-    "path": "assets/art/ponies/running-v3/0-contact.png",
-    "bytes": 544164,
-    "sha256": "22b8b0265b41689d"
-  },
-  "art.ponies.running-v3.0-frameprep-metadata": {
-    "kind": "json",
-    "path": "assets/art/ponies/running-v3/0-frameprep-metadata.json",
-    "bytes": 13801,
-    "sha256": "713b652311838cbf"
-  },
-  "art.ponies.running-v3.0-running": {
-    "kind": "image",
-    "path": "assets/art/ponies/running-v3/0-running.png",
-    "bytes": 641786,
-    "sha256": "9439a49514bad6aa"
-  },
-  "art.ponies.running-v3.1-contact": {
-    "kind": "image",
-    "path": "assets/art/ponies/running-v3/1-contact.png",
-    "bytes": 547093,
-    "sha256": "c0bd847a210242b4"
-  },
-  "art.ponies.running-v3.1-frameprep-metadata": {
-    "kind": "json",
-    "path": "assets/art/ponies/running-v3/1-frameprep-metadata.json",
-    "bytes": 12275,
-    "sha256": "51a7c570cea1de6c"
-  },
-  "art.ponies.running-v3.1-running": {
-    "kind": "image",
-    "path": "assets/art/ponies/running-v3/1-running.png",
-    "bytes": 617650,
-    "sha256": "bcada83a929ea0c1"
-  },
-  "art.ponies.running-v3.2-frameprep-metadata": {
-    "kind": "json",
-    "path": "assets/art/ponies/running-v3/2-frameprep-metadata.json",
-    "bytes": 9507,
-    "sha256": "35c497898c93e792"
-  },
-  "art.ponies.running-v3.2-running": {
-    "kind": "image",
-    "path": "assets/art/ponies/running-v3/2-running.png",
-    "bytes": 655194,
-    "sha256": "8de846f310b11718"
-  },
-  "art.result.background": {
-    "kind": "image",
-    "path": "assets/art/result/background.png",
-    "bytes": 2342934,
-    "sha256": "360f80bcd44273e7"
-  },
-  "art.result.button-again": {
-    "kind": "image",
-    "path": "assets/art/result/button-again.png",
-    "bytes": 151819,
-    "sha256": "e322fdee469cc07c"
-  },
-  "art.result.button-home": {
-    "kind": "image",
-    "path": "assets/art/result/button-home.png",
-    "bytes": 61048,
-    "sha256": "b5942dabfefe66aa"
-  },
-  "art.result.button-share": {
-    "kind": "image",
-    "path": "assets/art/result/button-share.png",
-    "bytes": 63710,
-    "sha256": "34329d9e144082c8"
-  },
-  "art.result.header": {
-    "kind": "image",
-    "path": "assets/art/result/header.png",
-    "bytes": 1525903,
-    "sha256": "bc5d093c7048b476"
-  },
-  "art.result.hero-0": {
-    "kind": "image",
-    "path": "assets/art/result/hero-0.png",
-    "bytes": 393296,
-    "sha256": "f23c018bd11ca815"
-  },
-  "art.result.hero-1": {
-    "kind": "image",
-    "path": "assets/art/result/hero-1.png",
-    "bytes": 1065308,
-    "sha256": "04b19cc4426df723"
-  },
-  "art.result.hero-2": {
-    "kind": "image",
-    "path": "assets/art/result/hero-2.png",
-    "bytes": 1096347,
-    "sha256": "08ee69d0451efb98"
-  },
-  "art.result.hero-3": {
-    "kind": "image",
-    "path": "assets/art/result/hero-3.png",
-    "bytes": 1093292,
-    "sha256": "7e1231fa5d09f948"
-  },
-  "art.result.hero-4": {
-    "kind": "image",
-    "path": "assets/art/result/hero-4.png",
-    "bytes": 1083452,
-    "sha256": "0f3cc97981c8c90f"
-  },
-  "art.result.medal-1": {
-    "kind": "image",
-    "path": "assets/art/result/medal-1.png",
-    "bytes": 1664224,
-    "sha256": "10402f4acbea444c"
-  },
-  "art.result.medal-2": {
-    "kind": "image",
-    "path": "assets/art/result/medal-2.png",
-    "bytes": 1604527,
-    "sha256": "2f3d6e384575c7c3"
-  },
-  "art.result.medal-3": {
-    "kind": "image",
-    "path": "assets/art/result/medal-3.png",
-    "bytes": 1638371,
-    "sha256": "bcabc6e0c5adec32"
-  },
-  "art.result.medal-4": {
-    "kind": "image",
-    "path": "assets/art/result/medal-4.png",
-    "bytes": 1976948,
-    "sha256": "2e8ecd6b82aac9ed"
-  },
-  "art.result.medal-5": {
-    "kind": "image",
-    "path": "assets/art/result/medal-5.png",
-    "bytes": 1742515,
-    "sha256": "55d763c6a9dfe5af"
-  },
-  "art.result.nameplate": {
-    "kind": "image",
-    "path": "assets/art/result/nameplate.png",
-    "bytes": 1124281,
-    "sha256": "67e4242b83e2ec51"
-  },
-  "art.result.stats-board": {
-    "kind": "image",
-    "path": "assets/art/result/stats-board.png",
-    "bytes": 708328,
-    "sha256": "9253ed3b12769b97"
-  },
-  "art.track.far": {
-    "kind": "image",
-    "path": "assets/art/track/far.png",
-    "bytes": 1781320,
-    "sha256": "68f2bbf4c7da980b"
-  },
-  "art.track.front": {
-    "kind": "image",
-    "path": "assets/art/track/front.png",
-    "bytes": 885320,
-    "sha256": "998864533e451890"
-  },
-  "art.track.scene": {
-    "kind": "image",
-    "path": "assets/art/track/scene.png",
-    "bytes": 2211232,
-    "sha256": "d0b871544b86bb89"
-  },
-  "art.track.track": {
-    "kind": "image",
-    "path": "assets/art/track/track.png",
-    "bytes": 1869958,
-    "sha256": "368da18efa48e80a"
-  },
-  "art.ui.avatar-blank-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/avatar-blank-trimmed.png",
-    "bytes": 1706134,
-    "sha256": "b15e6175252d689b"
-  },
-  "art.ui.avatar-reference-blank": {
-    "kind": "image",
-    "path": "assets/art/ui/avatar-reference-blank.png",
-    "bytes": 1507342,
-    "sha256": "aeaf0a5df6f7b2ad"
-  },
-  "art.ui.avatar-reference": {
-    "kind": "image",
-    "path": "assets/art/ui/avatar-reference.png",
-    "bytes": 1628560,
-    "sha256": "fc6e28460642131e"
-  },
-  "art.ui.avatar-source": {
-    "kind": "image",
-    "path": "assets/art/ui/avatar-source.png",
-    "bytes": 104921,
-    "sha256": "e068427dd3bbd5ab"
-  },
-  "art.ui.avatar-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/avatar-trimmed.png",
-    "bytes": 2013973,
-    "sha256": "113ed91d8174bdac"
-  },
-  "art.ui.bet-chip-selected-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/bet-chip-selected-trimmed.png",
-    "bytes": 1184274,
-    "sha256": "a89fe0ac84bf895f"
-  },
-  "art.ui.bet-chip-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/bet-chip-trimmed.png",
-    "bytes": 1260257,
-    "sha256": "e4b9a2bb5bc2d3cd"
-  },
-  "art.ui.bet-panel-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/bet-panel-trimmed.png",
-    "bytes": 1828957,
-    "sha256": "106ee179ad3366c8"
-  },
-  "art.ui.bg-title": {
-    "kind": "image",
-    "path": "assets/art/ui/bg-title.png",
-    "bytes": 2226286,
-    "sha256": "18cfb406d8a775ec"
-  },
-  "art.ui.buff-eye-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/buff-eye-trimmed.png",
-    "bytes": 911699,
-    "sha256": "dbe8b2ac308c9d58"
-  },
-  "art.ui.buff-fire-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/buff-fire-trimmed.png",
-    "bytes": 1040506,
-    "sha256": "d0dfd31cb7432ed0"
-  },
-  "art.ui.buff-frame-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/buff-frame-trimmed.png",
-    "bytes": 460343,
-    "sha256": "f541ec275594dff5"
-  },
-  "art.ui.buff-leaf-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/buff-leaf-trimmed.png",
-    "bytes": 441770,
-    "sha256": "940139935a66f6cc"
-  },
-  "art.ui.buff-wing-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/buff-wing-trimmed.png",
-    "bytes": 571579,
-    "sha256": "fbb2f293f3cde156"
-  },
-  "art.ui.coin-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/coin-trimmed.png",
-    "bytes": 1471030,
-    "sha256": "62146de5d906a7c2"
-  },
-  "art.ui.dust-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/dust-trimmed.png",
-    "bytes": 10683,
-    "sha256": "bc4e6dac915a401f"
-  },
-  "art.ui.flag-0": {
-    "kind": "image",
-    "path": "assets/art/ui/flag-0.png",
-    "bytes": 122432,
-    "sha256": "94db1ae09219a0a4"
-  },
-  "art.ui.flag-1": {
-    "kind": "image",
-    "path": "assets/art/ui/flag-1.png",
-    "bytes": 123875,
-    "sha256": "6001fe0bab04e820"
-  },
-  "art.ui.flag-2": {
-    "kind": "image",
-    "path": "assets/art/ui/flag-2.png",
-    "bytes": 123199,
-    "sha256": "21ea544d4ec31e38"
-  },
-  "art.ui.flag-3": {
-    "kind": "image",
-    "path": "assets/art/ui/flag-3.png",
-    "bytes": 125030,
-    "sha256": "ee178ec8d232984d"
-  },
-  "art.ui.flag-4": {
-    "kind": "image",
-    "path": "assets/art/ui/flag-4.png",
-    "bytes": 127000,
-    "sha256": "d3ea238aa7d01bb0"
-  },
-  "art.ui.gold-ring-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/gold-ring-trimmed.png",
-    "bytes": 462835,
-    "sha256": "5a740a7b34fbb995"
-  },
-  "art.ui.horseshoe-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/horseshoe-trimmed.png",
-    "bytes": 844665,
-    "sha256": "fca3d9642f77af4d"
-  },
-  "art.ui.leaderboard-avatar-0": {
-    "kind": "image",
-    "path": "assets/art/ui/leaderboard-avatar-0.png",
-    "bytes": 200150,
-    "sha256": "88767236cf75f3d0"
-  },
-  "art.ui.leaderboard-avatar-1": {
-    "kind": "image",
-    "path": "assets/art/ui/leaderboard-avatar-1.png",
-    "bytes": 179743,
-    "sha256": "355cc0cf87ad5da3"
-  },
-  "art.ui.leaderboard-avatar-2": {
-    "kind": "image",
-    "path": "assets/art/ui/leaderboard-avatar-2.png",
-    "bytes": 197359,
-    "sha256": "e607e9c6acab1d1b"
-  },
-  "art.ui.leaderboard-avatar-3": {
-    "kind": "image",
-    "path": "assets/art/ui/leaderboard-avatar-3.png",
-    "bytes": 191244,
-    "sha256": "e00cd7a595992559"
-  },
-  "art.ui.leaderboard-avatar-4": {
-    "kind": "image",
-    "path": "assets/art/ui/leaderboard-avatar-4.png",
-    "bytes": 177436,
-    "sha256": "79926838a4e1ef70"
-  },
-  "art.ui.stamina-reference-empty": {
-    "kind": "image",
-    "path": "assets/art/ui/stamina-reference-empty.png",
-    "bytes": 643878,
-    "sha256": "911cf79fb071bf0f"
-  },
-  "art.ui.stamina-reference": {
-    "kind": "image",
-    "path": "assets/art/ui/stamina-reference.png",
-    "bytes": 676882,
-    "sha256": "5cc4de89a773a2d1"
-  },
-  "art.ui.stamina-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/stamina-trimmed.png",
-    "bytes": 470982,
-    "sha256": "b0c211c287c8c003"
-  },
-  "art.ui.star-gogo-source": {
-    "kind": "image",
-    "path": "assets/art/ui/star-gogo-source.png",
-    "bytes": 298730,
-    "sha256": "f33b19dbddacc092"
-  },
-  "art.ui.star-race-source": {
-    "kind": "image",
-    "path": "assets/art/ui/star-race-source.png",
-    "bytes": 296606,
-    "sha256": "a6f2e18c2a935264"
-  },
-  "art.ui.star-reference": {
-    "kind": "image",
-    "path": "assets/art/ui/star-reference.png",
-    "bytes": 1289888,
-    "sha256": "b38cf026f17bf442"
-  },
-  "art.ui.star-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/star-trimmed.png",
-    "bytes": 1411709,
-    "sha256": "9e038c141f634109"
-  },
-  "art.ui.wallet-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/wallet-trimmed.png",
-    "bytes": 1163833,
-    "sha256": "625c48a3a2ec7096"
-  },
-  "art.ui.win-strip-trimmed": {
-    "kind": "image",
-    "path": "assets/art/ui/win-strip-trimmed.png",
-    "bytes": 904728,
-    "sha256": "9eb76a477889eb34"
+    "path": "assets/placeholder/ui/panel_parchment.webp",
+    "bytes": 98236,
+    "sha256": "e4bfcdedb729db0f",
+    "tier": "race"
   }
 }

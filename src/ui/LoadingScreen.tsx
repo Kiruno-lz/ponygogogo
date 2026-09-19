@@ -30,7 +30,7 @@ export function LoadingScreen({
         gap: 26,
       }}
     >
-      <img src="/assets/placeholder/ui/logo_title.png" alt={t(lang, 'app.title')} draggable={false} style={{ width: 700, height: 305, objectFit: 'contain' }}/>
+      <img src="/assets/placeholder/ui/logo_title.webp" alt={t(lang, 'app.title')} draggable={false} style={{ width: 700, height: 305, objectFit: 'contain' }}/>
       <p style={{ margin: 0, fontSize: 22, opacity: 0.75 }}>{t(lang, 'loading.title')}</p>
 
       <div
