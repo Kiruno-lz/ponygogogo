@@ -134,7 +134,7 @@ tests/e2e/           Playwright
 
 不选 [LPC Horses Rework](https://opengameart.org/content/lpc-horses-rework)：它是 CC-BY/GPL 需要署名，且只有四方向俯视各 3 帧，横向侧面赛马用不上。
 
-下载与入库由 `scripts/fetch-assets.sh` 完成：拉取上述包、解压、只挑用得到的文件进 `public/assets/placeholder/`、生成清单。目录名带 `placeholder` 是为了让替换时一眼看见范围；脚本要幂等，重复执行不产生重复文件。
+下载与入库由 `scripts/fetch-assets.sh` 完成：拉取上述包、解压、只挑用得到的文件进 `art-src/placeholder/`、生成清单。目录名带 `placeholder` 是为了让替换时一眼看见范围；脚本要幂等，重复执行不产生重复文件。
 
 **素材缺口要说在前面，不要假装凑齐了：**
 
