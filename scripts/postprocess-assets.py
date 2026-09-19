@@ -2,7 +2,7 @@
 """
 背景分层的二次裁切。
 
-assrt/race_gaming.png 是一张带 HUD 的完整界面渲染图：左上的玩家头像牌与体力条、
+art-src/renders/race_gaming.png 是一张带 HUD 的完整界面渲染图：左上的玩家头像牌与体力条、
 右侧的名次榜、右下的 GOGOGO 星形按钮都画在图里。直接按 y 切出来的背景层会把这些
 UI 一起带进场景，形成"画面里有两套 HUD"。
 
@@ -14,7 +14,7 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "assrt" / "race_gaming.png"
+SRC = ROOT / "art-src" / "renders" / "race_gaming.png"
 OUT = ROOT / "public" / "assets" / "placeholder" / "bg"
 
 # (输出名, y 区间, 干净的 x 区间)

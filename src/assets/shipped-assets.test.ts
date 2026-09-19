@@ -1,0 +1,172 @@
+/**
+ * 产物完整性：源码里出现的每一条资源路径，都必须在 public/assets 下真实存在。
+ *
+ * public/assets 是 scripts/build-web-assets.py 从 art-src 派生的产物，出片规则是一张白名单。
+ * 白名单漏掉一项的表现是线上某张图 404——而本地开发跑的是同一份产物，肉眼一样看不出来，
+ * 只有真的走到那个页面才会露馅。这条测试把"漏掉"从线上事故变成构建期失败。
+ *
+ * 动态拼出来的路径抓不到字面量，逐族按真实数据源枚举；新增一族拼接就在这里补一条。
+ */
+import { describe, expect, test } from 'bun:test'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+import { HORSE_PROFILES } from '../game/horses.ts'
+import { CARD_POOL } from '../race/cards/pool.ts'
+
+const ROOT = new URL('../../', import.meta.url).pathname
+const PUBLIC = join(ROOT, 'public')
+const SRC = join(ROOT, 'src')
+
+function walk(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name)
+    if (statSync(p).isDirectory()) walk(p, out)
+    else if (/\.(ts|tsx|css)$/.test(name)) out.push(p)
+  }
+  return out
+}
+
+/** 只取引号或 url( 之后紧跟的 /assets/…，避开 '../assets/loader.ts' 这类 import */
+const LITERAL = /["'`(](\/assets\/[A-Za-z0-9_\-./]+)/g
+
+function staticReferences(): Map<string, string[]> {
+  const found = new Map<string, string[]>()
+  for (const file of walk(SRC)) {
+    if (file.endsWith('.test.ts')) continue
+    const text = readFileSync(file, 'utf8')
+    for (const m of text.matchAll(LITERAL)) {
+      const path = m[1]!
+      // 带 ${} 的模板串在这里只会剩前缀，交给下面的动态枚举
+      if (!/\.[a-z0-9]+$/.test(path)) continue
+      const at = found.get(path) ?? []
+      at.push(file.slice(ROOT.length))
+      found.set(path, at)
+    }
+  }
+  return found
+}
+
+describe('每条静态资源引用都有对应产物', () => {
+  const refs = staticReferences()
+
+  test('扫到的引用数量没有归零（正则失效会让这条测试变成空转）', () => {
+    expect(refs.size).toBeGreaterThan(20)
+  })
+
+  for (const [path, sites] of refs) {
+    test(path, () => {
+      expect(existsSync(join(PUBLIC, path)), `${path} 缺产物，引用处：${sites.join(', ')}`).toBe(true)
+    })
+  }
+})
+
+describe('动态拼接的资源族', () => {
+  // src/game/pony.ts:21、src/ui/PonyPortrait.tsx:9
+  test('八帧分镜：每匹马 × idle/running', () => {
+    for (const p of HORSE_PROFILES) for (const action of ['idle', 'running']) {
+      expect(existsSync(join(PUBLIC, `/assets/art/ponies/${p.horseId}-${action}.webp`)), `${p.horseId}-${action}`).toBe(true)
+    }
+  })
+
+  // src/ui/RaceArt.tsx:7
+  test('名牌头像：每匹马一张', () => {
+    for (const p of HORSE_PROFILES) {
+      expect(existsSync(join(PUBLIC, `/assets/art/ponies/${p.horseId}-portrait.webp`)), `${p.horseId}-portrait`).toBe(true)
+    }
+  })
+
+  // src/export/poster.ts:92——海报画的是静帧，不是分镜横排
+  test('海报静帧：每匹马一张', () => {
+    for (const p of HORSE_PROFILES) {
+      expect(existsSync(join(PUBLIC, `/assets/art/ponies/${p.horseId}-idle-0.webp`)), `${p.horseId}-idle-0`).toBe(true)
+    }
+  })
+
+  // src/cards/Card.tsx:112、src/result/ResultScreen.tsx:106、src/export/poster.ts:131
+  test('卡面图标：卡池里每条 art.icon', () => {
+    for (const card of CARD_POOL) {
+      expect(existsSync(join(PUBLIC, `/assets/placeholder/icons/${card.art.icon}.webp`)), `${card.cardId} → ${card.art.icon}`).toBe(true)
+    }
+  })
+
+  // src/ui/Hud.tsx:14-17 的 icon 映射表；新增一条效果图标要同步这里
+  test('增益图标', () => {
+    for (const icon of ['buff-wing', 'buff-leaf', 'buff-fire', 'buff-eye']) {
+      expect(existsSync(join(PUBLIC, `/assets/art/ui/${icon}-trimmed.webp`)), icon).toBe(true)
+    }
+  })
+
+  // src/result/ResultScreen.tsx——名次 1..5 各一枚奖牌，五匹马各一张结算立绘
+  test('结算奖牌与立绘', () => {
+    for (let rank = 1; rank <= 5; rank++) {
+      expect(existsSync(join(PUBLIC, `/assets/art/result/medal-${rank}.webp`)), `medal-${rank}`).toBe(true)
+    }
+    for (const p of HORSE_PROFILES) {
+      expect(existsSync(join(PUBLIC, `/assets/art/result/hero-${p.horseId}.webp`)), `hero-${p.horseId}`).toBe(true)
+    }
+  })
+})
+
+describe('资源清单', () => {
+  const manifest = JSON.parse(readFileSync(join(PUBLIC, 'assets/manifest.json'), 'utf8')) as
+    Record<string, { kind: string; path: string; bytes: number; tier: string; alt?: string }>
+  const TIERS = ['boot', 'home', 'race', 'result']
+
+  test('每一项都指向真实文件，且字节数与文件一致', () => {
+    for (const [key, e] of Object.entries(manifest)) {
+      const file = join(PUBLIC, e.path)
+      expect(existsSync(file), `${key} → ${e.path}`).toBe(true)
+      expect(statSync(file).size, key).toBe(e.bytes)
+      if (e.alt) expect(existsSync(join(PUBLIC, e.alt)), `${key} 的备用编码`).toBe(true)
+    }
+  })
+
+  test('每一项都有合法的分级', () => {
+    for (const [key, e] of Object.entries(manifest)) {
+      expect(TIERS, `${key} 的 tier`).toContain(e.tier)
+    }
+  })
+
+  test('四个分级都非空——某一级为空说明分级规则失配，而不是真的不需要素材', () => {
+    for (const tier of TIERS) {
+      expect(Object.values(manifest).some((e) => e.tier === tier), `${tier} 级为空`).toBe(true)
+    }
+  })
+
+  test('进首页要等的两级控制在 2 MB 以内', () => {
+    const blocking = Object.values(manifest)
+      .filter((e) => e.tier === 'boot' || e.tier === 'home')
+      .reduce((n, e) => n + e.bytes, 0)
+    expect(blocking).toBeLessThan(2 * 1024 * 1024)
+  })
+})
+
+/**
+ * 显示尺寸表与出片清单之间的接缝。
+ * 这里曾经出过一次静默失败：测量跑在已转成 WebP 的应用上，键带着 .webp，
+ * 而管线查的是母版 PNG——一张都对不上，于是一张都不降采样，产物悄悄变大，
+ * 没有任何报错。键不带扩展名是这条接缝成立的前提，所以直接断言它。
+ */
+describe('显示尺寸表', () => {
+  const sizes = JSON.parse(readFileSync(join(ROOT, 'scripts/display-sizes.json'), 'utf8')) as {
+    sizes: Record<string, [number, number]>
+  }
+  const manifest = JSON.parse(readFileSync(join(PUBLIC, 'assets/manifest.json'), 'utf8')) as
+    Record<string, { kind: string; path: string }>
+
+  test('键一律不带扩展名，才能同时对上 PNG 母版与 WebP 产物', () => {
+    const withExt = Object.keys(sizes.sizes).filter((k) => /\.[a-z0-9]+$/i.test(k))
+    expect(withExt, `这些键带了扩展名：${withExt.join('、')}`).toEqual([])
+  })
+
+  test('绝大多数键都能对上一个真实产物', () => {
+    const shipped = new Set(
+      Object.values(manifest)
+        .filter((e) => e.kind === 'image')
+        .map((e) => '/' + e.path.replace(/\.[^./]+$/, '')),
+    )
+    const keys = Object.keys(sizes.sizes)
+    const matched = keys.filter((k) => shipped.has(k)).length
+    expect(matched / keys.length, `只有 ${matched}/${keys.length} 对得上`).toBeGreaterThan(0.8)
+  })
+})

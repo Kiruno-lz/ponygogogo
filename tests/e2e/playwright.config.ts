@@ -19,7 +19,8 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `bun run scripts/gen-manifest.ts && bunx vite --port ${PORT} --strictPort --host localhost`,
+    // manifest.json 是提交进仓库的构建产物，跑测试不需要重新生成
+    command: `node node_modules/vite/bin/vite.js --port ${PORT} --strictPort --host localhost`,
     url: BASE_URL,
     reuseExistingServer: true,
     timeout: 120_000,

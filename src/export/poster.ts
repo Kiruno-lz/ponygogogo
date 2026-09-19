@@ -89,7 +89,7 @@ export async function drawPoster(
 
   // 小马
   try {
-    const pony = await loadImage(`/assets/art/ponies/${result.horseId}-idle-0.png`)
+    const pony = await loadImage(`/assets/art/ponies/${result.horseId}-idle-0.webp`)
     const pw = W * 0.3
     ctx.drawImage(pony, W * 0.05, H * 0.46, pw, pw * 0.75)
   } catch {
@@ -128,7 +128,7 @@ export async function drawPoster(
     const def = c.cardId ? CARD_BY_ID[c.cardId] : null
     if (def) {
       try {
-        const icon = await loadImage(`/assets/placeholder/icons/${def.art.icon}.png`)
+        const icon = await loadImage(`/assets/placeholder/icons/${def.art.icon}.webp`)
         ctx.drawImage(icon, x + cardW * 0.18, baseY + cardH * 0.1, cardW * 0.64, cardW * 0.64)
       } catch {
         /* 图标缺失降级为纯文字 */

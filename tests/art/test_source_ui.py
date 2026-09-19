@@ -4,11 +4,11 @@ from pathlib import Path
 from PIL import Image, ImageChops
 
 ROOT = Path(__file__).resolve().parents[2]
-UI = ROOT / 'public/assets/art/ui'
+UI = ROOT / 'art-src/art/ui'
 
 class SourceUiTest(unittest.TestCase):
     def test_native_avatar_and_race_callout_preserve_source_rgb(self):
-        source = Image.open(ROOT / 'assrt/race_start.png').convert('RGB')
+        source = Image.open(ROOT / 'art-src/renders/race_start.png').convert('RGB')
         for name, crop in [('avatar-source', (35, 25, 253, 247)),
                            ('star-race-source', (1190, 565, 1619, 955))]:
             with self.subTest(asset=name):
@@ -29,7 +29,7 @@ class SourceUiTest(unittest.TestCase):
         self.assertIsNone(ImageChops.multiply(diff, Image.merge('RGB', (outside, outside, outside))).getbbox())
 
     def test_gogogo_keeps_native_lettering_and_changes_only_the_sample_payout(self):
-        source = Image.open(ROOT / 'assrt/race_gaming.png').convert('RGB').crop((1190, 565, 1619, 955))
+        source = Image.open(ROOT / 'art-src/renders/race_gaming.png').convert('RGB').crop((1190, 565, 1619, 955))
         image = Image.open(UI / 'star-gogo-source.png').convert('RGBA')
         mask = Image.open(UI / 'star-gogo-source-label-mask.png').convert('L')
         diff = ImageChops.difference(source, image.convert('RGB'))

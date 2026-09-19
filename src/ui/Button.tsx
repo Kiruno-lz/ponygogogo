@@ -68,7 +68,7 @@ export function WoodButton({
   en?: string
   icon?: ReactNode
   style?: React.CSSProperties
-  /** 三块木牌各自的造型（对应 assrt/tittle.png 的三个按钮），默认第一块 */
+  /** 三块木牌各自的造型（对应 art-src/renders/tittle.png 的三个按钮），默认第一块 */
   variant?: 1 | 2 | 3
 }) {
   const { pressed, handlers } = usePress(onClick, disabled)

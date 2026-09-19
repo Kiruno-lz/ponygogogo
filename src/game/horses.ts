@@ -1,4 +1,4 @@
-/** 五匹马的外观。颜色取自 assrt/race_start.png 的闸门排布，horseId 与颜色绑定，不随赛道变 */
+/** 五匹马的外观。颜色取自 art-src/renders/race_start.png 的闸门排布，horseId 与颜色绑定，不随赛道变 */
 export interface HorseProfile {
   horseId: number
   name: string

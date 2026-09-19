@@ -4,7 +4,7 @@
 #
 # Idempotent: existing output files are skipped.
 # Raw zips cached in .cache/audio/; processed files go to
-# public/assets/placeholder/audio/ as .ogg (Opus) + .mp3.
+# art-src/placeholder/audio/ as .ogg (Opus) + .mp3.
 #
 # Note: ffmpeg on this system is built without libvorbis. The .ogg files use
 # the Opus codec (libopus) which is superior quality and fully browser-
@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CACHE_DIR="$ROOT_DIR/.cache/audio"
 EXTRACT_DIR="$CACHE_DIR/extracted"
-OUT_DIR="$ROOT_DIR/public/assets/placeholder/audio"
+OUT_DIR="$ROOT_DIR/art-src/placeholder/audio"
 
 # ── Kenney download URLs ──────────────────────────────────────────────────────
 INTERFACE_URL="https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip"

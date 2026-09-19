@@ -19,22 +19,23 @@ if [ ! -d node_modules ]; then
   bun install || die "bun install 失败"
 fi
 
-# ---- 2. 素材与清单 ----
-if [ ! -d public/assets/placeholder/icons ]; then
-  say "占位素材缺失，正在生成…"
-  command -v python3 >/dev/null 2>&1 || die "缺少 python3，无法生成占位素材"
-  python3 scripts/process-assets.py || die "占位素材生成失败"
+# ---- 2. 素材 ----
+# art-src/ 是母版，public/assets/ 是 scripts/build-web-assets.py 的产物并已提交进仓库。
+# 管线跑一次约五分钟，日常开发不重跑；只有产物整个缺失时才从母版重建。
+# 改了母版或改了版位之后要手动跑：python3 scripts/build-web-assets.py
+if [ ! -f public/assets/manifest.json ]; then
+  command -v python3 >/dev/null 2>&1 || die "缺少 python3，无法生成素材产物"
+  if [ ! -d art-src/placeholder/icons ]; then
+    say "占位素材母版缺失，正在生成…"
+    python3 scripts/process-assets.py || die "占位素材生成失败"
+  fi
+  if [ ! -d art-src/placeholder/audio ]; then
+    say "占位音频缺失，正在下载…"
+    bash scripts/fetch-audio.sh || die "占位音频获取失败"
+  fi
+  say "从母版生成素材产物（约五分钟）…"
+  python3 scripts/build-web-assets.py || die "素材产物生成失败"
 fi
-if [ ! -f public/assets/placeholder/bg/far_clean.png ]; then
-  say "背景分层二次裁切…"
-  python3 scripts/postprocess-assets.py || die "背景分层生成失败"
-fi
-if [ ! -d public/assets/placeholder/audio ]; then
-  say "占位音频缺失，正在下载…"
-  bash scripts/fetch-audio.sh || die "占位音频获取失败"
-fi
-say "生成资源清单…"
-bun run scripts/gen-manifest.ts || die "manifest 生成失败"
 
 # ---- 3. 端口占用检测与释放 ----
 PIDS=$(lsof -ti tcp:"$PORT" 2>/dev/null || true)

@@ -14,7 +14,7 @@ Monad 上的横向赛马社交游戏。每场五匹马，玩家挑一匹作为�
 bash scripts/dev.sh          # 环境自检 → 素材与清单 → 端口释放 → 启动 Vite → 健康检查
 ```
 
-首次运行会自动补齐占位素材（`scripts/process-assets.py` 从 `assrt/` 的渲染图切片、`scripts/fetch-audio.sh` 拉取 CC0 音频）。
+首次运行会自动补齐素材：缺母版时 `scripts/process-assets.py` 从 `art-src/renders/` 的渲染图切片、`scripts/fetch-audio.sh` 拉取 CC0 音频，再由 `scripts/build-web-assets.py` 生成 `public/assets/` 下的部署产物。产物已提交进仓库，正常情况下这一步会整段跳过（见[素材管线说明](scripts/README-assets.md)）。
 
 用 **http://localhost:5173** 打开，不要用 `http://127.0.0.1:5173`：通行密钥的 rpId 不接受 IP 字面量，浏览器会直接拒绝创建。桌面版 Chrome 还要求把通行密钥存进 Google 密码管理器才带 PRF 扩展，存在本地 profile 的用不了；1Password、iCloud 钥匙串、Windows 密码管理器与 YubiKey 均可。手动领测试币用 `bash scripts/get_faucet.sh <address>`，它和游戏内领币打的是同一个水龙头端点。
 

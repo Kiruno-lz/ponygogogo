@@ -10,10 +10,13 @@
     "typecheck": "tsc -b",
     "test": "bun test src",
     "vectors": "bun run scripts/gen-vectors.ts 200",
-    "assets": "python3 scripts/process-assets.py && python3 scripts/postprocess-assets.py && bun run scripts/gen-manifest.ts",
+    "assets": "python3 scripts/build-web-assets.py",
+    "assets:masters": "python3 scripts/process-assets.py && python3 scripts/postprocess-assets.py && python3 scripts/prepare-art.py",
+    "assets:measure": "bun scripts/measure-display-sizes.ts",
     "test:api": "bun test tests/api",
     "test:e2e": "playwright test --config tests/e2e/playwright.config.ts",
-    "sweep": "bun run scripts/race-sweep.ts"
+    "sweep": "bun run scripts/race-sweep.ts",
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "@category-labs/mera": "^0.2.0",

@@ -1,6 +1,6 @@
 # CC0 Placeholder Audio – Ponygogogo
 
-All files under `public/assets/placeholder/audio/` are CC0 (public domain).
+All files under `art-src/placeholder/audio/` are CC0 (public domain). 母版在 `art-src/`；上线产物由 `scripts/build-web-assets.py` 重编码到 `public/assets/placeholder/audio/`（Opus 80k / MP3 96k）。
 
 Run `scripts/fetch-audio.sh` from the project root to reproduce every file.
 The script is idempotent: existing files are skipped. Raw source ZIPs are
