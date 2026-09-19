@@ -15,7 +15,8 @@
     "assets:measure": "bun scripts/measure-display-sizes.ts",
     "test:api": "bun test tests/api",
     "test:e2e": "playwright test --config tests/e2e/playwright.config.ts",
-    "sweep": "bun run scripts/race-sweep.ts"
+    "sweep": "bun run scripts/race-sweep.ts",
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "@category-labs/mera": "^0.2.0",
