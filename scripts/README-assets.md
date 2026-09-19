@@ -173,3 +173,50 @@ filled with median parchment colour (#f2cdaf) to erase leaderboard content.
 | `parchment` | `#f1cdb0` | Scoreboard interior x=1440, y=300, r=20 |
 | `gold` | `#f4a22a` | Lightning bolt icon x=135, y=63, r=6 |
 | `ink` | `#57250c` | Dark text on parchment x=1360, y=210, r=4 |
+
+---
+
+## Product 6 — `prepare-art.py` outputs (manual, run on source-art changes)
+
+Not part of `scripts/dev.sh`; `process-assets.py` and `postprocess-assets.py` regenerate automatically on a missing-directory check, but `prepare-art.py` is a one-off you run by hand whenever the underlying render changes:
+
+```bash
+python3 scripts/prepare-art.py
+```
+
+**首页不再由这个脚本切。** 早期版本从 `assrt/tittle.png` 抠白底、裁六个矩形得到 `home/{logo,start,collection,settings,login,register}.png`；这段已删除。首页素材现在由作者直接出成无字、透明、非原生尺寸的 PNG，版位靠把素材的实体包围盒对到 `assrt/tittle.png` 里同一块牌的包围盒得出（算法与横纵独立缩放见 `docs/architecture/overall.md` 第 9 节），不再走脚本裁切。
+
+**结算页的奖章与名牌也不再由这个脚本切。** 早期版本把 `result/placement.png`（奖章+木牌+名次条焊成一张）拆成 `medal-1.png` 与 `nameplate.png`；这段连同 `placement.png` 一起删除了。五档奖章与名牌现在都是作者直接出的独立素材：`medal-1..5.png`（金/银/铜/铁/木，名次数字画在牌面上，所以 DOM 里不再叠数字）、`nameplate.png`（木牌+名次条）。渲染顺序仍是先名牌、后奖章，与原画里奖章压在木牌之上的叠放一致；版位见 `src/ui/theme.css` 的 `.result-nameplate` / `.result-medal-art`。
+
+脚本现在只做两件事：
+
+### 6.1 UI 元件二次抠图
+
+- `avatar-source.png` / `star-race-source.png`：从 `assrt/race_start.png` 裁出后套用已有的 `avatar-reference.png` / `star-reference.png` 蒙版做二次抠图。
+- `avatar` `avatar-blank` `stamina` `star` `wallet` `bet-panel` `bet-chip` `bet-chip-selected` `coin` `win-strip` `horseshoe` `dust` `gold-ring` `buff-frame` `buff-wing` `buff-leaf` `buff-fire` `buff-eye`：裁到各自 alpha 包围盒存为 `*-trimmed.png`；`dust` 额外缩到 128px 宽；`buff-eye` 的源文件是 `buff-eye-v2.png`。
+- `lane-flags.png` 横向切成 5 张 `flag-{0..4}.png`。
+
+### 6.2 赛道背景分层
+
+从 `track/scene.png`（缩放到 1619×971）按 y 区间裁出 `track/far.png`（天空/看台）、`track/front.png`（前景围栏）、`track/track.png`（赛道本体）；远景与前景用 `track/scene-loop.png` 同区间拼接成可循环贴图，赛道层改用左右镜像拼接（`[原图 ∣ 翻转]`）得到 3238px 宽的无缝循环图。
+
+---
+
+## Manifest 过滤规则（`scripts/gen-manifest.ts`）
+
+`walk('public/assets/art')` 用一条正则同时做白名单和黑名单：进了 `manifest.json` 才会被运行时预加载，制作期资料（AI 生成提示词、抠图蒙版、拼版留档）不应该进去。
+
+- **白名单新增**：`art/ui/bg-title.png`（首页整屏背景，运行时需要）。
+- **黑名单新增**：`-meta.json`（各素材的制作记录）与 `ui-kit.png`（整层拼版留档）。
+- **已删除的失效制作产物**：`hero-atlas.png`、`hero-atlas-meta.partial.json`、`hero-0-reconstruction-mask.png`、`hero-0-generation-prompt.json`、`stats-board-generation-prompt.json`、`stats-board-erase-mask.png`、`result/placement.png`、`home/*-en.png`、`result/header-zh.png`。
+- **保留作为版位与制作记录**（留在仓库、但被黑名单挡在 manifest 外）：`ui-kit.png` + `ui-kit-meta.json`、`stats-board-meta.json`、`hero-0-meta.json`、`background-meta.json`。
+
+---
+
+## 仍然缺的素材
+
+| 路径 | 尺寸 | 说明 |
+|------|------|------|
+| `public/assets/art/cards/icon-C-01.png` … `icon-C-21.png` | 128×128，透明 PNG | 结算页三个卡槽现在复用 `public/assets/placeholder/icons/icon_01.png` … `icon_19.png`（19 张服务 21 张卡；`icon_01`、`icon_19` 各复用了一次，见 `src/race/cards/pool.ts` 里每条卡定义的 `art.icon`）。补齐后把对应卡的 `art.icon` 改指到新路径。 |
+
+卡面图标之外没有别的缺口：五档奖章、名牌、标题木牌、首页六块木牌与两张整屏背景都已定稿。

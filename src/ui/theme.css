@@ -65,7 +65,9 @@ html, body, #root {
   will-change: transform;
 }
 .btn:disabled { cursor: default; filter: grayscale(0.55) opacity(0.6); }
-.btn:not(:disabled):hover { filter: brightness(1.06); }
+/* 提亮与辉光都走 filter：它按素材的 alpha 作用，不会把按钮外框那圈透明区域一起染色。
+   任何 background/box-shadow 形式的悬浮反馈都会画成矩形，比按钮本身大一圈。 */
+.btn:not(:disabled):hover { filter: brightness(1.07) drop-shadow(0 0 9px rgba(255, 213, 120, 0.6)); }
 .btn.pressed:not(:disabled) { transform: scale(0.94); }
 .btn:focus-visible { outline: 4px solid var(--gold-lite); outline-offset: 4px; border-radius: 10px; }
 
@@ -187,6 +189,8 @@ html, body, #root {
   letter-spacing: 1px;
 }
 .mono { font-variant-numeric: tabular-nums; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 .rotate-blocker {
   position: fixed;
@@ -210,17 +214,38 @@ html, body, #root {
 .scrolly::-webkit-scrollbar { width: 10px; }
 .scrolly::-webkit-scrollbar-thumb { background: #a3714c; border-radius: 6px; }
 
-/* 目标图原始切片：保持木牌、图标和原画字形的共同注册位置。 */
-.home-screen { background: #fff; }
+/* 首页：无字木牌按原画版位摆放，牌面文字在这里排版。
+   版位由新素材的实体包围盒对到 assrt/tittle.png 里同一块牌的包围盒得出，
+   横纵缩放各算各的——素材不是原生尺寸，允许按版位比例拉伸。 */
+.home-screen { background: #8fc0ea; }
+.home-bg { position: absolute; left: 0; top: 0; width: 1611px; height: 976px; }
 .home-artboard { position: absolute; width: 1611px; height: 976px; left: 0; top: 0; transform: none; transform-origin: top left; }
-.home-logo { position: absolute; left: 250px; top: 0; width: 1095px; height: 485px; }
+.home-logo { position: absolute; left: 230px; top: -25px; width: 1103px; height: 562px; }
 .home-artboard > .btn { position: absolute; }
-.home-artboard > .btn img { display: block; width: 100%; height: 100%; pointer-events: none; }
-.home-start { left: 486px; top: 482px; width: 654px; height: 168px; }
-.home-collection { left: 536px; top: 645px; width: 530px; height: 141px; }
-.home-settings { left: 541px; top: 781px; width: 514px; height: 155px; }
-.home-login { left: 1310px; top: 0; width: 301px; height: 161px; }
-.home-register { left: 1325px; top: 159px; width: 286px; height: 233px; }
+.home-artboard > .btn > img { display: block; width: 100%; height: 100%; pointer-events: none; }
+.home-artboard > .btn > .lbl { position: absolute; display: flex; flex-direction: column;
+  align-items: center; pointer-events: none; color: #3a2411; text-align: center; white-space: nowrap; }
+.home-artboard > .btn .zh { font-weight: 800; line-height: 1; }
+.home-artboard > .btn .en { font-weight: 700; opacity: .72; line-height: 1; }
+.home-start { left: 495px; top: 465px; width: 632px; height: 213px; }
+.home-start > .lbl { left: 194px; top: 54px; width: 300px; gap: 9px; }
+.home-start .zh { font-size: 52px; letter-spacing: 6px; text-indent: 6px; }
+.home-start .en { font-size: 15px; letter-spacing: 6px; text-indent: 6px; }
+.home-collection { left: 538px; top: 627px; width: 526px; height: 174px; }
+.home-collection > .lbl { left: 183px; top: 43px; width: 230px; gap: 14px; }
+.home-collection .zh { font-size: 36px; letter-spacing: 6px; text-indent: 6px; }
+.home-collection .en { font-size: 14px; letter-spacing: 6px; text-indent: 6px; }
+.home-settings { left: 546px; top: 769px; width: 503px; height: 165px; }
+.home-settings > .lbl { left: 177px; top: 42px; width: 210px; gap: 12px; }
+.home-settings .zh { font-size: 35px; letter-spacing: 4px; text-indent: 4px; }
+.home-settings .en { font-size: 15px; letter-spacing: 6px; text-indent: 6px; }
+.home-login { left: 1324px; top: 20px; width: 249px; height: 142px; }
+/* 两块吊牌在原画里是斜挂的，字跟着牌面的中线走；角度 = 素材中线斜率再乘上版位的纵横缩放比 */
+.home-login > .lbl { left: 51px; top: 57px; width: 160px; transform: rotate(-9.2deg); }
+.home-login .zh { font-size: 42px; letter-spacing: 5px; text-indent: 5px; }
+.home-register { left: 1335px; top: 151px; width: 269px; height: 219px; }
+.home-register > .lbl { left: 50px; top: 33px; width: 160px; transform: rotate(-5.6deg); }
+.home-register .zh { font-size: 44px; letter-spacing: 5px; text-indent: 5px; }
 .home-wallet { position: absolute; right: 0; top: 0; width: 386px; height: 448px; background: url('/assets/art/ui/wallet-trimmed.png') center / 100% 100% no-repeat; }
 .wallet-content { position: absolute; left: 82px; top: 76px; width: 250px; height: 175px; transform: rotate(-5deg); padding: 4px 0; }
 .wallet-row { display: flex; align-items: center; gap: 14px; height: 55px; font-size: 22px; color: #281c14; font-weight: 750; }
@@ -333,13 +358,10 @@ html, body, #root {
 .btn-wood-2 { background-image: url('/assets/placeholder/ui/btn_wood_2.png'); }
 .btn-wood-3 { background-image: url('/assets/placeholder/ui/btn_wood_3.png'); }
 .panel { border-width: 32px 22px 33px 30px; }
-[data-testid='screen-collection'], [data-testid='screen-settings'], [data-testid='screen-result'], [data-testid='screen-loading'] { background: #fbf7f0 !important; }
+[data-testid='screen-collection'], [data-testid='screen-settings'], [data-testid='screen-loading'] { background: #fbf7f0 !important; }
 [data-testid='screen-collection'] .scrolly { padding-top: 18px !important; }
 [data-testid='screen-settings'] .panel { width: 950px !important; padding: 34px 55px !important; gap: 27px !important; }
 [data-testid='screen-settings'] input[type='range'] { height: 9px; }
-[data-testid='screen-result'] > div:first-of-type > .panel { height: 360px !important; }
-[data-testid='screen-result'] .h-title { font-family: Kalam, 'PingFang SC', sans-serif; }
-[data-testid='screen-result'] .btn-star .big { font-size: 28px; font-weight: 800; letter-spacing: 1px; }
 .chip { border: 0; border-radius: 0; background: url('/assets/art/ui/bet-chip-trimmed.png') center / 100% 100% no-repeat; padding: 12px 22px; }
 .chip.on { border: 0; background: url('/assets/art/ui/bet-chip-selected-trimmed.png') center / 100% 100% no-repeat; box-shadow: 0 0 7px #ffd45d55; }
 .wallet-logout { right: 8px; top: 278px; width: 96px; height: 170px; color: transparent; font-size: 0; background: transparent; transform: none; }
@@ -369,3 +391,87 @@ html, body, #root {
 .wallet-row:first-child img { width: 56px; height: 52px; }
 .bet-balance { padding-left: 16px; gap: 20px; }
 .card-root .h-title { font-family: Kalam, 'PingFang SC', sans-serif; font-weight: 700; }
+
+/* ---------------- 结算页：assrt/result.png 的原始坐标 ---------------- */
+
+.result-screen { background: #8a6a4a; }
+.result-artboard { position: absolute; left: 0; top: 0; width: 1620px; height: 971px; color: #4a2c14; }
+.result-artboard > img { position: absolute; display: block; }
+.result-bg { left: 0; top: 0; width: 1620px; height: 971px; }
+.result-hero { position: absolute; }
+.result-stats-board { left: 803px; top: 168px; width: 804px; height: 592px; }
+.result-nameplate { left: 354px; top: 196px; width: 326px; height: 170px; }
+.result-medal-art { left: 140px; top: 113px; width: 262px; height: 237px; }
+/* 标题木牌：素材不是原生尺寸，按两面旗子的跨距与高度对到原画版位 */
+.result-header { left: 419px; top: 14px; width: 780px; height: 250px; }
+.result-title { position: absolute; left: 652px; top: 90px; width: 330px; text-align: center;
+  font-size: 72px; font-weight: 800; letter-spacing: 4px; text-indent: 4px; line-height: 1;
+  color: #4a2c14; white-space: nowrap; }
+.result-title-en { position: absolute; left: 686px; top: 165px; width: 240px; text-align: center;
+  font-size: 24px; font-weight: 700; letter-spacing: 1px; text-indent: 1px; line-height: 1;
+  color: #6b4a29; white-space: nowrap; }
+
+/* 木纸上的三行数据：抹空区左端 928、右端 1437，行距 44 */
+.result-row { position: absolute; left: 928px; width: 509px; height: 32px; display: flex;
+  align-items: baseline; justify-content: space-between; }
+.result-row-label { font-size: 25px; font-weight: 700; }
+.result-row-value { font-size: 28px; font-weight: 700; }
+
+.result-net-label { position: absolute; left: 928px; top: 407px; font-size: 31px; font-weight: 800; }
+.result-net-value { position: absolute; left: 1222px; top: 404px; font-size: 62px; font-weight: 700;
+  letter-spacing: 0; line-height: 1; color: #4a2c14; }
+
+.result-picks-title { position: absolute; left: 912px; top: 488px; font-size: 22px; font-weight: 800; }
+.result-pick { position: absolute; top: 530px; width: 160px; height: 110px; }
+.result-pick-no { position: absolute; left: 0; top: 2px; width: 28px; text-align: center;
+  font-size: 25px; font-weight: 800; opacity: .8; }
+.result-pick-icon { position: absolute; left: calc(var(--pick-center) - 32px); top: 2px;
+  width: 64px; height: 64px; object-fit: contain; }
+.result-pick-empty { border-radius: 10px; background: rgba(120, 84, 52, .16); }
+.result-pick-name { position: absolute; left: calc(var(--pick-center) - 78px); width: 156px; top: 72px;
+  text-align: center; font-size: 18px; font-weight: 700; line-height: 1.15; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+
+/* 印章框是木纸上原有的空心矩形，短状态写在框里，长说明另起一行放在按钮行下方 */
+/* 结算状态是一层铺满画板的透明层：印章和失败说明各自绝对定位，容器不能塌成 0×0 */
+.result-settle { position: absolute; inset: 0; pointer-events: none; }
+.result-settle > * { pointer-events: auto; }
+.result-settle-stamp { position: absolute; left: 1103px; top: 654px; width: 165px; height: 44px;
+  display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800;
+  letter-spacing: 2px; }
+.result-settle-stamp.failed { color: #a32c17; }
+.result-settle-retry { position: absolute; left: 405px; top: 884px; width: 735px;
+  display: flex; align-items: center; gap: 14px; }
+.result-settle-why { font-size: 19px; font-weight: 800; color: #ffe0c2; line-height: 1.3;
+  padding: 5px 12px; border-radius: 10px; background: rgba(48, 20, 12, .8); }
+
+/* 奖章、名牌与名次条压在 placement 切片被抹空的位置上 */
+/* 名字与金额用仓库里的 Kalam：原画那支圆体比系统无衬线更窄更高，字宽与字高都更接近 */
+.result-name, .result-net-value, .result-row-value { font-family: Kalam, 'PingFang SC', sans-serif; }
+.result-name { position: absolute; left: 404px; top: 230px; width: 210px; line-height: 76px;
+  text-align: center; font-size: 60px; font-weight: 700; letter-spacing: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-rank-line { position: absolute; left: 446px; top: 309px; width: 123px; height: 30px;
+  display: flex; align-items: center; justify-content: space-between; color: #f3ead9;
+  font-size: 25px; font-weight: 700; }
+.result-rank-total { font-weight: 800; }
+.result-combo { position: absolute; left: 140px; top: 862px; width: 542px; text-align: center;
+  font-size: 24px; font-weight: 900; color: #ffe9a8; text-shadow: 0 2px 5px rgba(50, 22, 8, .85); }
+
+/* 三个按钮都是整块透明原画；文字压在原画抹空的牌面上 */
+.result-artboard > .btn { position: absolute; padding: 0; }
+.result-artboard > .btn > img { display: block; width: 100%; height: 100%; pointer-events: none; }
+/* 文字框以原画那行字的中心为轴居中排版，宽度卡在牌面上图标右侧的净空里；
+   英文更长，单独给一档小一号的字号，免得压到木牌左端那枚图标。 */
+.result-artboard > .btn > .lbl { position: absolute; font-weight: 800; white-space: nowrap;
+  text-align: center; overflow: hidden; text-overflow: ellipsis; pointer-events: none; color: #4a2c14; }
+.result-btn-home { left: 405px; top: 742px; width: 356px; height: 124px; }
+.result-btn-home > .lbl { left: 121px; top: 41px; width: 182px; font-size: 31px; letter-spacing: 1.5px; }
+.result-btn-share { left: 771px; top: 743px; width: 377px; height: 123px; }
+.result-btn-share > .lbl { left: 128px; top: 43px; width: 186px; font-size: 31px; letter-spacing: 1.5px; }
+.result-btn-again { left: 1150px; top: 683px; width: 467px; height: 247px; }
+.result-btn-again > .lbl { left: 190px; top: 91px; width: 180px; font-size: 42px; letter-spacing: 0; }
+.result-artboard.en .result-title { top: 112px; font-size: 56px; letter-spacing: 0; text-indent: 0; }
+.result-artboard.en .result-btn-home > .lbl { font-size: 30px; letter-spacing: 0; }
+.result-artboard.en .result-btn-share > .lbl { font-size: 26px; letter-spacing: 0; }
+.result-artboard.en .result-btn-again > .lbl { font-size: 33px; top: 89px; }
