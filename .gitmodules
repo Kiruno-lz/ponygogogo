@@ -1,0 +1,3 @@
+[submodule "envio"]
+	path = envio
+	url = https://github.com/Kiruno-lz/ponygogogo-indexer.git
