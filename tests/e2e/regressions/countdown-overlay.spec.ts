@@ -12,7 +12,8 @@ async function readyToStart(page: import('@playwright/test').Page): Promise<void
   await page.getByRole('button', { name: /开始游戏|START/ }).first().click()
   await expect(page.getByTestId('screen-select')).toBeVisible()
   await page.getByTestId('horse-0').click()
-  await page.getByTestId('bet-panel').locator('.chip').nth(1).click()
+  // 有奖档在 P7 之前灰掉，倒计时与档位无关，用 0 档免费试玩走同一段起跑
+  await page.getByTestId('bet-panel').locator('.chip').nth(0).click()
 }
 
 test('MISSED_WINDOW：点击之后才建立等待，抓不到倒计时遮罩', async ({ page }) => {

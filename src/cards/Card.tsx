@@ -2,10 +2,11 @@
  * 卡面只有一套实现。选牌时的候选牌、HUD 上生效中的牌、结算页回顾的牌
  * 是同一个组件的三种状态，不是三套画法。
  */
-import type { CSSProperties, ReactNode } from 'react'
+import { useId, type CSSProperties, type ReactNode } from 'react'
 import type { CardDef } from '../race/cards/types.ts'
 import type { Lang } from '../ui/i18n.ts'
 import { t } from '../ui/i18n.ts'
+import { activateOnKey } from './cardKeys.ts'
 
 /** 来自 public/assets/placeholder/ui/card_frame.json 的实测矩形 */
 const FRAME = {
@@ -40,6 +41,7 @@ export interface CardProps {
   selected?: boolean
   dimmed?: boolean
   style?: CSSProperties
+  /** 给了就是一个按钮：可聚焦、Enter / 空格激活、以卡名为可访问名；不给就是纯展示 */
   onClick?: () => void
   footer?: ReactNode
   badge?: ReactNode
@@ -65,25 +67,27 @@ export function Card({
   const compact = size === 'hud'
   const nameSize = Math.max(11, Math.round(h * (compact ? 0.11 : 0.056)))
   const descSize = Math.max(9, Math.round(h * 0.035))
+  const descId = useId()
+  // 两种形态共用的根属性：E2E 与排版检查器靠 card-root / data-card / data-quality 找卡面
+  const root = {
+    className: 'card-root',
+    'data-card': def.cardId,
+    'data-quality': def.quality,
+    style: {
+      position: 'relative',
+      width: w,
+      height: h,
+      flex: '0 0 auto',
+      cursor: onClick ? 'pointer' : 'default',
+      opacity: dimmed ? 0.38 : 1,
+      filter: selected ? 'drop-shadow(0 0 22px rgba(249,199,79,0.95))' : undefined,
+      transition: 'opacity 200ms ease, filter 200ms ease',
+      ...style,
+    } satisfies CSSProperties,
+  }
 
-  return (
-    <div
-      className="card-root"
-      data-card={def.cardId}
-      data-quality={def.quality}
-      onClick={onClick}
-      style={{
-        position: 'relative',
-        width: w,
-        height: h,
-        flex: '0 0 auto',
-        cursor: onClick ? 'pointer' : 'default',
-        opacity: dimmed ? 0.38 : 1,
-        filter: selected ? 'drop-shadow(0 0 22px rgba(249,199,79,0.95))' : undefined,
-        transition: 'opacity 200ms ease, filter 200ms ease',
-        ...style,
-      }}
-    >
+  const face = (
+    <>
       <img
         src={f.src}
         alt=""
@@ -124,6 +128,7 @@ export function Card({
         />
         {!compact && (
           <p
+            id={descId}
             style={{
               margin: 0,
               width: '100%',
@@ -187,6 +192,22 @@ export function Card({
         </span>
       )}
       {footer}
+    </>
+  )
+
+  if (!onClick) return <div {...root}>{face}</div>
+  return (
+    <div
+      {...root}
+      role="button"
+      tabIndex={0}
+      aria-label={def.name[lang]}
+      // 按钮的子树对读屏是展示性的：效果描述要显式挂成说明，否则只读得到卡名
+      aria-describedby={compact ? undefined : descId}
+      onClick={onClick}
+      onKeyDown={(e) => activateOnKey(e, onClick)}
+    >
+      {face}
     </div>
   )
 }

@@ -1,6 +1,11 @@
 /**
  * 比赛页：Phaser 画布 + DOM 的 HUD 与选牌浮层。
  * 卡牌层绝不暂停 Phaser 场景；选牌浮层出现时赛道继续以 0.1 倍速跑。
+ *
+ * 同一套画面承接两种驱动器：免费试玩（本地内核）与有奖（链上规范时间线，见 race/paidDriver.ts）。
+ * 有奖时额外显示入场/选牌交易状态、断卡提示与「待链上验证」，页面切到后台也不终止比赛——
+ * 链上会话不会因为关页而停下，回来时按规范时间继续。入块但按规则不生效的选择（有奖规则 v3）显示一行原因，
+ * 例如「选择晚于截止，按超时处理」；画面本身已按规范求解渲染成超时、自动或断卡。
  */
 import Phaser from 'phaser'
 import { useEffect, useRef, useState } from 'react'
@@ -11,13 +16,15 @@ import { RaceScene } from '../game/RaceScene.ts'
 import { HORSE_PROFILES } from '../game/horses.ts'
 import { preparePonyImages } from '../game/pony.ts'
 import { prepareSceneImages } from '../game/sceneArt.ts'
-import { PAYOUT_TABLE, STAKE_PRESETS } from '../race/core/constants.ts'
-import { FP } from '../race/core/fixed.ts'
+import { paidCardDef } from '../race/cards/paidCards.ts'
 import type { RaceEvent } from '../race/core/types.ts'
-import type { RaceDriver } from '../race/driver.ts'
+import type { PaidOverlay } from '../race/paidDriver.ts'
+import type { RaceScreenDriver } from '../race/raceView.ts'
+import { explorerTxUrl } from '../chain/network.ts'
 import { WoodButton, Chip } from './Button.tsx'
 import { Hud } from './Hud.tsx'
 import { t, type Lang } from './i18n.ts'
+import { paidChoiceText, paidReasonText } from './paidText.ts'
 
 const SFX: Partial<Record<RaceEvent['type'], string>> = {
   explosion: 'audio.sfx_explosion',
@@ -33,13 +40,22 @@ const SFX: Partial<Record<RaceEvent['type'], string>> = {
   wind: 'audio.sfx_card_refresh',
 }
 
+/** 有奖比赛的附加信息；免费试玩不传 */
+export interface PaidRaceProps {
+  overlay: () => PaidOverlay
+  /** 下注额文案，如 0.3 */
+  stakeLabel: string
+  /** 离开比赛页：链上会话保持开放，之后可在首页恢复 */
+  onLeave: () => void
+}
+
 export interface RaceScreenProps {
-  driver: RaceDriver
+  driver: RaceScreenDriver
+  paid?: PaidRaceProps
   lang: Lang
   reducedMotion: boolean
   audio: AudioManager
   urls: Record<string, string>
-  stakeTier: number
   onDone: () => void
   onQuit: () => void
 }
@@ -171,6 +187,8 @@ export function RaceScreen(p: RaceScreenProps) {
   // 页面切到后台立即终止比赛
   useEffect(() => {
     const onHide = (): void => {
+      // 有奖会话在链上继续，切后台不终止；回到前台时驱动器按规范时间追上
+      if (p.paid) return
       if (document.visibilityState === 'hidden' && !p.driver.state.raceOver) p.onQuit()
     }
     document.addEventListener('visibilitychange', onHide)
@@ -179,8 +197,14 @@ export function RaceScreen(p: RaceScreenProps) {
 
   const st = p.driver.state
   const counting = p.driver.phase === 'countdown'
+  const paid = p.paid ? p.paid.overlay() : null
+  const entry = paid?.entry ?? null
+  const entryWaiting = paid !== null && (entry === null || entry.phase !== 'included')
+  const choice = paid?.choice ?? null
+  const choiceNote = choice === null || !st.pending ? null
+    : choice.status === 'rejected' ? t(p.lang, 'paid.choice.retry', { reason: paidReasonText(p.lang, choice.reason ?? '') })
+      : null
   const countNum = Math.ceil(p.driver.countdownLeft / 1000)
-  const potential = Math.round((STAKE_PRESETS[p.stakeTier]! * PAYOUT_TABLE[0]!) / FP)
   const abilityLabel =
     st.abilityBinding?.abilityId === 'clapSwap'
       ? 'CLAP'
@@ -199,7 +223,7 @@ export function RaceScreen(p: RaceScreenProps) {
         state={st}
         lang={p.lang}
         reducedMotion={p.reducedMotion}
-        potentialWin={potential}
+        gogoSub={p.paid ? t(p.lang, 'race.paidSub', { stake: p.paid.stakeLabel }) : t(p.lang, 'race.practice')}
         gogoPunchKey={punch}
         hideGogo={counting || st.pending !== null || st.playerFinished}
         abilityLabel={abilityLabel}
@@ -228,8 +252,63 @@ export function RaceScreen(p: RaceScreenProps) {
               animation: p.reducedMotion ? undefined : 'badge-pop 400ms ease-out',
             }}
           >
-            {countNum > 0 ? countNum : t(p.lang, 'race.countdown.go')}
+            {entry?.phase === 'failed' ? '×' : countNum > 0 ? countNum : t(p.lang, 'race.countdown.go')}
           </div>
+          {entryWaiting && (
+            <div
+              className="panel"
+              data-testid="paid-entry-status"
+              style={{ position: 'absolute', left: 460, top: 690, width: 700, padding: '6px 24px', textAlign: 'center', fontSize: 22, fontWeight: 700 }}
+            >
+              <div>{t(p.lang, `paid.entry.${entry?.phase ?? 'signing'}`, { reason: entry?.phase === 'failed' ? entry.reason : '' })}</div>
+              {entry?.phase === 'failed' && (
+                <div style={{ paddingTop: 10 }}>
+                  <WoodButton zh={t(p.lang, 'paid.entry.back')} onClick={p.onQuit} style={{ minWidth: 240, minHeight: 70 }} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {paid && !counting && choice && !st.pending && choice.status !== 'included' && (
+        <div
+          className="panel"
+          data-testid="paid-choice-status"
+          data-status={choice.status}
+          style={{ position: 'absolute', left: 52, bottom: 46, padding: '4px 18px', fontSize: 18, fontWeight: 700, zIndex: 55 }}
+        >
+          {paidChoiceText(p.lang, choice)}
+        </div>
+      )}
+      {paid && !counting && choice?.status === 'included' && choice.hash && explorerTxUrl(choice.hash) && (
+        <a
+          className="panel"
+          data-testid="paid-choice-tx"
+          href={explorerTxUrl(choice.hash)!}
+          target="_blank"
+          rel="noreferrer"
+          style={{ position: 'absolute', left: 52, bottom: 46, padding: '4px 18px', fontSize: 16, fontWeight: 700, zIndex: 55, color: 'inherit' }}
+        >
+          {t(p.lang, 'paid.choice.included', { k: choice.checkpoint })} · {choice.hash.slice(0, 10)}…
+        </a>
+      )}
+      {paid?.cut && (
+        <div
+          className="panel"
+          data-testid="paid-cut"
+          style={{ position: 'absolute', left: 560, top: 230, width: 500, padding: '6px 20px', textAlign: 'center', fontSize: 24, fontWeight: 800, zIndex: 58 }}
+        >
+          {t(p.lang, 'paid.cut', { k: paid.cut })}
+        </div>
+      )}
+      {paid && st.playerFinished && (
+        <div
+          className="panel"
+          data-testid="paid-pending-verify"
+          style={{ position: 'absolute', left: 560, top: 230, width: 500, padding: '6px 20px', textAlign: 'center', fontSize: 24, fontWeight: 800, zIndex: 58 }}
+        >
+          {t(p.lang, 'paid.previewRank', { rank: st.horses[st.playerHorseId]!.rank })}
         </div>
       )}
 
@@ -240,6 +319,10 @@ export function RaceScreen(p: RaceScreenProps) {
           refreshCredits={st.refreshCredits}
           auto={st.drawMode === 'auto'}
           timeLeftMs={p.driver.choiceLeftMs}
+          lookup={p.paid ? paidCardDef : undefined}
+          locked={paid?.locked ?? false}
+          autoPick={paid?.autoPick ?? null}
+          note={choiceNote}
           lang={p.lang}
           reducedMotion={p.reducedMotion}
           onArmed={() => p.driver.armChoiceDeadline()}
@@ -276,7 +359,7 @@ export function RaceScreen(p: RaceScreenProps) {
             className="panel"
             style={{ width: 640, padding: '10px 30px', textAlign: 'center' }}
           >
-            <p style={{ fontSize: 24, fontWeight: 700 }}>{t(p.lang, 'race.quitConfirm')}</p>
+            <p style={{ fontSize: 24, fontWeight: 700 }}>{t(p.lang, p.paid ? 'paid.quitConfirm' : 'race.quitConfirm')}</p>
             <div style={{ display: 'flex', gap: 18, justifyContent: 'center', paddingBottom: 10 }}>
               <WoodButton
                 zh={t(p.lang, 'race.quitNo')}
@@ -284,8 +367,8 @@ export function RaceScreen(p: RaceScreenProps) {
                 style={{ minWidth: 240, minHeight: 78 }}
               />
               <WoodButton
-                zh={t(p.lang, 'race.quitYes')}
-                onClick={p.onQuit}
+                zh={t(p.lang, p.paid ? 'paid.leave' : 'race.quitYes')}
+                onClick={p.paid ? p.paid.onLeave : p.onQuit}
                 style={{ minWidth: 240, minHeight: 78 }}
               />
             </div>

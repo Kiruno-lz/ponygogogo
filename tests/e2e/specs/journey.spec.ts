@@ -1,7 +1,7 @@
 /**
- * L3 完整动线（docs/plan/demo.md §2）：
- * 启动 → 加载页 → 首页 → 选马 → 下注 → 起跑倒计时 → 比赛 → 检查点 ×3
- *      → 冲线 → 结算 → 分享出图 → 再来一局（回到首页且状态干净）
+ * L3 免费试玩动线（docs/game-design.md §2）：
+ * 启动 → 加载页 → 首页 → 选马 → 档位（E2E 构建不配合约地址，有奖档灰掉，只能免费试玩）→ 起跑倒计时 → 比赛 → 检查点 ×3
+ *      → 冲线 → 本地结果（不计奖金）→ 分享出图 → 再来一局（回到首页且状态干净）
  * 每个关键节点截图核对。
  */
 import { expect, test } from '@playwright/test'
@@ -9,7 +9,7 @@ import { enterHome, noConsoleErrors, open, playUntilResult, startRace } from '..
 
 const SHOT = 'tests/e2e/screenshots'
 
-test('完整动线：加载 → 首页 → 选马下注 → 比赛 → 选牌 → 结算 → 分享 → 再来一局', async ({ page }) => {
+test('完整动线：加载 → 首页 → 选马与免费档 → 比赛 → 选牌 → 本地结果 → 分享 → 再来一局', async ({ page }) => {
   const errors = await noConsoleErrors(page)
 
   // --- 加载页 ---
@@ -31,8 +31,17 @@ test('完整动线：加载 → 首页 → 选马下注 → 比赛 → 选牌 �
   for (let i = 0; i < 5; i++) await expect(page.getByTestId(`horse-${i}`)).toBeVisible()
   await page.getByTestId('horse-2').click()
   await expect(page.getByTestId('horse-2')).toHaveAttribute('aria-pressed', 'true')
-  await page.getByTestId('bet-panel').locator('.chip').nth(1).click()
-  await expect(page.getByTestId('potential-win')).toContainText('MON')
+  // 五档：0 是默认选中的免费试玩；E2E 构建没有合约地址（tests/e2e/isolatedEnv.ts），四个有奖档灰掉并明说「合约尚未部署」
+  const chips = page.getByTestId('bet-panel').locator('.chip')
+  await expect(chips).toHaveCount(5)
+  await expect(chips.nth(0)).toHaveText('0')
+  await expect(chips.nth(0)).toHaveClass(/\bon\b/)
+  await expect(chips.nth(0)).toBeEnabled()
+  for (let i = 1; i < 5; i++) await expect(chips.nth(i)).toBeDisabled()
+  await expect(chips).toHaveText(['0', '0.3', '1', '5', '10'])
+  await expect(page.getByTestId('paid-closed')).toHaveText(/有奖合约尚未部署|Paid contracts not deployed yet/)
+  await expect(page.getByTestId('potential-win')).toHaveText(/免费试玩|Free practice/)
+  await expect(page.getByTestId('potential-win')).not.toContainText('MON')
   await expect(page.getByTestId('difficulty')).not.toBeEmpty()
   await page.screenshot({ path: `${SHOT}/03-select.png` })
 
@@ -75,11 +84,13 @@ test('完整动线：加载 → 首页 → 选马下注 → 比赛 → 选牌 �
   // --- 跑完并结算 ---
   await playUntilResult(page)
   await expect(page.getByTestId('result-rank')).toHaveText(/^[1-5]$/)
-  await expect(page.getByTestId('result-stake')).toContainText('MON')
-  await expect(page.getByTestId('result-payout')).toContainText('MON')
-  await expect(page.getByTestId('result-net')).toContainText('MON')
+  // 本地试玩：明确标成免费、本地，不出现任何下注、返还或盈亏金额
+  await expect(page.getByTestId('result-mode')).toHaveText(/免费试玩|Free practice/)
+  await expect(page.getByTestId('result-prize')).toHaveText(/^(无|None)$/)
+  await expect(page.getByTestId('result-practice-note')).toBeVisible()
+  await expect(page.getByTestId('practice-stamp')).toHaveText(/本地试玩|Practice/)
+  await expect(page.getByTestId('screen-result')).not.toContainText('MON')
   for (let i = 0; i < 3; i++) await expect(page.getByTestId(`result-choice-${i}`)).toBeVisible()
-  await expect(page.getByTestId('settle-status')).toBeVisible()
   await page.screenshot({ path: `${SHOT}/07-result.png` })
 
   // --- 分享出图 ---
@@ -105,7 +116,7 @@ test('图鉴与设置可进可出', async ({ page }) => {
 
   await page.getByRole('button', { name: /卡牌图鉴|COLLECTION/ }).first().click()
   await expect(page.getByTestId('screen-collection')).toBeVisible()
-  await expect(page.locator('[data-card]')).toHaveCount(21)
+  await expect(page.locator('[data-card]')).toHaveCount(26)
   await page.screenshot({ path: `${SHOT}/09-collection.png` })
   await page.getByRole('button', { name: /返回|Back/ }).first().click()
   await expect(page.getByTestId('screen-home')).toBeVisible()

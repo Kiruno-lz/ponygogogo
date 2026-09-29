@@ -1,12 +1,13 @@
 /**
- * 失败路径：加载失败可重试且指明失败项；入场与结算失败留在当前页面显示错误，不跳白屏。
+ * 失败路径：加载失败可重试且指明失败项；游戏账户或 RPC 不可用时钱包降级显示，不跳白屏、不谎报余额。
  *
  * 资源分级之后失败分两类，两类的正确行为完全不同：
  * - 阻塞级（boot/home）失败 → 停在加载页，不放人进首页；
  * - 后台级（race/result）失败 → 不打扰首页，玩家真的点进去时才拦。
  */
 import { expect, test } from '@playwright/test'
-import { enterHome, noConsoleErrors, open, playUntilResult, startRace } from '../helpers.ts'
+import { enterHome, open } from '../helpers.ts'
+import { addAuthenticator, registerAs, stubChain } from '../walletHarness.ts'
 
 const SHOT = 'tests/e2e/screenshots'
 
@@ -19,7 +20,7 @@ const BLOCKING_KEY = 'art.home.logo'
 
 for (const mode of ['404', 'timeout', 'offline'] as const) {
   test(`阻塞级资源失败（${mode}）停在加载页并给出可重试的明确提示`, async ({ page }) => {
-    await open(page, `mockDelay=0&mockAssetFail=${BLOCKING_KEY}&mockAssetFailMode=${mode}`)
+    await open(page, `mockAssetFail=${BLOCKING_KEY}&mockAssetFailMode=${mode}`)
     await expect(page.getByTestId('loading-error')).toBeVisible({ timeout: 30_000 })
     await expect(page.getByTestId('loading-error')).toContainText(BLOCKING_KEY)
     // 没有白屏：加载页仍然完整
@@ -32,16 +33,16 @@ for (const mode of ['404', 'timeout', 'offline'] as const) {
 }
 
 test('阻塞级失败后重试成功可以继续进入首页', async ({ page }) => {
-  await open(page, `mockDelay=0&mockAssetFail=${BLOCKING_KEY}`)
+  await open(page, `mockAssetFail=${BLOCKING_KEY}`)
   await expect(page.getByTestId('loading-error')).toBeVisible({ timeout: 30_000 })
   // 去掉注入的失败开关后重试路径可用
-  await page.goto('/?mockDelay=0')
+  await page.goto('/')
   await enterHome(page)
   await expect(page.getByTestId('screen-home')).toBeVisible()
 })
 
 test('后台级资源失败不阻塞首页，点进去时才拦并给出重试入口', async ({ page }) => {
-  await open(page, 'mockDelay=0&mockAssetFailTier=race')
+  await open(page, 'mockAssetFailTier=race')
   // race 是后台预取的：加载页照样跑满、不报错，正常放人进首页
   await expect(page.getByTestId('loading-progress')).toContainText('100%', { timeout: 30_000 })
   await expect(page.getByTestId('loading-error')).toHaveCount(0)
@@ -65,25 +66,43 @@ test('后台级资源失败不阻塞首页，点进去时才拦并给出重试�
   await expect(page.getByTestId('screen-home')).toBeVisible()
 })
 
-test('入场失败留在选马页显示错误，不跳白屏', async ({ page }) => {
-  await open(page, 'mockDelay=0&mockFail=enter&raceSpeed=16')
+test('游戏账户连不上：注册仍成功，不领水、不谎报余额，钱包里说明原因', async ({ page }) => {
+  await addAuthenticator(page)
+  const chain = await stubChain(page, { alchemy: 'down' })
+  await open(page)
   await enterHome(page)
-  await startRace(page, 0, 0)
-  await expect(page.getByTestId('enter-error')).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByTestId('screen-select')).toBeVisible()
-  await page.screenshot({ path: `${SHOT}/fail-enter.png` })
+  await registerAs(page, 'offline')
+
+  await expect(page.getByTestId('notice')).toHaveText(/游戏账户暂时连不上|Could not reach your game account/, { timeout: 20_000 })
+  await expect(page.getByTestId('wallet-label')).toHaveText('…')
+  await expect(page.getByTestId('balance')).toHaveText('—')
+  // 测试币只发给游戏账户：没有 sma-b 就不领，绝不回落到签名账户
+  expect(chain.faucetCalls()).toBe(0)
+  expect(chain.alchemyRequests()).toBeGreaterThan(0)
+
+  await page.getByTestId('wallet-open').click()
+  await expect(page.getByTestId('wallet-address-pending')).toHaveText(/游戏账户暂时连不上|Could not reach your game account/)
+  await expect(page.getByTestId('wallet-signer-address')).toHaveText(/^0x[0-9a-fA-F]{40}$/)
+  await expect(page.getByTestId('wallet-balance')).toHaveText('—')
+  await expect(page.getByRole('button', { name: /^领取测试币$|^Get test MON$/ })).toBeDisabled()
+  await page.screenshot({ path: `${SHOT}/fail-game-account.png` })
+
+  // 刷新会重试解析，仍然失败就原样报出来，不把旧数字当新数字
+  await page.getByRole('button', { name: /^刷新余额$|^Refresh balance$/ }).click()
+  await expect(page.getByTestId('wallet-message')).toHaveText(/游戏账户暂时连不上|Could not reach your game account/)
 })
 
-test('结算失败留在结算页并可重试', async ({ page }) => {
-  const errors = await noConsoleErrors(page)
-  await open(page, 'mockDelay=0&mockFail=settle&raceSpeed=16')
+test('有奖档位灰掉不可选，开赛按钮只对免费试玩生效', async ({ page }) => {
+  await open(page, 'raceSpeed=16')
   await enterHome(page)
-  await startRace(page, 0, 0)
-  await playUntilResult(page)
-  await expect(page.getByTestId('settle-status')).toContainText(/结算没有成功|did not go through/)
-  await expect(page.getByTestId('result-rank')).toHaveText(/^[1-5]$/)
-  await page.screenshot({ path: `${SHOT}/fail-settle.png` })
-  // 名次先显示、资金状态另算：两者不合并成一个转圈
-  await expect(page.getByRole('button', { name: /重试结算|Retry/ })).toBeVisible()
-  expect(errors.filter((e) => !e.includes('SETTLE_FAILED'))).toEqual([])
+  await page.getByRole('button', { name: /开始游戏|START/ }).first().click()
+  await expect(page.getByTestId('screen-select')).toBeVisible()
+  const chips = page.getByTestId('bet-panel').locator('.chip')
+  // 强行点灰掉的档位也选不上，选中态停在 0 档
+  await chips.nth(3).click({ force: true })
+  await expect(chips.nth(0)).toHaveClass(/\bon\b/)
+  await expect(chips.nth(3)).not.toHaveClass(/\bon\b/)
+  await page.getByTestId('horse-1').click()
+  await page.locator('button.btn-star').last().click()
+  await expect(page.getByTestId('screen-race')).toBeVisible()
 })

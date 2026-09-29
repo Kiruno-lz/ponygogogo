@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:full": "bun run build && npx wrangler dev --local",
     "build": "tsc -b && vite build",
     "preview": "vite preview --port 5174",
     "typecheck": "tsc -b",
     "test": "bun test src",
     "vectors": "bun run scripts/gen-vectors.ts 200",
+    "check:paid-cards": "bun scripts/gen-paid-card-rules.ts --check",
+    "check:paid-vectors": "bun scripts/gen-paid-vectors.ts --check",
     "assets": "python3 scripts/build-web-assets.py",
     "assets:masters": "python3 scripts/process-assets.py && python3 scripts/postprocess-assets.py && python3 scripts/prepare-art.py",
     "assets:measure": "bun scripts/measure-display-sizes.ts",
@@ -19,6 +22,7 @@
     "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
+    "@alchemy/wallet-apis": "^5.2.7",
     "@category-labs/mera": "^0.2.0",
     "@scure/bip32": "^2.4.0",
     "@scure/bip39": "^2.4.0",
@@ -28,6 +32,7 @@
     "viem": "^2.56.7"
   },
   "devDependencies": {
+    "@openzeppelin/contracts": "5.6.1",
     "@playwright/test": "^1.50.0",
     "@types/bun": "^1.2.0",
     "@types/react": "^19.1.0",
