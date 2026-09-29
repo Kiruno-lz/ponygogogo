@@ -1,6 +1,6 @@
 # 部署
 
-[交付计划](delivery.md) E 阶段的"正式部署配置"指向本文；缓存、限制与命令只在这里定义一份，不在其他文档重复。部署目标是 **Cloudflare Workers 静态资源**，正式域名 `ponygo.kiruno.cc`。Worker 本身与自定义域的绑定在 Cloudflare 侧管理，本文只管仓库这边的构建、缓存与核验。
+[链上服务交付记录](onchain-services.md)维护部署验收状态；缓存、限制与命令只在本文定义。部署目标是 **Cloudflare Workers 静态资源**，正式域名 `ponygo.kiruno.cc`。Worker 本身与自定义域的绑定在 Cloudflare 侧管理，本文只管仓库这边的构建、缓存与核验。
 
 ## 1. 命令
 
@@ -51,7 +51,7 @@ npx wrangler deploy
 
 ### 3.1 为什么只能有一个域名
 
-账户由 WebAuthn 的 PRF 扩展派生，`rpId` 取 `location.hostname`（[架构第 8 节](../architecture/overall.md)），而 PRF 的输出决定助记词与地址。**同一个人在两个域名下注册，拿到的是两个不同的钱包地址。** 通行密钥永远绑在它被创建的那个域名上，换域名不是迁移而是断代，玩家只能用助记词重新导入。
+账户由 WebAuthn 的 PRF 扩展派生，`rpId` 取 `location.hostname`（[架构第 6 节](../architecture/overall.md)），而 PRF 的输出决定助记词与地址。**同一个人在两个域名下注册，拿到的是两个不同的钱包地址。** 通行密钥永远绑在它被创建的那个域名上，换域名不是迁移而是断代，玩家只能用助记词重新导入。
 
 所以 Pages 项目即便挂多个自定义域，这个应用也只认一个。
 
@@ -74,11 +74,11 @@ VITE_CANONICAL_HOST= bash scripts/deploy.sh                   # 不做任何跳�
 
 ## 4. 部署路径取舍
 
-**推荐：本地或 CI 跑 `scripts/deploy.sh`，用 wrangler 把 `dist/` 直传。** 仓库里 `art-src/`（美术母版，约 193MB，不参与构建）在这条路径上完全不参与——脚本只打包 `dist/`，母版永远不离开仓库，也不进入部署产物。
+**推荐：本地或 CI 跑 `scripts/deploy.sh`，用 wrangler 把 `dist/` 直传。** `art-src/` 是仅保存在作者本地的美术母版，不纳入 Git 与部署产物；发布所需的运行时素材已作为构建产物保存在 `public/assets/`，脚本只上传 `dist/`。
 
-备选：Cloudflare 的 Git 集成（Workers Builds），push 后自动构建。代价是 CF 的构建环境要 clone 整个仓库才能拿到源码，而母版占了仓库体积的绝大部分——每次构建都多花时间与带宽去拉一份构建根本用不到的 193MB，且构建产物之外不需要这份数据在 CF 的构建机器上出现。母版不参与构建这件事本身没有变化，只是 Git 集成路径把"不参与"变成了"仍然要下载"。
+备选：Cloudflare Git 集成（Workers Builds），push 后自动构建。`art-src/` 不纳入 Git，构建环境只 clone 跟踪的源码与已提交的运行时素材；需要自动预览或发布时使用这条路径。
 
-需要 push 即自动上线或需要预览分支时走 Git 集成，代价就是上面那份 clone。
+部署入口与目录由仓库根目录配置固定：`wrangler.toml` 的 Worker 入口是 `scripts/Wrangler/worker/collection.ts`，production 与 preview D1 均从 `scripts/Wrangler/migrations/` 读取迁移。Foundry 的 `foundry.toml` 将脚本目录设为 `scripts/`，合约部署入口为 `scripts/DeployPony.s.sol`。从仓库根目录执行部署命令，让 Wrangler 与 Foundry 读取这两份配置。
 
 ## 5. 平台限制核对
 
@@ -91,6 +91,6 @@ VITE_CANONICAL_HOST= bash scripts/deploy.sh                   # 不做任何跳�
 
 SPA 回退不再用 `_redirects`，改由 `wrangler.toml` 的 `not_found_handling = "single-page-application"` 负责。它只对导航请求（`Sec-Fetch-Mode: navigate`）回退，所以一个拼错的图片路径会正常 404，而不是拿一份 HTML 冒充图片返回。
 
-计费上没有为此付出代价：本项目不设 `main`，没有 Worker 脚本，请求全部落在静态资源上，而官方口径是静态资源请求免费且无限量、存储不额外计费。
+项目使用静态资源、图鉴 Worker 和 D1；平台用量与费用按 Cloudflare 当前计划和控制台数据核验，不在本文固化可能变动的价格承诺。
 
 结论：产物远在两条硬限制之内，详见[素材管线说明](../../scripts/README-assets.md)里的体积表。
