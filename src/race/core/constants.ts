@@ -68,8 +68,8 @@ export const DEATH_RECOVER_ACCEL: Fixed = Math.trunc(A_MAX / 2)
 /** 马匹数 */
 export const HORSE_COUNT = 5
 
-/** 下注档位（mock，单位 MON） */
-export const STAKE_PRESETS = [0, 1, 5, 10] as const
+/** 下注档位（单位 MON）：0 为免费试玩，其余四档与有奖规则 v3 一致（权威值为 chain/paidStakes.ts 的 wei） */
+export const STAKE_PRESETS = [0, 0.3, 1, 5, 10] as const
 
 /** 赔付表：名次 -> 返还倍率（定点） */
 export const PAYOUT_TABLE: Fixed[] = [fx(3), fx(1.5), fx(1), fx(0), fx(0)]
