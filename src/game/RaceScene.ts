@@ -5,7 +5,7 @@
 import Phaser from 'phaser'
 import { TRACK_LEN } from '../race/core/constants.ts'
 import { FP } from '../race/core/fixed.ts'
-import type { RaceDriver } from '../race/driver.ts'
+import type { RaceScreenDriver } from '../race/raceView.ts'
 import type { RaceEvent } from '../race/core/types.ts'
 import { HORSE_PROFILES } from './horses.ts'
 import {
@@ -24,11 +24,12 @@ import {
 } from './layout.ts'
 import { PonySprite, registerPonyTextures, type PonyImages } from './pony.ts'
 import type { SceneImages } from './sceneArt.ts'
+import { activeEquipmentVisuals, activeWindDirection, EFFECT_TEXTURES } from './effects.ts'
 
 const TRACK_UNITS = TRACK_LEN / FP
 
 export interface RaceSceneData {
-  driver: RaceDriver
+  driver: RaceScreenDriver
   urls: Record<string, string>
   reducedMotion: boolean
   ponyImages: PonyImages
@@ -36,7 +37,7 @@ export interface RaceSceneData {
 }
 
 export class RaceScene extends Phaser.Scene {
-  private driver!: RaceDriver
+  private driver!: RaceScreenDriver
   private reducedMotion = false
   private ponyImages: PonyImages = {}
   private sceneImages: SceneImages = {}
@@ -49,6 +50,7 @@ export class RaceScene extends Phaser.Scene {
   private gate!: Phaser.GameObjects.Graphics
   private hazardIcons = new Map<number, Phaser.GameObjects.Container>()
   private dust!: Phaser.GameObjects.Particles.ParticleEmitter
+  private windSprites: Phaser.GameObjects.Image[] = []
   private camPos = 0
   private shakeUntil = 0
 
@@ -67,6 +69,13 @@ export class RaceScene extends Phaser.Scene {
     registerPonyTextures(this, this.ponyImages)
     for (const [key, image] of Object.entries(this.sceneImages)) {
       if (!this.textures.exists(key)) this.textures.addImage(key, image)
+    }
+    for (const spec of Object.values(EFFECT_TEXTURES)) {
+      if (this.textures.exists(spec.textureKey)) this.textures.remove(spec.textureKey)
+      this.textures.addSpriteSheet(spec.textureKey, this.sceneImages[spec.textureKey]!, {
+        frameWidth: spec.frameWidth,
+        frameHeight: spec.frameHeight,
+      })
     }
     this.cameras.main.setBackgroundColor(PALETTE.sky)
 
@@ -104,6 +113,15 @@ export class RaceScene extends Phaser.Scene {
       frequency: -1,
     })
     this.dust.setDepth(5)
+
+    for (let i = 0; i < 3; i++) {
+      const gust = this.add.image(0, 0, EFFECT_TEXTURES.wind.textureKey, 0)
+        .setDisplaySize(330 - i * 35, 220 - i * 24)
+        .setAlpha(0.34 - i * 0.05)
+        .setDepth(8)
+        .setVisible(false)
+      this.windSprites.push(gust)
+    }
 
     for (const p of HORSE_PROFILES) {
       const pony = new PonySprite(this, {
@@ -209,6 +227,7 @@ export class RaceScene extends Phaser.Scene {
 
     this.drawFinishLine()
     this.syncHazards()
+    this.syncWind()
 
     const shake = this.shakeUntil > this.time.now && !this.reducedMotion ? 5 : 0
     const jitter = shake ? (Math.random() - 0.5) * shake : 0
@@ -234,10 +253,32 @@ export class RaceScene extends Phaser.Scene {
       pony.setGhost(respawning && Math.floor(this.time.now / 110) % 2 === 0)
       const ratio = Math.min(1, h.v / FP / 45)
       pony.tickAnim(delta, ratio, airborne, h.v === 0)
+      pony.setEquipment(
+        activeEquipmentVisuals(st.effects, h.horseId),
+        this.reducedMotion ? 0 : Math.floor(this.time.now / 70) % 16,
+      )
 
       if (!h.finished && h.v > 0 && !airborne && pony.visible && Math.random() < ratio * 0.55) {
         this.dust.emitParticleAt(pony.x - 60, pony.y - 6, 1)
       }
+    }
+  }
+
+  private syncWind(): void {
+    const direction = activeWindDirection(this.driver.state.effects)
+    const frame = this.reducedMotion ? 0 : Math.floor(this.time.now / 75) % 16
+    for (let i = 0; i < this.windSprites.length; i++) {
+      const gust = this.windSprites[i]!
+      gust.setVisible(direction !== null)
+      if (direction === null) continue
+      gust.setFrame(frame)
+      gust.setFlipX(direction < 0)
+      gust.y = 410 + i * 135
+      const travel = DESIGN_W + 520
+      const phase = this.reducedMotion
+        ? (i + 1) / (this.windSprites.length + 1)
+        : ((this.time.now * (0.045 + i * 0.006) + i * 610) % travel) / travel
+      gust.x = direction > 0 ? phase * travel - 260 : DESIGN_W + 260 - phase * travel
     }
   }
 

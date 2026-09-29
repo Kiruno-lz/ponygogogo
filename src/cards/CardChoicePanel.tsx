@@ -5,9 +5,11 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { CARD_BY_ID } from '../race/cards/pool.ts'
+import type { CardDef } from '../race/cards/types.ts'
 import type { Lang } from '../ui/i18n.ts'
 import { t } from '../ui/i18n.ts'
 import { Card } from './Card.tsx'
+import { onControl } from './cardKeys.ts'
 
 const DEAL_MS = 260
 const STAGGER_MS = 110
@@ -25,6 +27,14 @@ export interface CardChoicePanelProps {
   onSkip: () => void
   onRefresh: (slot: number) => void
   onHover?: () => void
+  /** 卡面来源；有奖场次传入由 paidCardRule 生成说明的卡面 */
+  lookup?: (cardId: string) => CardDef | undefined
+  /** 已截止：不再接受点击（有奖面板在链上窗口末端之前停收），面板保留到规范关闭 */
+  locked?: boolean
+  /** 自动面板将选中的那一张 */
+  autoPick?: number | null
+  /** 面板下方的一行状态说明 */
+  note?: string | null
 }
 
 export function CardChoicePanel(p: CardChoicePanelProps) {
@@ -49,10 +59,11 @@ export function CardChoicePanel(p: CardChoicePanelProps) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (!dealt || p.auto || chosen !== null) return
+      if (!dealt || p.auto || p.locked || chosen !== null) return
       if (e.key === 'ArrowRight') setFocus((f) => Math.min(p.candidates.length - 1, f + 1))
       else if (e.key === 'ArrowLeft') setFocus((f) => Math.max(0, f - 1))
-      else if (e.key === 'Enter' && focus >= 0) pick(focus)
+      // 落在按钮上的 Enter 归按钮自己（刷新、跳过）：否则一次回车既刷新又把旧牌选走
+      else if (e.key === 'Enter' && focus >= 0 && !onControl(e.target)) pick(focus)
       else if (e.key === 'Escape') p.onSkip()
       else if (e.key === 'r' && focus >= 0 && p.refreshCredits > 0) p.onRefresh(focus)
     }
@@ -61,13 +72,14 @@ export function CardChoicePanel(p: CardChoicePanelProps) {
   })
 
   function pick(i: number): void {
-    if (!dealt || p.auto || chosen !== null) return
+    if (!dealt || p.auto || p.locked || chosen !== null) return
     setChosen(i)
     p.onPick(p.candidates[i]!)
   }
 
   const secs = Math.max(0, Math.ceil(p.timeLeftMs / 1000))
   const urgent = p.timeLeftMs >= 0 && p.timeLeftMs <= 5000
+  const pickable = !p.auto && !p.locked
 
   return (
     <div
@@ -123,19 +135,17 @@ export function CardChoicePanel(p: CardChoicePanelProps) {
 
       <div style={{ display: 'flex', gap: 34, alignItems: 'flex-start' }}>
         {p.candidates.map((cardId, i) => {
-          const def = CARD_BY_ID[cardId]
+          const def = p.lookup ? p.lookup(cardId) : CARD_BY_ID[cardId]
           if (!def) return null
           const fading = chosen !== null && chosen !== i
           const flying = chosen === i
           return (
+            // 布局壳：卡面按钮与刷新按钮是它的两个并列控件，各自聚焦；焦点落进任一个都算看中这一张
             <div
               key={`${p.checkpoint}-${i}-${cardId}`}
               ref={(el) => {
                 btnRefs.current[i] = el
               }}
-              tabIndex={p.auto ? -1 : 0}
-              role="button"
-              aria-label={def.name[p.lang]}
               data-testid={`card-choice-${i}`}
               onFocus={() => setFocus(i)}
               onMouseEnter={() => {
@@ -148,7 +158,6 @@ export function CardChoicePanel(p: CardChoicePanelProps) {
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: 12,
-                outline: 'none',
                 transform: p.reducedMotion
                   ? 'none'
                   : `translateY(${dealt ? (focus === i ? -16 : 0) : 60}px) scale(${
@@ -164,10 +173,12 @@ export function CardChoicePanel(p: CardChoicePanelProps) {
                 def={def}
                 lang={p.lang}
                 size="choice"
-                selected={focus === i}
-                onClick={() => pick(i)}
+                selected={focus === i || p.autoPick === i}
+                dimmed={p.locked && chosen === null}
+                // 自动面板与已截止的面板不接受选牌：卡面退回纯展示，不进 Tab 序列
+                onClick={pickable ? () => pick(i) : undefined}
               />
-              {p.refreshCredits > 0 && !p.auto && chosen === null && (
+              {p.refreshCredits > 0 && pickable && chosen === null && (
                 <button
                   type="button"
                   className="chip"
@@ -193,18 +204,28 @@ export function CardChoicePanel(p: CardChoicePanelProps) {
             className="chip"
             data-testid="card-skip"
             onClick={p.onSkip}
-            disabled={chosen !== null}
+            disabled={chosen !== null || p.locked}
             style={{ fontSize: 20 }}
           >
             {t(p.lang, 'card.skip')}
           </button>
         )}
-        {p.refreshCredits > 0 && (
+        {p.refreshCredits > 0 && !p.locked && (
           <span style={{ color: '#ffe9c9', fontSize: 20, fontWeight: 700 }}>
             {t(p.lang, 'card.refreshLeft', { n: p.refreshCredits })}
           </span>
         )}
+        {p.locked && (
+          <span data-testid="card-locked" style={{ color: '#ffe9c9', fontSize: 22, fontWeight: 800 }}>
+            {t(p.lang, 'card.locked')}
+          </span>
+        )}
       </div>
+      {p.note && (
+        <div data-testid="card-note" style={{ color: '#ffe9c9', fontSize: 20, fontWeight: 700, textShadow: '0 2px 0 #5b2d10' }}>
+          {p.note}
+        </div>
+      )}
     </div>
   )
 }

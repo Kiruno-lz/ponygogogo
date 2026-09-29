@@ -1,0 +1,19 @@
+[profile.default]
+src = "contracts"
+script = "scripts"
+test = "tests/contracts"
+out = "out"
+libs = ["node_modules"]
+solc_version = "0.8.28"
+optimizer = true
+optimizer_runs = 200
+# DeployPony.s.sol reads the deployer key file named by DEPLOYER_PRIVATE_KEY_PATH; out/ keeps vm.getCode working;
+# the solver vector tests read tests/vectors.
+fs_permissions = [
+    { access = "read", path = "./keys" },
+    { access = "read", path = "./out" },
+    { access = "read", path = "./tests/vectors" },
+]
+# Monad Testnet's contract size limit, so test contracts that embed the solver library can deploy. `forge build
+# --sizes` still enforces EIP-170 (24 KB) on every deployable contract, PaidRaceSolver included.
+code_size_limit = 131072

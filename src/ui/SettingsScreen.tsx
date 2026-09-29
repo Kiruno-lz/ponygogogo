@@ -18,12 +18,13 @@ export function SettingsScreen({
     label: string,
   ): React.ReactElement => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 24 }}>
-      <span style={{ width: 150 }}>{label}</span>
+      <span id={`settings-vol-${key}`} style={{ width: 150 }}>{label}</span>
       <input
         type="range"
         min={0}
         max={100}
         value={Math.round(settings[key] * 100)}
+        aria-labelledby={`settings-vol-${key}`}
         data-testid={`vol-${key}`}
         onChange={(e) => onChange({ ...settings, [key]: Number(e.target.value) / 100 })}
         style={{ width: 380, accentColor: '#f4a22a' }}
