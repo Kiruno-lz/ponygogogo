@@ -6,38 +6,37 @@ Monad 上的 `PonyGame` 以固定规则版本、入场 seed、选择卡牌和随
 每场比赛在入场和结算时写链，选择卡牌时产生小笔交易。
 
 ```text
-Mera 通行密钥 ── 根 EOA ── owner/recovery ── Alchemy Modular Account V2
-       │                                          │
-       ├─ 独立 PRF 命名空间 → 图鉴解密密钥            ├─ ERC-20 资金、批量调用、Gas 代付
-       └─ 每场临时 Action Key → 链下动作签名         └─ Agent 限权会话
-                                                    │
-浏览器 ── Game API ── Game Server ── Verifier        │
-                         │             │            │
-                         └─ 规则内核 ←──┘            ▼
-                                            Monad: PonyGame → PonyVault
+Mera 通行密钥 → 根 EOA → Alchemy sma-b → Monad
+       │              │                         ├─ PonyGame → PaidRaceSolver
+       │              └─ owner / recovery       └─ PonyVault (原生 MON)
+       └─ 独立 PRF 命名空间 → 图鉴密钥
+
+浏览器：规则预览、交易发起与状态恢复
+Envio：合约事件的可回滚历史与统计
+图鉴 Worker/D1：仅同步浏览器加密后的图鉴密文
 ```
 
 ## 2. 账户、资产与授权
 
 保持现有 Mera 根 EOA 的 WebAuthn PRF、BIP-39/BIP-32 派生路径及地址。由该 EOA 拥有并恢复独立 Alchemy Modular Account V2（`sma-b`），显式 `createAdditional: true`，持久记录每条链上的账户地址；不要把根 EOA 当成默认同址 EIP-7702 账户。[Alchemy 账户类型](https://www.alchemy.com/docs/wallets/transactions/using-eip-7702)、[Monad EIP-7702 规则](https://docs.monad.xyz/developer-essentials/eip-7702)。
 
-Vault 仅保管部署时固定的无转账税、无重基、无回调余额变化的 ERC-20。金额用代币最小单位整数。图鉴解密仍用独立 PRF salt；图鉴密钥不签交易。Agent Session Key 只获 PonyGame 指定入口权限、有效期和链上累计下注上限，禁止任意转账、提款和 owner 修改。临时 Action Key 不作为结果权威；不再要求它签链下逐帧动作。
+项目只使用 Monad 原生 MON，不部署或依赖 ERC-20/WMON。Vault 通过 `payable` 入账、按 wei 记账并以原生 MON 返还；用户钱包余额与 Vault 偿付余额均读取原生币余额。图鉴解密仍用独立 PRF salt；图鉴密钥不签交易。Agent Session Key 只获 PonyGame 指定入口权限、有效期和链上累计下注上限，禁止任意转账、提款和 owner 修改。临时 Action Key 不作为结果权威；不再要求它签链下逐帧动作。
 
-入场可在一次智能账户确认中批量完成精确额度的 `approve → deposit → openSession → approve(0)`。浏览器保存调用 ID 与交易哈希，超时先查实际链上状态再决定重试。免费本地试玩与有奖链上会话分离，不能用免费 mock 结果领取链上奖金。
+入场可在一次智能账户确认中批量完成 `deposit{value: stake} → openSession`。下注从 Vault 的玩家可用 MON 余额锁定；不需要 ERC-20 授权。浏览器保存调用 ID 与交易哈希，超时先查实际链上状态再决定重试。免费本地试玩与有奖链上会话分离，不能用免费 mock 结果领取链上奖金。
 
 ## 3. 合约与资金不变量
 
-部署 `PonyGame` 和 `PonyVault`。Vault 固定资产与唯一 Game 地址；Game 固定 Vault 地址。管理员可暂停新入场、管理庄家流动性和启用新的规则版本，但不得修改已开场规则、提取用户可用余额或占用已锁定的下注。升级规则部署新版本或保留旧版本的不可变验证入口，已有会话必须始终可按其绑定规则完成或按既定期限退款。
+部署 `PonyGame` 和 `PonyVault`。Vault 固定资产与唯一 Game 地址；Game 固定 Vault 地址。管理员可暂停新入场、管理庄家流动性和启用新的规则版本，但不得修改已开场规则、提取用户可用余额或占用已锁定的下注。升级规则部署新版本或保留旧版本的不可变验证入口，已有会话始终按其绑定规则结算或判负。**Vault 不设退款。**
 
 定义 `A` 为用户可用余额总和、`L` 为未结算下注总和、`H` 为庄家自有流动性、`R` 为最大庄家净赔付预留总和：
 
 ```text
-token.balanceOf(Vault) >= A + L + H
+address(Vault).balance >= A + L + H
 H >= R
 R(session) = max(maxPayout - stake, 0)
 ```
 
-开场时从用户可用余额锁定下注并预留最大净赔付。结算只接受 PonyGame 已复算的名次，原子释放预留并记入实际返还；超时退款与结算互斥。庄家仅可提取 `H - R`。转账前先扣账并防重入；Envio 或管理员不能调用 Game 专用记账入口。
+开场时从用户可用余额锁定下注并预留最大净赔付。结算只接受 PonyGame 已复算的名次，原子释放预留并记入实际返还。随机锚过窗而永久不可结算、或玩家放弃结算的会话，视为玩家放弃权益，按返还 0 判负：下注转入庄家流动性并释放预留；判负与结算互斥。庄家仅可提取 `H - R`。转账前先扣账并防重入；Envio 或管理员不能调用 Game 专用记账入口。
 
 ## 4. 比赛输入、真实时间与随机锚
 
@@ -75,18 +74,8 @@ R(session) = max(maxPayout - stake, 0)
 
 ## 6. 事件与查询
 
-PonyGame 发 `SessionOpened`、`CardChosen`、`RandomAnchorSealed`、`SessionSettled`、`SessionRefunded`，含 sessionId、玩家、规则版本、检查点序号、选择、入块时间/区块号/哈希承诺、最终名次、冠军马和返还；Vault 发充值、提款、锁定、释放和庄家资金事件。Envio 按合约事件建立比赛历史、玩家战绩、马匹胜率与 Vault 统计。RPC/合约决定资金与会话状态；Envio 仅作可回滚的读模型，不能决定付款。链重组后按最终 canonical 事件重算统计。
+PonyGame 发 `SessionOpened`、`CardChosen`、`RandomAnchorSealed`、`SessionSettled`、`SessionForfeited`，含 sessionId、玩家、规则版本、检查点序号、选择、入块时间/区块号/哈希承诺、最终名次、冠军马和返还；Vault 发充值、提款、锁定、释放和庄家资金事件。Envio 按合约事件建立比赛历史、玩家战绩、马匹胜率与 Vault 统计。RPC/合约决定资金与会话状态；Envio 仅作可回滚的读模型，不能决定付款。链重组后按最终 canonical 事件重算统计。
 
 ## 7. 验收门禁
 
-//TODO - 用同一批 `seed + 入场/选择交易时间戳 + 区块哈希 + 三次选牌/放弃` 向量跑 TypeScript 与 Foundry，逐字段比较五马量化冲线时间、体力、基础加速度、基础速度/固定值、火焰/交换事件、`rawRank`、`settlementRank` 与返还；改变 gogo 点击序列不得改变任一规则字段。
-
-//TODO - 测真实 `blockhash(b_i)` 在下一块可读、同块不可读、临近 256 块边界封存、过窗拒绝、同秒交易排序、20 秒窗口、自动选牌、客户端关页和提前冲线。任何未封存随机锚或浏览器自报的毫秒时间都不得替代链上输入。
-
-//TODO - 在 `chooseCard` 入口或可验证状态证明中校验规范检查点已打开、`openSec <= Ti < openSec + 20` 且卡牌来自规范候选；若选择把这些检查延后到 `settleSession`，必须证明无效已存选择不会锁死玩家的超时/退款路径，并给出前端明确的拒绝与恢复流程。
-
-//TODO - 冻结定点自适应积分与首次事件根定位算法，用无场解析解、连续重力井高精度离线参考解、交换穿场源、近同时冲线向量核对误差上界与排序；浏览器和 Solidity 的量化结果必须逐字段相同。
-
-//TODO - 在 Foundry 对无效果、十五次生效、重力井长时间叠加、跨马连锁、最久合法尾场分别记录 `gasUsed` 和本地执行耗时；在 Monad 测试网记录提交→入块→最终确认的 p50/p95。最坏合法结算不得超过单笔 gas 上限；未测得数据前不承诺具体秒数。[Monad gas 规则](https://docs.monad.xyz/developer-essentials/gas-pricing)。
-
-//TODO - 对 Vault 做守恒、预留、重复结算、退款互斥、Agent 撤销及真实 ERC-20 余额测试。当前本地 mock 和文档方案均不构成这些门禁的通过证据。
+跨语言向量、Vault 不变量、最坏路径 gas、测试网时延和剩余上线门槛统一记录在[链上服务交付](../plan/onchain-services.md)。修改已部署规则时，须重新跑该记录定义的向量与 Foundry 门禁，并部署新的求时器和 PonyGame；不得恢复浏览器自报名次、退款入口、Game Server 或逐 tick 链上回放方案。
