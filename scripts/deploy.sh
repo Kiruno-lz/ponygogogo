@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 一键部署到 Cloudflare Workers 静态资源：环境自检 → 类型检查 → 构建 → 产物体积与限制核验 → wrangler 部署
+# 一键部署到 Cloudflare Workers 静态资源与同源图鉴 API：检查 → 构建 → D1 迁移 → 部署
 # DRY_RUN=1 只跑到核验为止，不执行部署
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -85,11 +85,15 @@ if [ -n "$UNCOVERED" ]; then
 fi
 say "缓存规则覆盖核验通过"
 
-# ---- 6. 部署 ----
+# ---- 6. 生产 D1 迁移与部署 ----
 if [ "${DRY_RUN:-0}" = "1" ]; then
   say "DRY_RUN=1，跳过部署，仅完成构建与核验"
   exit 0
 fi
+
+# 先迁移再切 Worker；否则新 API 会在旧 schema 上启动。
+say "应用 production 图鉴 D1 迁移…"
+npx wrangler d1 migrations apply COLLECTION_DB --remote || die "production D1 迁移失败"
 
 # 目录与名字都从 wrangler.toml 读，命令行不重复一遍，避免两处打架
 say "部署到 Cloudflare（Worker：$PROJECT_NAME）…"

@@ -11,6 +11,7 @@ __pycache__/
 # Local environments and secrets
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 id_rsa*
@@ -33,6 +34,9 @@ ops/freezes/
 *.log
 
 node_modules
+/out/
+/cache/
+/broadcast/
 
 .claude
 
@@ -45,3 +49,6 @@ playwright-report/
 .DS_Store
 tests/e2e/screenshots
 *.tsbuildinfo
+keys/
+.wrangler/
+/art-src/
