@@ -1,11 +1,25 @@
-# Workers 静态资源部署。没有 Worker 脚本（不设 main），所以每个请求都落在静态资源上——
-# 官方计费口径是「静态资源请求免费且无限量」，与 Pages 一致。
+
 name = "ponygogogo"
 compatibility_date = "2026-09-19"
+main = "./scripts/Wrangler/worker/collection.ts"
 
 [assets]
 directory = "./dist"
-# 只对导航请求（Sec-Fetch-Mode: navigate）回退到 index.html。
-# 这比 _redirects 里的 `/* /index.html 200` 更准：拼错的图片路径会正常 404，
-# 而不是拿一份 HTML 冒充图片返回。
+binding = "ASSETS"
+run_worker_first = ["/api/collection*"]
 not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "COLLECTION_DB"
+database_name = "ponygogogo-collection-production"
+database_id = "7d4d0abe-297c-4ae3-ba58-253eb4cda37a"
+migrations_dir = "scripts/Wrangler/migrations"
+
+[env.preview]
+name = "ponygogogo-preview"
+
+[[env.preview.d1_databases]]
+binding = "COLLECTION_DB"
+database_name = "ponygogogo-collection-preview"
+database_id = "5e2b19ab-3c0d-43f6-8f17-0585df0da1a4"
+migrations_dir = "scripts/Wrangler/migrations"

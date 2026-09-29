@@ -1,27 +1,43 @@
 /**
  * 页面状态机：Loading → Home → Select(HorseSelect + StakeSelect) → Countdown → Race ↔ CardChoice
- *              → TailRace → Result。入场与结算失败都留在当前页面显示错误，不跳白屏。
+ *              → TailRace → Result。
+ *
+ * 两种比赛共用这条动线：
+ * - 免费本地试玩（档位 0）：本地生成 seed、跑本地 50Hz 内核、结果只在本地展示，不碰任何余额。
+ * - 有奖比赛（档位 1–4，只在 chain/paidGate 的 `paidEntry` 开放时可选：构建期地址、链上代码、已登录）：开场交易
+ *   → 链上规范时间线上的 P2 求时器画面 → 选牌交易 → 冲线后自动结算 → 结算页以 SessionSettled 为准。
+ *   编排在 ui/usePaidRace.ts；登录后若链上还有未完结会话，首页弹出恢复窗口。
+ * 钱包显示的是真实资金：游戏账户（sma-b）的原生 MON 与 Vault 可用余额。
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { AudioManager } from './assets/audio.ts'
 import { AssetLoader, FailingAssetSource, type LoadProgress } from './assets/loader.ts'
 import { LocalAssetSource, fetchManifest, type AssetTier } from './assets/source.ts'
-import { chainPort } from './chain/mock.ts'
-import { MON } from './chain/port.ts'
-import { DEFAULT_PASSKEY_NAME } from './chain/network.ts'
-import { wallet, type WalletAccount } from './chain/wallet.ts'
-import { PAYOUT_TABLE, STAKE_PRESETS } from './race/core/constants.ts'
-import { FP } from './race/core/fixed.ts'
+import { decryptCollection } from './chain/collectionCipher.ts'
+import { readRemoteCollection } from './chain/collectionSync.ts'
+import { DEFAULT_PASSKEY_NAME, PONY_GAME_ADDRESS, PONY_VAULT_ADDRESS } from './chain/network.ts'
+import { formatMon } from './chain/amount.ts'
+import {
+  PRACTICE_TIER, isTierPlayable, paidContractsDeployed, paidEntry, paidRaceAvailable, type PaidDeployment,
+} from './chain/paidGate.ts'
+import { PAID_STAKE_LABELS } from './chain/paidStakes.ts'
+import { wallet, type GameAccount, type WalletAccount } from './chain/wallet.ts'
+import { practiceRaceId, practiceSeed } from './practice.ts'
 import type { RaceResult } from './race/core/types.ts'
 import { RaceDriver } from './race/driver.ts'
+import type { PaidRaceDriver } from './race/paidDriver.ts'
+import { paidChoiceNoteKeys, paidRaceResult, settledChoices } from './race/paidResult.ts'
+import type { RaceScreenDriver } from './race/raceView.ts'
 import { drawPoster, sharePoster } from './export/poster.ts'
-import { ResultScreen, type SettleStatus } from './result/ResultScreen.tsx'
+import { ResultScreen, type PaidResultView } from './result/ResultScreen.tsx'
 import { CollectionScreen } from './ui/CollectionScreen.tsx'
 import { HomeScreen, type WalletBusy } from './ui/HomeScreen.tsx'
 import { RegisterModal } from './ui/RegisterModal.tsx'
 import { WalletModal } from './ui/WalletModal.tsx'
 import { walletErrorText } from './ui/walletError.ts'
 import { LoadingScreen } from './ui/LoadingScreen.tsx'
+import { PaidResumeModal } from './ui/PaidResumeModal.tsx'
+import { usePaidRace } from './ui/usePaidRace.ts'
 import { RaceScreen } from './ui/RaceScreen.tsx'
 import { SelectScreen } from './ui/SelectScreen.tsx'
 import { SettingsScreen } from './ui/SettingsScreen.tsx'
@@ -29,6 +45,7 @@ import { TierGate } from './ui/TierGate.tsx'
 import { t } from './ui/i18n.ts'
 import { registerAudio } from './ui/sfx.ts'
 import { loadSettings, saveSettings, type GameSettings } from './ui/settings.ts'
+import { useGameFunds } from './ui/useGameFunds.ts'
 import { useStage } from './ui/useStage.ts'
 import { DESIGN_W, DESIGN_H } from './game/layout.ts'
 
@@ -63,21 +80,27 @@ export default function App() {
   const stage = useStage(canvasWidth, canvasHeight)
   const [progress, setProgress] = useState<LoadProgress>(EMPTY_PROGRESS)
   const [ready, setReady] = useState(false)
+  /** 根 EOA：只代表「已登录」，界面不再拿它当游戏账户 */
   const [account, setAccount] = useState<WalletAccount | null>(null)
-  /** 链上真实余额，只读展示。null = 还没读到，界面显示占位符而不是谎报为 0 */
-  const [walletBalance, setWalletBalance] = useState<bigint | null>(null)
-  /** 游戏余额，合约上线前是本地账 */
-  const [balance, setBalance] = useState<bigint>(0n)
+  /** 游戏账户（sma-b）；解析失败时为 null，错误在 gameError */
+  const [gameAccount, setGameAccount] = useState<GameAccount | null>(null)
+  const [gameError, setGameError] = useState<string | null>(null)
+  const [ownedRareIds, setOwnedRareIds] = useState<string[] | null>(null)
+  const [collectionBusy, setCollectionBusy] = useState(false)
+  const [collectionError, setCollectionError] = useState<string | null>(null)
   const [walletBusy, setWalletBusy] = useState<WalletBusy>(null)
   const [walletError, setWalletError] = useState<string | null>(null)
   const [walletOpen, setWalletOpen] = useState(false)
   const [registerOpen, setRegisterOpen] = useState(false)
-  const [entering, setEntering] = useState(false)
-  const [enterError, setEnterError] = useState<string | null>(null)
-  const [driver, setDriver] = useState<RaceDriver | null>(null)
-  const [stakeTier, setStakeTier] = useState(0)
+  const [driver, setDriver] = useState<RaceScreenDriver | null>(null)
+  /** 当前这场是有奖比赛时的驱动器（与 driver 同一个对象） */
+  const [paidDriver, setPaidDriver] = useState<PaidRaceDriver | null>(null)
+  /** 有奖结算页里与链上无关的那部分：下注、预览名次、检查点说明 */
+  const [paidMeta, setPaidMeta] = useState<{ stake: bigint; stakeLabel: string; previewRank: number; notes: (string | null)[] } | null>(null)
+  const [resumeBusy, setResumeBusy] = useState(false)
+  /** 有奖合约的链上确认：进选马页时读，读到结论后不再读；读失败保持 checking，下次进选马页再读 */
+  const [paidDeployment, setPaidDeployment] = useState<PaidDeployment>('checking')
   const [result, setResult] = useState<RaceResult | null>(null)
-  const [settle, setSettle] = useState<SettleStatus>('preparing')
   const [shared, setShared] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   /**
@@ -97,11 +120,27 @@ export default function App() {
    * 免得旧的余额或提示覆盖掉新账户。
    */
   const walletSeq = useRef(0)
+  /** 本地试玩的局序号，只用于 seed 熵与本地局号 */
+  const raceSeq = useRef(0)
   const loaderRef = useRef<AssetLoader | null>(null)
   const audioRef = useRef<AudioManager | null>(null)
   const prefetched = useRef(false)
 
   const lang = settings.lang
+  const funds = useGameFunds(lang)
+  const { reset: resetFunds, refresh: refreshFunds } = funds
+  const paid = usePaidRace(lang, refreshFunds)
+  const { checkResume, reset: resetPaid } = paid
+  /** 木牌与选马页显示的「钱包余额」就是 sma-b 的原生 MON；null = 还没读到 */
+  const walletBalance = funds.funds?.wallet ?? null
+  const paidGate = paidEntry(paidRaceAvailable, paidDeployment, gameAccount !== null)
+
+  useEffect(() => {
+    if (page !== 'select' || !paidRaceAvailable || paidDeployment !== 'checking') return
+    paidContractsDeployed(wallet.publicClient, PONY_VAULT_ADDRESS!, PONY_GAME_ADDRESS!)
+      .then((ok) => setPaidDeployment(ok ? 'deployed' : 'missing'))
+      .catch(() => undefined)
+  }, [page, paidDeployment])
 
   useEffect(() => {
     saveSettings(settings)
@@ -209,11 +248,6 @@ export default function App() {
     [syncUrls],
   )
 
-  // 游戏余额与钱包余额是两笔账：前者本地模拟，后者读链，互不换算
-  useEffect(() => {
-    void chainPort.getBalance().then(setBalance)
-  }, [])
-
   const audio = audioRef.current
 
   const enterGame = useCallback(() => {
@@ -225,28 +259,44 @@ export default function App() {
   const register = useCallback(async (userName: string) => {
     const seq = ++walletSeq.current
     const current = () => walletSeq.current === seq
+    setOwnedRareIds(null)
+    setCollectionError(null)
     setWalletBusy('register')
     setWalletError(null)
+    setGameAccount(null)
+    setGameError(null)
+    resetFunds()
     try {
-      const { faucet, balance: b, funded } = await wallet.register({
+      const { game, gameError: resolveError, faucet, funded } = await wallet.register({
         userName,
         onAccount: (a) => {
           if (!current()) return
           setAccount(a)
           setRegisterOpen(false)
-          // 通行密钥仪式到此结束，后面只剩领水轮询。忙碌态必须在这里放开，
+          // 通行密钥仪式到此结束，后面只剩解析 sma-b 与领水轮询。忙碌态必须在这里放开，
           // 否则轮询那十几秒里玩家一旦退出，首页的登录与注册就全是灰的。
           setWalletBusy(null)
         },
+        onGameAccount: (g) => {
+          if (current()) setGameAccount(g)
+        },
       })
       if (!current()) return
-      setWalletBalance(b)
-      // 受理不等于到账：只有余额真涨了才说「已到账」
-      setNotice(
-        !faucet.ok
-          ? t(lang, 'wallet.faucetFailed', { detail: faucet.detail })
-          : t(lang, funded ? 'wallet.faucetOk' : 'wallet.faucetSlow'),
-      )
+      if (!game) {
+        // 通行密钥已经建好，只是游戏账户暂时连不上：不领水（测试币只发给 sma-b），提示稍后刷新
+        const text = walletErrorText(lang, resolveError)
+        setGameError(text)
+        setNotice(text)
+      } else {
+        await refreshFunds().catch(() => undefined)
+        if (!current()) return
+        // 受理不等于到账：只有余额真涨了才说「已到账」
+        setNotice(
+          !faucet?.ok
+            ? t(lang, 'wallet.faucetFailed', { detail: faucet?.detail ?? '' })
+            : t(lang, funded ? 'wallet.faucetOk' : 'wallet.faucetSlow'),
+        )
+      }
       setTimeout(() => setNotice(null), 5200)
     } catch (err) {
       if (!current()) return
@@ -257,91 +307,151 @@ export default function App() {
         setRegisterOpen(false)
       }
     }
-  }, [lang])
+  }, [lang, resetFunds, refreshFunds])
+
+  /** 解析 sma-b 并读一次资金；失败只记在钱包里，不影响登录本身 */
+  const connectGame = useCallback(async (current: () => boolean) => {
+    try {
+      const g = await wallet.resolveGameAccount()
+      if (!current()) return
+      setGameAccount(g)
+      setGameError(null)
+      await refreshFunds().catch(() => undefined)
+      // 链上还有未完结的有奖会话：首页弹出恢复
+      if (current()) await checkResume()
+    } catch (err) {
+      if (current()) setGameError(walletErrorText(lang, err))
+    }
+  }, [refreshFunds, lang, checkResume])
 
   /** 登录：唤起通行密钥，由系统自己列出该域名下的全部，派生出同一个地址 */
   const login = useCallback(async () => {
     const seq = ++walletSeq.current
     const current = () => walletSeq.current === seq
+    setOwnedRareIds(null)
+    setCollectionError(null)
     setWalletBusy('login')
     setWalletError(null)
+    setGameAccount(null)
+    setGameError(null)
+    resetFunds()
     try {
       const a = await wallet.login()
       if (!current()) return
       setAccount(a)
+      setWalletBusy(null)
       // 余额读不到时留 null：显示「—」，不谎报成 0
-      const b = await wallet.refreshBalance().catch(() => null)
-      if (current()) setWalletBalance(b)
+      await connectGame(current)
     } catch (err) {
       if (!current()) return
       setWalletError(walletErrorText(lang, err))
     } finally {
       if (current()) setWalletBusy(null)
     }
-  }, [lang])
+  }, [lang, resetFunds, connectGame])
 
   const logout = useCallback(() => {
     // 退出即作废所有在途的钱包操作：注册的领水轮询不能在退出之后再把余额写回来
     walletSeq.current++
     setWalletBusy(null)
     wallet.logout()
+    resetPaid()
+    paid.dismissResume()
     setAccount(null)
-    setWalletBalance(null)
+    setGameAccount(null)
+    setGameError(null)
+    resetFunds()
+    setOwnedRareIds(null)
+    setCollectionError(null)
+    setCollectionBusy(false)
     setWalletOpen(false)
-  }, [])
+  }, [resetFunds, resetPaid, paid])
 
-  const refreshWalletBalance = useCallback(async () => {
+  const unlockCollection = useCallback(async () => {
+    if (!wallet.getAccount() || collectionBusy) return
+    const seq = walletSeq.current
+    setCollectionBusy(true)
+    setCollectionError(null)
+    let key: Uint8Array | null = null
     try {
-      setWalletBalance(await wallet.refreshBalance())
-    } catch (err) {
-      setWalletBalance(null)
-      throw err
+      const identity = await wallet.openCollectionIdentity()
+      key = await wallet.deriveCollectionKey()
+      const remote = await readRemoteCollection(identity)
+      const ids = remote ? await decryptCollection(remote.envelope, key) : []
+      if (walletSeq.current === seq) setOwnedRareIds(ids)
+    } catch {
+      if (walletSeq.current === seq) {
+        setCollectionError(lang === 'zh' ? '图鉴同步失败，请重试。' : 'Collection sync failed. Please try again.')
+      }
+    } finally {
+      key?.fill(0)
+      if (walletSeq.current === seq) setCollectionBusy(false)
     }
-  }, [])
+  }, [collectionBusy, lang])
 
-  const startRace = useCallback(
-    async (horseId: number, tier: number) => {
-      setEntering(true)
-      setEnterError(null)
-      try {
-        const stake = BigInt(STAKE_PRESETS[tier]!) * MON
-        const { seed, raceId } = await chainPort.enterRace(stake)
-        setBalance(await chainPort.getBalance())
-        const d = new RaceDriver({ seed, playerHorseId: horseId, stakeTier: tier })
-        ;(d as unknown as { raceId: string }).raceId = raceId
-        setDriver(d)
-        setStakeTier(tier)
-        setResult(null)
-        setSettle('preparing')
-        setShared(false)
-        setPage('race')
-      } catch (err) {
-        setEnterError(err instanceof Error ? err.message : String(err))
-      } finally {
-        setEntering(false)
-      }
-    },
-    [],
-  )
+  /** 钱包面板的「刷新」：sma-b 之前没连上的话顺带重试一次解析 */
+  const refreshWallet = useCallback(async () => {
+    const seq = walletSeq.current
+    const g = await wallet.resolveGameAccount()
+    if (walletSeq.current !== seq) return
+    setGameAccount(g)
+    setGameError(null)
+    await refreshFunds()
+  }, [refreshFunds])
 
-  const submitSettle = useCallback(
-    async (r: RaceResult, tier: number) => {
-      setSettle('submitted')
-      try {
-        await chainPort.settleRace(r)
-        const payout = (BigInt(STAKE_PRESETS[tier]!) * BigInt(PAYOUT_TABLE[r.rank - 1]!)) / BigInt(FP)
-        chainPort.credit(payout * MON)
-        setBalance(await chainPort.getBalance())
-        setSettle('settled')
-      } catch {
-        setSettle('failed')
-      }
-    },
-    [],
-  )
+  const startRace = useCallback((horseId: number, tier: number) => {
+    // 有奖场次的唯一接入点：只有 paidEntry 开放（地址、链上代码、游戏账户齐备）时才走链上会话
+    if (!isTierPlayable(tier, paidGate.open)) return
+    if (tier !== PRACTICE_TIER) {
+      if (!gameAccount) return
+      const d = paid.start(horseId, tier as 1 | 2 | 3 | 4)
+      if (!d) return
+      setPaidDriver(d)
+      setPaidMeta(null)
+      setDriver(d)
+      setResult(null)
+      setShared(false)
+      setPage('race')
+      return
+    }
+    setPaidDriver(null)
+    setPaidMeta(null)
+    const seq = raceSeq.current++
+    const now = Date.now()
+    const d = new RaceDriver({ seed: practiceSeed(qs('seed'), now + seq), playerHorseId: horseId, stakeTier: PRACTICE_TIER })
+    ;(d as unknown as { raceId: string }).raceId = practiceRaceId(now, seq)
+    setDriver(d)
+    setResult(null)
+    setShared(false)
+    setPage('race')
+  }, [gameAccount, paid, paidGate.open])
+
+  /** 有奖比赛交给结算页：预览名次（待链上验证）+ 后台结算 */
+  const showPaidResult = useCallback((d: PaidRaceDriver) => {
+    const facts = d.sessionFacts
+    const preview = d.preview()
+    if (!facts || !preview) return
+    const r = paidRaceResult(facts.sessionId, facts.seed, facts.horseId, preview.result)
+    setResult(r)
+    setPaidMeta({
+      stake: facts.stake,
+      stakeLabel: PAID_STAKE_LABELS[facts.stakeTier] ?? formatMon(facts.stake),
+      previewRank: preview.settlementRank,
+      notes: paidChoiceNoteKeys(preview.result).map((k) => (k ? t(lang, k) : null)),
+    })
+    paid.finish()
+    go('result')
+    audio?.stopBgm()
+    audio?.play(r.rank <= 2 ? 'audio.jingle_win' : 'audio.jingle_lose', 0.8)
+    audio?.play('audio.sfx_result_open', 0.6)
+  }, [audio, go, lang, paid])
 
   const onRaceDone = useCallback(() => {
-    if (!driver) return
+    if (paidDriver && driver === paidDriver) {
+      showPaidResult(paidDriver)
+      return
+    }
+    if (!(driver instanceof RaceDriver)) return
     // 尾场只决定玩家身后电脑马彼此的先后，直接在规则内核里跑完，结果确定且不阻塞
     let guard = 0
     while (!driver.state.raceOver && guard++ < 60000) driver.engine.step([])
@@ -353,36 +463,94 @@ export default function App() {
     audio?.stopBgm()
     audio?.play(r.rank <= 2 ? 'audio.jingle_win' : 'audio.jingle_lose', 0.8)
     audio?.play('audio.sfx_result_open', 0.6)
-    void submitSettle(r, stakeTier)
-  }, [driver, audio, stakeTier, submitSettle, go])
+  }, [driver, paidDriver, showPaidResult, audio, go])
 
   const backHome = useCallback(() => {
     setDriver(null)
+    setPaidDriver(null)
+    setPaidMeta(null)
+    resetPaid()
     setResult(null)
-    setEnterError(null)
     setPage('home')
+    void checkResume()
     audio?.setSlowmo(false)
     void audio?.playBgm('audio.bgm_home', 0.35)
-  }, [audio])
+  }, [audio, resetPaid, checkResume])
+
+  /** 恢复链上会话：继续观看（进比赛页）或直接结算（链上时间已越过冲线） */
+  const resumePaid = useCallback(async (settleNow: boolean) => {
+    const info = paid.resume
+    if (!info || resumeBusy) return
+    setResumeBusy(true)
+    try {
+      const d = await paid.resumeRace(info.facts)
+      setPaidDriver(d)
+      setDriver(d)
+      setShared(false)
+      if (settleNow) showPaidResult(d)
+      else {
+        setResult(null)
+        setPage('race')
+      }
+    } finally {
+      setResumeBusy(false)
+    }
+  }, [paid, resumeBusy, showPaidResult])
+
+  /** 离开有奖比赛页：会话留在链上，首页可恢复 */
+  const leavePaidRace = useCallback(() => {
+    backHome()
+  }, [backHome])
 
   const quitRace = useCallback(() => {
+    // 有奖比赛只会从「入场失败 → 返回」走到这里：链上没有需要终止的东西
+    if (paidDriver) {
+      audio?.setSlowmo(false)
+      backHome()
+      return
+    }
     setNotice(t(lang, 'race.hidden'))
     setDriver(null)
     setPage('home')
     audio?.setSlowmo(false)
     setTimeout(() => setNotice(null), 4200)
-  }, [audio, lang])
+  }, [audio, lang, paidDriver, backHome])
+
+  const paidView: PaidResultView | undefined = useMemo(() => {
+    if (!paidMeta || !paid.settle) return undefined
+    const s = paid.settle
+    return {
+      stakeLabel: paidMeta.stakeLabel,
+      stake: paidMeta.stake,
+      previewRank: paidMeta.previewRank,
+      phase: s.phase,
+      txHash: s.txHash,
+      detail: s.detail,
+      settlement: s.settlement ? { rank: s.settlement.rank, payout: s.settlement.payout } : null,
+      mismatch: s.mismatch,
+      deadline: s.deadline,
+      choiceNotes: paidMeta.notes,
+      onRetry: paid.retry,
+    }
+  }, [paidMeta, paid.settle, paid.retry])
+
+  /** 有奖结算后，名次与三次选择以 SessionSettled 为准（结算页与分享图同一份） */
+  const shownResult = useMemo(() => {
+    const settled = paidMeta ? paid.settle?.settlement : null
+    if (!result || !settled) return result
+    return { ...result, rank: settled.rank as typeof result.rank, choices: settledChoices(result.choices, settled.acquired) }
+  }, [result, paidMeta, paid.settle])
 
   const doShare = useCallback(async () => {
-    if (!result) return
+    if (!shownResult) return
     try {
-      const blob = await drawPoster(result, stakeTier, lang, 'x')
-      await sharePoster(blob, `Ponygogogo #${result.rank}`)
+      const blob = await drawPoster(shownResult, lang, 'x')
+      await sharePoster(blob, `Ponygogogo #${shownResult.rank}`)
       setShared(true)
     } catch {
       setShared(false)
     }
-  }, [result, stakeTier, lang])
+  }, [shownResult, lang])
 
   const stageStyle = useMemo(
     () => ({
@@ -391,7 +559,13 @@ export default function App() {
       transform: `scale(${stage.scale})`,
       left: stage.left,
       top: stage.top,
-    }),
+      // 模态窗口在顶层渲染、不受这里的 scale 影响，靠这组变量贴回舞台（theme.css .stage-dialog）
+      '--stage-width': `${canvasWidth}px`,
+      '--stage-height': `${canvasHeight}px`,
+      '--stage-scale': String(stage.scale),
+      '--stage-left': `${stage.left}px`,
+      '--stage-top': `${stage.top}px`,
+    }) as CSSProperties,
     [stage, canvasWidth, canvasHeight],
   )
 
@@ -411,6 +585,7 @@ export default function App() {
           <HomeScreen
             lang={lang}
             account={account}
+            gameAccount={gameAccount}
             balance={walletBalance}
             busy={walletBusy}
             error={walletError}
@@ -430,35 +605,40 @@ export default function App() {
         {page === 'select' && (
           <SelectScreen
             lang={lang}
-            balance={balance}
-            entering={entering}
-            error={enterError}
+            balance={walletBalance}
+            paidOpen={paidGate.open}
+            paidHint={paidGate.hint && t(lang, paidGate.hint)}
             onBack={() => setPage('home')}
-            onRace={(h, tier) => void startRace(h, tier)}
+            onRace={startRace}
           />
         )}
         {page === 'race' && driver && audio && (
           <RaceScreen
             driver={driver}
+            paid={paidDriver && paidDriver === driver ? {
+              overlay: () => paidDriver.overlay,
+              stakeLabel: PAID_STAKE_LABELS[paidDriver.sessionFacts?.stakeTier ?? 0] ?? '',
+              onLeave: leavePaidRace,
+            } : undefined}
             lang={lang}
             reducedMotion={settings.reducedMotion}
             audio={audio}
             urls={urls}
-            stakeTier={stakeTier}
             onDone={onRaceDone}
             onQuit={quitRace}
           />
         )}
-        {page === 'result' && result && (
+        {page === 'result' && shownResult && (
           <ResultScreen
             lang={lang}
-            result={result}
-            stakeTier={stakeTier}
-            settle={settle}
+            result={shownResult}
+            paid={paidMeta ? paidView : undefined}
             shared={shared}
-            onRetrySettle={() => void submitSettle(result, stakeTier)}
             onAgain={() => {
               setDriver(null)
+              setPaidDriver(null)
+              setPaidMeta(null)
+              resetPaid()
               setResult(null)
               go('select')
             }}
@@ -466,13 +646,34 @@ export default function App() {
             onShare={() => void doShare()}
           />
         )}
-        {page === 'collection' && <CollectionScreen lang={lang} onBack={() => setPage('home')} />}
+        {page === 'collection' && <CollectionScreen
+          lang={lang}
+          onBack={() => setPage('home')}
+          signedIn={account !== null}
+          ownedRareIds={ownedRareIds}
+          loading={collectionBusy}
+          error={collectionError}
+          onUnlock={() => { void unlockCollection() }}
+        />}
         {page === 'settings' && (
           <SettingsScreen
             lang={lang}
             settings={settings}
             onChange={setSettings}
             onBack={() => setPage('home')}
+          />
+        )}
+
+        {page === 'home' && paid.resume && account && (
+          <PaidResumeModal
+            lang={lang}
+            stakeLabel={PAID_STAKE_LABELS[paid.resume.facts.stakeTier] ?? formatMon(paid.resume.facts.stake)}
+            deadline={paid.resume.deadline}
+            busy={resumeBusy}
+            canSettle={paid.resume.canSettle}
+            onContinue={() => void resumePaid(false)}
+            onSettle={() => void resumePaid(true)}
+            onLater={paid.dismissResume}
           />
         )}
 
@@ -490,11 +691,17 @@ export default function App() {
           <WalletModal
             lang={lang}
             account={account}
-            balance={walletBalance}
-            gameBalance={balance}
-            onRefresh={refreshWalletBalance}
+            gameAccount={gameAccount}
+            gameError={gameError}
+            funds={funds.funds}
+            rootBalance={funds.rootBalance}
+            tx={funds.tx}
+            onRefresh={refreshWallet}
             onFaucet={() => wallet.claimFaucet()}
             onExport={() => wallet.exportMnemonic()}
+            onDeposit={funds.deposit}
+            onWithdraw={funds.withdraw}
+            onMigrate={funds.migrate}
             onClose={() => setWalletOpen(false)}
           />
         )}
