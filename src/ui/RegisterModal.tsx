@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { WoodButton } from './Button.tsx'
 import { t, type Lang } from './i18n.ts'
+import { StageDialog } from './StageDialog.tsx'
 
 export function RegisterModal({ lang, defaultName, busy, onConfirm, onClose }: {
   lang: Lang
@@ -22,14 +23,6 @@ export function RegisterModal({ lang, defaultName, busy, onConfirm, onClose }: {
     inputRef.current?.select()
   }, [])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !busy) onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, busy])
-
   const confirm = useCallback(() => {
     if (busy) return
     // 留空就回落到默认名，认证器列表里不留一个空条目
@@ -37,9 +30,8 @@ export function RegisterModal({ lang, defaultName, busy, onConfirm, onClose }: {
   }, [busy, name, defaultName, onConfirm])
 
   return (
-    <div className="wallet-modal-host" data-testid="register-modal" role="dialog" aria-modal="true"
-      aria-label={t(lang, 'wallet.nameTitle')}>
-      <div className="wallet-modal-scrim" onClick={() => !busy && onClose()} />
+    // 通行密钥弹窗进行中不可关：Escape、点遮罩与取消按钮同一条规则
+    <StageDialog label={t(lang, 'wallet.nameTitle')} testId="register-modal" busy={busy} onDismiss={onClose}>
       {/* 只有一个输入框，回车即隐式提交 */}
       <form className="panel wallet-modal wallet-dialog" onSubmit={(e) => { e.preventDefault(); confirm() }}>
         <h2 className="h-title">{t(lang, 'wallet.nameTitle')}</h2>
@@ -65,6 +57,6 @@ export function RegisterModal({ lang, defaultName, busy, onConfirm, onClose }: {
           </button>
         </div>
       </form>
-    </div>
+    </StageDialog>
   )
 }

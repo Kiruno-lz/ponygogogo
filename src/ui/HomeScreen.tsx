@@ -3,18 +3,21 @@
  * 牌面上的文字由这里排版，所以换语言不用换图，也不会有第二套切片要维护。
  */
 import { CURRENCY } from '../chain/network.ts'
-import { formatMon } from '../chain/port.ts'
-import type { WalletAccount } from '../chain/wallet.ts'
-import { CARD_POOL } from '../race/cards/pool.ts'
+import { formatMon } from '../chain/amount.ts'
+import type { GameAccount, WalletAccount } from '../chain/wallet.ts'
+import { PAID_CARD_POOL } from '../race/cards/paidPlaceholders.ts'
 import { Chip, usePress } from './Button.tsx'
 import { t, type Lang } from './i18n.ts'
 
 /** 注册与登录是两条不同的通行密钥流程，按钮各自独立，忙碌时只禁用自己那一条 */
 export type WalletBusy = 'register' | 'login' | null
 
-export function HomeScreen({ lang, account, balance, busy, error, onStart, onCollection, onSettings,
+export function HomeScreen({ lang, account, gameAccount, balance, busy, error, onStart, onCollection, onSettings,
   onRegister, onLogin, onOpenWallet, onLogout, onToggleLang }: {
-  lang: Lang; account: WalletAccount | null; balance: bigint | null; busy: WalletBusy; error: string | null
+  /** 根 EOA 只决定「是否已登录」；木牌上展示的是游戏账户（sma-b）的地址与余额 */
+  lang: Lang; account: WalletAccount | null; gameAccount: GameAccount | null
+  /** sma-b 的原生 MON 余额；null = 还没读到 */
+  balance: bigint | null; busy: WalletBusy; error: string | null
   onStart: () => void; onCollection: () => void; onSettings: () => void
   onRegister: () => void; onLogin: () => void; onOpenWallet: () => void; onLogout: () => void
   onToggleLang: () => void
@@ -32,9 +35,9 @@ export function HomeScreen({ lang, account, balance, busy, error, onStart, onCol
       {account ? <div className="home-wallet" data-testid="wallet-panel">
         <button type="button" className="btn wallet-content" data-testid="wallet-open"
           aria-label={t(lang, 'wallet.title')} onClick={onOpenWallet}>
-          <div className="wallet-row"><img src="/assets/art/ui/avatar-trimmed.webp" alt=""/><span className="mono" data-testid="wallet-label">{account.label}</span></div>
+          <div className="wallet-row"><img src="/assets/art/ui/avatar-trimmed.webp" alt=""/><span className="mono" data-testid="wallet-label">{gameAccount?.label ?? '…'}</span></div>
           <div className="wallet-row"><img src="/assets/art/ui/coin-trimmed.webp" alt=""/><span className="mono" data-testid="balance">{balance === null ? '—' : `${formatMon(balance)} ${CURRENCY}`}</span></div>
-          <div className="wallet-row"><img src="/assets/placeholder/icons/icon_13.webp" alt=""/><span>0 / {CARD_POOL.length}</span></div>
+          <div className="wallet-row"><img src="/assets/placeholder/icons/icon_13.webp" alt=""/><span>0 / {PAID_CARD_POOL.length}</span></div>
         </button>
         <button className="wallet-logout btn" data-testid="wallet-logout" onClick={onLogout} aria-label={t(lang, 'home.logout')} title={t(lang, 'home.logout')}>{t(lang, 'home.logout')}</button>
       </div> : <>

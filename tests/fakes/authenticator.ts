@@ -42,6 +42,8 @@ export class FakeAuthenticator {
   mode: FakeAuthenticatorMode = 'ok'
   /** 断言时优先挑这把凭据，模拟用户在系统弹窗里选了另一个账户 */
   preferred: Uint8Array | null = null
+  /** Model a platform/provider returning a different credential than the requested allowCredential. */
+  returnedCredentialId: Uint8Array | null = null
 
   readonly credentials: StoredCredential[] = []
   private seq = 0
@@ -103,6 +105,6 @@ export class FakeAuthenticator {
       : (this.preferred ? forRp.find((c) => sameBytes(c.id, this.preferred!)) : undefined) ?? forRp[0]
     if (!chosen) throw new DOMException('no credential', 'NotAllowedError')
     if (this.mode === 'no-prf') return { credentialId: chosen.id }
-    return { credentialId: chosen.id, prfOutput: await this.prf(chosen, req.prfSalt) }
+    return { credentialId: this.returnedCredentialId ?? chosen.id, prfOutput: await this.prf(chosen, req.prfSalt) }
   }
 }

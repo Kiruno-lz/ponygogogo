@@ -258,9 +258,24 @@ html, body, #root {
 /* 分级资源没就绪时的兜底遮罩。底下那一页照常渲染，所以不会白屏。 */
 .tier-gate { position: absolute; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; background: rgba(20, 10, 4, .58); }
 
+/* 模态窗口（StageDialog）：showModal() 把 <dialog> 放进顶层，脱离 .stage 的 scale 变换与 overflow 裁切。
+   按 .stage 发布的 --stage-* 变量贴回舞台，铺满舞台并自己画遮罩；舞台外的 ::backdrop 保持透明，黑边不变暗。
+   覆盖掉 UA 给模态 dialog 的居中外边距、尺寸上限、边框、内边距、底色与 CanvasText 字色。 */
+.stage-dialog {
+  position: fixed; left: var(--stage-left, 0px); top: var(--stage-top, 0px); right: auto; bottom: auto;
+  width: var(--stage-width, var(--stage-w)); height: var(--stage-height, var(--stage-h)); max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0; overflow: hidden; color: inherit;
+  transform: scale(var(--stage-scale, 1)); transform-origin: top left;
+  background: rgba(20, 10, 4, .58);
+}
+.stage-dialog[open] { display: flex; align-items: center; justify-content: center; }
+.stage-dialog::backdrop { background: transparent; }
+/* 竖屏拦截层（.rotate-blocker）原本压在一切之上；顶层里的窗口要让它 */
+@media (orientation: portrait) and (max-width: 900px) {
+  .stage-dialog[open] { display: none; }
+}
+
 /* 钱包管理面板：地址、链上余额、领测试币、导出助记词。 */
-.wallet-modal-host { position: absolute; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; }
-.wallet-modal-scrim { position: absolute; inset: 0; background: rgba(20, 10, 4, .58); }
 .wallet-modal { position: relative; width: 980px; max-height: 94%; overflow: auto; padding: 22px 30px 34px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .wallet-modal h2 { margin: 0; font-size: 38px; }
 .wallet-facts { display: grid; grid-template-columns: 210px 1fr; gap: 8px 20px; width: 100%; margin: 0; font-size: 22px; align-items: center; }
@@ -275,10 +290,38 @@ html, body, #root {
 .wallet-warn { margin: 0; font-size: 15px; font-weight: 800; color: #8d2b12; line-height: 1.45; }
 .wallet-mnemonic ol { width: 100%; margin: 0; padding-left: 30px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px 14px; font-size: 18px; }
 .wallet-mnemonic li { line-height: 1.4; }
+.wallet-facts .wallet-secondary { font-size: 17px; opacity: .72; }
+.wallet-signer-address { font-size: 16px; word-break: break-all; }
+.wallet-muted { font-weight: 700; opacity: .72; }
+/* 充值 / 提款：金额输入与两个动作同一行，校验信息另起一行 */
+.wallet-funds { width: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wallet-funds label { font-size: 20px; font-weight: 800; opacity: .78; }
+.wallet-funds input { width: 220px; box-sizing: border-box; padding: 8px 12px; border: 3px solid #a8642f; border-radius: 12px; background: rgba(255, 246, 228, .85); color: var(--ink); font-family: inherit; font-size: 22px; font-weight: 700; }
+.wallet-funds input:focus-visible { outline: 4px solid var(--gold-lite); outline-offset: 2px; }
+.wallet-funds input:disabled { opacity: .55; }
+.wallet-funds .chip { font-size: 20px; padding: 8px 16px; }
+.wallet-amount-error { flex-basis: 100%; font-size: 16px; font-weight: 800; color: #a32c17; }
+.wallet-modal .chip:disabled { cursor: default; filter: grayscale(.55) opacity(.6); }
+.wallet-tx { width: 100%; margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; font-size: 18px; font-weight: 700; line-height: 1.45; }
+.wallet-tx.failed { color: #a32c17; }
+.wallet-tx a { color: #7a3512; font-weight: 800; }
+.wallet-migrate { width: 100%; box-sizing: border-box; padding: 10px 16px; border: 3px dashed #a8642f; border-radius: 14px; background: rgba(255, 246, 228, .6); display: flex; flex-direction: column; align-items: flex-start; gap: 6px; font-size: 19px; }
+.wallet-migrate p { margin: 0; font-size: 15px; line-height: 1.45; opacity: .8; }
+.wallet-migrate .chip { font-size: 18px; padding: 6px 14px; }
+/* 最近战绩：索引器的只读记录，五列一行，窄于资金区、字号次一级 */
+.wallet-history { width: 100%; display: flex; flex-direction: column; gap: 4px; font-size: 17px; }
+.wallet-history h3 { margin: 0; font-size: 20px; font-weight: 800; opacity: .78; }
+.wallet-history p { margin: 0; }
+.wallet-history ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.wallet-history li { display: grid; grid-template-columns: 130px 1fr 110px 110px 90px; gap: 12px; align-items: baseline; font-weight: 700; }
+.wallet-history li > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wallet-history li > span:last-child { text-align: right; }
+.wallet-history small { font-size: 14px; opacity: .65; line-height: 1.4; }
 
 /* 注册前的取名窗口，与钱包面板共用外壳，只是窄一些。 */
 .wallet-dialog { width: 760px; gap: 16px; }
 .wallet-dialog-hint { width: 100%; margin: 0; font-size: 16px; line-height: 1.5; opacity: .75; }
+.wallet-deadline { font-weight: 800; color: #a3321f; opacity: 1; }
 .wallet-dialog-actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: center; }
 .wallet-dialog-actions .chip { font-size: 20px; padding: 8px 16px; }
 .wallet-name-field { width: 100%; display: flex; flex-direction: column; gap: 8px; font-size: 22px; font-weight: 800; }
@@ -321,7 +364,6 @@ html, body, #root {
 .bet-win img { width: 38px; height: 44px; object-fit: contain; }
 .bet-win img:last-child { width: 41px; }
 .bet-difficulty { display: flex; justify-content: space-between; padding-top: 8px; font-size: 14px; color: #4e3828; }
-.bet-error { font-size: 15px; color: #a32c17; font-weight: 800; }
 .select-race-cta { position: absolute; left: 1190px; top: 565px; width: 429px; height: 390px; }
 .select-race-cta .btn-star { width: 100%; height: 100%; }
 .select-race-cta .big { position: absolute; left: 84px; top: 126px; width: 276px; transform: rotate(-12deg); font-size: 91px; line-height: 1; }
@@ -331,7 +373,6 @@ html, body, #root {
 .select-back { position: absolute; left: 35px; bottom: 14px; }
 .select-back .btn-wood { border: 0; background: url('/assets/placeholder/ui/btn_wood_2.webp') center / 100% 100% no-repeat; }
 .select-back .zh { font-size: 16px; letter-spacing: 0; }
-.select-error { position: absolute; left: 515px; bottom: 45px; width: 580px; text-align: center; font-size: 20px; padding: 4px 20px; }
 .btn-star { background-image: url('/assets/art/ui/star-reference.webp'); background-size: contain; background-repeat: no-repeat; }
 .btn-star .big { font-family: 'Trebuchet MS', 'Arial Black', sans-serif; font-style: italic; color: #1f1b14; text-shadow: none; font-weight: 1000; }
 .pony-portrait { background-repeat: no-repeat; animation: pony-idle 1.2s steps(8, jump-none) infinite; }
@@ -370,9 +411,15 @@ html, body, #root {
 .chip.on { border: 0; background: url('/assets/art/ui/bet-chip-selected-trimmed.webp') center / 100% 100% no-repeat; box-shadow: 0 0 7px #ffd45d55; }
 .wallet-logout { right: 8px; top: 278px; width: 96px; height: 170px; color: transparent; font-size: 0; background: transparent; transform: none; }
 .pony-running { animation-duration: .667s; }
+/* 五档：首行 0（试玩）与 0.3，难度标签夹在中间；次行 1 / 5 / 10 三档有奖。未开放的有奖档灰掉 */
 .bet-chips .chip:nth-child(2) { grid-column: 5 / span 2; grid-row: 1; }
-.bet-chips .chip:nth-child(3) { grid-column: 1 / span 3; grid-row: 2; }
-.bet-chips .chip:nth-child(4) { grid-column: 4 / span 3; grid-row: 2; }
+.bet-chips .chip:nth-child(3) { grid-column: 1 / span 2; grid-row: 2; }
+.bet-chips .chip:nth-child(4) { grid-column: 3 / span 2; grid-row: 2; }
+.bet-chips .chip:nth-child(5) { grid-column: 5 / span 2; grid-row: 2; }
+.bet-chips .chip:disabled { cursor: not-allowed; filter: grayscale(.9) opacity(.5); }
+.bet-paid-closed { height: 20px; margin-top: 4px; line-height: 20px; text-align: center; font-size: 15px; color: #a32c17; font-weight: 800; }
+/* 提示占掉的 24px 从赢奖条的上边距里扣，赢奖条仍停在原画位置 */
+.bet-paid-closed + .bet-win { margin-top: 5px; }
 .bet-art-panel { padding-top: 69px; }
 .bet-art-panel h2 { margin-top: 14px; margin-bottom: 9px; }
 .bet-chips .chip { font-size: 31px; line-height: 68px; }
@@ -395,6 +442,8 @@ html, body, #root {
 .wallet-row:first-child img { width: 56px; height: 52px; }
 .bet-balance { padding-left: 16px; gap: 20px; }
 .card-root .h-title { font-family: Kalam, 'PingFang SC', sans-serif; font-weight: 700; }
+/* 可点的卡面用选中时的同一圈金光表示键盘焦点：filter 按卡框的 alpha 描边，outline 会画成矩形 */
+.card-root[role='button']:focus-visible { outline: none; filter: drop-shadow(0 0 22px rgba(249, 199, 79, .95)); }
 
 /* ---------------- 结算页：art-src/renders/result.png 的原始坐标 ---------------- */
 
@@ -421,9 +470,10 @@ html, body, #root {
 .result-row-label { font-size: 25px; font-weight: 700; }
 .result-row-value { font-size: 28px; font-weight: 700; }
 
-.result-net-label { position: absolute; left: 928px; top: 407px; font-size: 31px; font-weight: 800; }
-.result-net-value { position: absolute; left: 1222px; top: 404px; font-size: 62px; font-weight: 700;
-  letter-spacing: 0; line-height: 1; color: #4a2c14; }
+/* 原净盈亏的位置：试玩不计奖金，标签与说明分列金币两侧，不写任何金额 */
+.result-practice { position: absolute; inset: 0; pointer-events: none; }
+.result-practice-label { position: absolute; left: 928px; top: 407px; font-size: 31px; font-weight: 800; white-space: nowrap; }
+.result-practice-value { position: absolute; left: 1222px; top: 402px; font-size: 40px; font-weight: 800; white-space: nowrap; }
 
 .result-picks-title { position: absolute; left: 912px; top: 488px; font-size: 22px; font-weight: 800; }
 .result-pick { position: absolute; top: 530px; width: 160px; height: 110px; }
@@ -436,22 +486,33 @@ html, body, #root {
   text-align: center; font-size: 18px; font-weight: 700; line-height: 1.15; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis; }
 
-/* 印章框是木纸上原有的空心矩形，短状态写在框里，长说明另起一行放在按钮行下方 */
-/* 结算状态是一层铺满画板的透明层：印章和失败说明各自绝对定位，容器不能塌成 0×0 */
-.result-settle { position: absolute; inset: 0; pointer-events: none; }
-.result-settle > * { pointer-events: auto; }
+/* 印章框是木纸上原有的空心矩形，试玩的「本地试玩」写在框里 */
 .result-settle-stamp { position: absolute; left: 1103px; top: 654px; width: 165px; height: 44px;
   display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800;
-  letter-spacing: 2px; }
-.result-settle-stamp.failed { color: #a32c17; }
-.result-settle-retry { position: absolute; left: 405px; top: 884px; width: 735px;
-  display: flex; align-items: center; gap: 14px; }
-.result-settle-why { font-size: 19px; font-weight: 800; color: #ffe0c2; line-height: 1.3;
-  padding: 5px 12px; border-radius: 10px; background: rgba(48, 20, 12, .8); }
+  letter-spacing: 2px; white-space: nowrap; }
+
+/* 有奖结算：印章按状态着色；结算 tx 写在印章下方；失败说明与重试另起一行放在按钮行下方 */
+.result-settle-stamp.stamp-waiting, .result-settle-stamp.stamp-pending { color: #8a5a1c; }
+.result-settle-stamp.stamp-settled { color: #2f6b2a; }
+.result-settle-stamp.stamp-failed, .result-settle-stamp.stamp-forfeited { color: #a3321f; }
+/* tx 与印章同一行、在它左侧，落在木纸内部 */
+.result-tx { position: absolute; left: 912px; top: 664px; width: 184px; height: 26px; line-height: 26px;
+  font-size: 15px; font-weight: 700; color: #4a2c14; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-verify { color: #ffe9a8; }
+.result-settle-detail { position: absolute; left: 140px; top: 878px; width: 1008px; min-height: 52px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 5px 16px;
+  border-radius: 14px; background: rgba(40, 24, 14, .72); color: #ffe9c9; font-size: 20px; font-weight: 700; }
+/* 第一行：名次说明 · 进度或失败原因 · 重试；第二行（有期限时）：结算期限。框顶固定在按钮行下方，
+   两行合计须落在 971 画板内（tests/e2e/regressions/REPRO.md 五），所以重试用紧凑的筹码 */
+.result-settle-line { display: flex; align-items: center; justify-content: center; gap: 16px; max-width: 100%; min-width: 0; }
+.result-settle-detail .chip { flex: 0 0 auto; padding: 3px 16px; font-size: 18px; line-height: 26px; }
+.result-settle-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-settle-deadline { max-width: 100%; font-size: 16px; line-height: 22px; color: #ffd28a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-settle-verify { flex: 0 0 auto; color: #ffe9a8; white-space: nowrap; }
 
 /* 奖章、名牌与名次条压在 placement 切片被抹空的位置上 */
 /* 名字与金额用仓库里的 Kalam：原画那支圆体比系统无衬线更窄更高，字宽与字高都更接近 */
-.result-name, .result-net-value, .result-row-value { font-family: Kalam, 'PingFang SC', sans-serif; }
+.result-name, .result-row-value { font-family: Kalam, 'PingFang SC', sans-serif; }
 .result-name { position: absolute; left: 404px; top: 230px; width: 210px; line-height: 76px;
   text-align: center; font-size: 60px; font-weight: 700; letter-spacing: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

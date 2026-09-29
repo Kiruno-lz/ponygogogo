@@ -2,6 +2,7 @@
 import Phaser from 'phaser'
 import type { HorseProfile } from './horses.ts'
 import { decodeImage } from './images.ts'
+import { EFFECT_TEXTURES, type EquipmentVisual } from './effects.ts'
 
 export const PONY_SCALE = 0.75
 const FRAME_W = 256
@@ -36,6 +37,10 @@ export class PonySprite extends Phaser.GameObjects.Container {
   private readonly ring: Phaser.GameObjects.Image
   private readonly shadow: Phaser.GameObjects.Ellipse
   private readonly root: Phaser.GameObjects.Container
+  private readonly rocket: Phaser.GameObjects.Image
+  private readonly rainbowTrail: Phaser.GameObjects.Image
+  private readonly blackhole: Phaser.GameObjects.Image
+  private readonly fireWheels: Phaser.GameObjects.Image[]
   private phase = 0
   private coat: number | null | undefined = undefined
   private action: 'running' | 'idle' = 'idle'
@@ -48,9 +53,29 @@ export class PonySprite extends Phaser.GameObjects.Container {
     this.add(this.ring)
     this.root = scene.add.container(0, 0)
     this.add(this.root)
+
+    this.rainbowTrail = scene.add.image(-72, -86, EFFECT_TEXTURES.rainbowTrail.textureKey, 0)
+      .setOrigin(1, .5).setDisplaySize(118, 79).setVisible(false)
+    this.root.add(this.rainbowTrail)
+
+    const wheelPositions = [[-48, -12], [48, -12], [-66, -8], [68, -8]] as const
+    this.fireWheels = wheelPositions.map(([x, y], i) => scene.add
+      .image(x, y, EFFECT_TEXTURES.fireWheel.textureKey, i * 4)
+      .setDisplaySize(i < 2 ? 34 : 40, i < 2 ? 34 : 40)
+      .setAlpha(i < 2 ? .76 : .96)
+      .setVisible(false))
+    this.root.add([this.fireWheels[0]!, this.fireWheels[1]!])
+
     this.torso = scene.add.image(0, 0, ponyTextureKeys(opts.profile.horseId).idle, 0)
       .setOrigin(.5, 180 / FRAME_H).setScale(opts.profile.horseId === 0 ? .85 : PONY_SCALE)
     this.root.add(this.torso)
+
+    this.root.add([this.fireWheels[2]!, this.fireWheels[3]!])
+    this.rocket = scene.add.image(-14, -104, EFFECT_TEXTURES.rocket.textureKey, 0)
+      .setDisplaySize(82, 55).setVisible(false)
+    this.blackhole = scene.add.image(-4, -104, EFFECT_TEXTURES.blackhole.textureKey, 0)
+      .setDisplaySize(72, 48).setVisible(false)
+    this.root.add([this.rocket, this.blackhole])
     scene.add.existing(this)
   }
 
@@ -76,4 +101,15 @@ export class PonySprite extends Phaser.GameObjects.Container {
   }
 
   setGhost(on: boolean): void { this.root.setAlpha(on ? .42 : 1) }
+
+  setEquipment(active: readonly EquipmentVisual[], frame: number): void {
+    const equipped = new Set(active)
+    this.rocket.setVisible(equipped.has('rocket')).setFrame(frame)
+    this.rainbowTrail.setVisible(equipped.has('rainbowTrail')).setFrame(frame)
+    this.blackhole.setVisible(equipped.has('blackhole')).setFrame(frame)
+    const wheelsVisible = equipped.has('fireWheel')
+    for (let i = 0; i < this.fireWheels.length; i++) {
+      this.fireWheels[i]!.setVisible(wheelsVisible).setFrame((frame + i * 4) % 16)
+    }
+  }
 }

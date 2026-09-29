@@ -137,7 +137,8 @@ export interface HudProps {
   state: RaceState
   lang: Lang
   reducedMotion: boolean
-  potentialWin: number
+  /** gogo 按钮下方的副标题：免费试玩标明不计奖金，不写任何可赢金额 */
+  gogoSub: string
   gogoPunchKey: number
   onGogoDown: () => void
   onGogoUp: () => void
@@ -229,7 +230,7 @@ export function Hud(p: HudProps) {
         <div style={{ position: 'absolute', left: 1190, top: 565, pointerEvents: 'auto' }}>
           <GogoButton
             label={p.abilityLabel ?? t(p.lang, 'race.gogo')}
-            sub={t(p.lang, 'select.uwin', { n: p.potentialWin })}
+            sub={p.gogoSub}
             punchKey={p.gogoPunchKey}
             reduced={p.reducedMotion}
             disabled={exhausted}

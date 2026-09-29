@@ -1,12 +1,22 @@
 import { useState } from 'react'
-import { CARD_POOL } from '../race/cards/pool.ts'
+import { PAID_CARD_POOL } from '../race/cards/paidPlaceholders.ts'
 import { Card } from '../cards/Card.tsx'
 import { WoodButton, Chip } from './Button.tsx'
 import { t, type Lang } from './i18n.ts'
 
-export function CollectionScreen({ lang, onBack }: { lang: Lang; onBack: () => void }) {
+type Props = {
+  lang: Lang
+  onBack: () => void
+  signedIn?: boolean
+  ownedRareIds?: readonly string[] | null
+  loading?: boolean
+  error?: string | null
+  onUnlock?: () => void
+}
+
+export function CollectionScreen({ lang, onBack, signedIn = false, ownedRareIds = null, loading = false, error, onUnlock }: Props) {
   const [filter, setFilter] = useState<'all' | 'common' | 'rare'>('all')
-  const list = CARD_POOL.filter((c) => filter === 'all' || c.quality === filter)
+  const list = PAID_CARD_POOL.filter((c) => filter === 'all' || c.quality === filter)
   return (
     <div
       className="screen"
@@ -25,6 +35,11 @@ export function CollectionScreen({ lang, onBack }: { lang: Lang; onBack: () => v
         <span style={{ fontSize: 20, opacity: 0.75 }}>
           {t(lang, 'collection.count', { n: list.length })}
         </span>
+        {signedIn && <WoodButton
+          zh={lang === 'zh' ? (loading ? '解锁中…' : '解锁图鉴') : (loading ? 'Unlocking…' : 'Unlock collection')}
+          onClick={onUnlock}
+          style={{ minWidth: 140, minHeight: 56 }}
+        />}
         <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
           {(['all', 'common', 'rare'] as const).map((f) => (
             <Chip
@@ -37,6 +52,7 @@ export function CollectionScreen({ lang, onBack }: { lang: Lang; onBack: () => v
           ))}
         </div>
       </div>
+      {error && <div role="alert" style={{ padding: '0 34px 12px', color: '#8b2525' }}>{error}</div>}
       <div
         className="scrolly"
         style={{
@@ -50,13 +66,17 @@ export function CollectionScreen({ lang, onBack }: { lang: Lang; onBack: () => v
       >
         {list.map((def) => (
           <div key={def.cardId} style={{ width: 290 }}>
-            <Card def={def} lang={lang} size="gallery" />
-            <div style={{ fontSize: 14, opacity: 0.72, marginTop: 4, lineHeight: 1.4 }}>
+            {def.quality === 'rare' && !ownedRareIds?.includes(def.cardId)
+              ? <div data-card={def.cardId} style={{ width: 290, height: 390, display: 'grid', placeItems: 'center', background: '#bea887', border: '5px solid #6e4b2f', borderRadius: 12 }}>
+                  {lang === 'zh' ? '稀有卡尚未收藏' : 'Rare card locked'}
+                </div>
+              : <Card def={def} lang={lang} size="gallery" />}
+            {(def.quality !== 'rare' || ownedRareIds?.includes(def.cardId)) && <div style={{ fontSize: 14, opacity: 0.72, marginTop: 4, lineHeight: 1.4 }}>
               <div>
                 <strong>{t(lang, 'collection.meme')}:</strong> {def.meme}
               </div>
               <div>{t(lang, def.cpuUsable ? 'collection.cpu' : 'collection.cpuNo')}</div>
-            </div>
+            </div>}
           </div>
         ))}
       </div>
