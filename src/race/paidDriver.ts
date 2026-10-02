@@ -169,6 +169,8 @@ export class PaidRaceDriver implements RaceScreenDriver {
     return this.snapshot
   }
 
+  get choiceInteraction() { return { locked: this.locked, autoPick: this.autoPick } }
+
   get slowmo(): boolean {
     return this.slow
   }
@@ -331,7 +333,7 @@ export class PaidRaceDriver implements RaceScreenDriver {
     this.snapshot = buildPaidSnapshot({
       trace: this.trace, tau: this.displayTau, playerHorseId: this.opts.playerHorseId, stakeTier: this.opts.stakeTier,
       seed: this.facts.seed, posOffset: this.currentOffsets(nowMs), panel: this.panel, draw: this.panelInfo?.draw ?? null,
-      playerDeck: this.core!.playerDeck, finishTime, raceOver,
+      playerDeck: this.core!.playerDeck, finishTime, raceOver, versionAnswer: this.solved.versionAnswer,
     })
     this.phase = counting ? 'countdown' : raceOver ? 'done' : this.snapshot.playerFinished ? 'tail' : 'racing'
     return out

@@ -1,7 +1,7 @@
 /**
  * 选牌面板。三段动画：发牌入场（错峰落位）、悬浮、选定消失。
- * 硬约束：动画不参与规则。点击的瞬间效果即生效并写进输入序列，飞行与淡出只是表现。
- * 20 秒现实限时从卡牌可交互那一刻起算，不从入场动画开始算。
+ * 动画不参与规则：选牌按驱动器的规范时间生效，飞行与淡出只是表现。
+ * 20 秒现实限时与自动面板由共享求时器决定，发牌动画不延后截止时刻。
  */
 import { useEffect, useRef, useState } from 'react'
 import { CARD_BY_ID } from '../race/cards/pool.ts'
@@ -27,7 +27,7 @@ export interface CardChoicePanelProps {
   onSkip: () => void
   onRefresh: (slot: number) => void
   onHover?: () => void
-  /** 卡面来源；有奖场次传入由 paidCardRule 生成说明的卡面 */
+  /** 卡面来源；免费与有奖场次均传入由 paidCardRule 生成说明的卡面 */
   lookup?: (cardId: string) => CardDef | undefined
   /** 已截止：不再接受点击（有奖面板在链上窗口末端之前停收），面板保留到规范关闭 */
   locked?: boolean

@@ -1,6 +1,6 @@
 /**
  * 结算页，承接两种比赛：
- * - 免费本地试玩：名次由浏览器本地内核算出，不上链、不计奖金，页面上明确标成「本地试玩」，
+ * - 免费本地试玩：名次由共享求时器在本地算出，不上链、不计奖金，页面上明确标成「本地试玩」，
  *   不出现下注、返还或盈亏数字。
  * - 有奖比赛（`paid`）：冲线时先显示浏览器预览名次并标「待链上验证」；名次、返还、净盈亏与三次选择
  *   （`acquired`）只取 `SessionSettled`。印章写结算中 / 已结算 / 结算失败 / 已判负；结算交易提交后显示 tx 与
@@ -14,7 +14,6 @@ import type { Hex } from 'viem'
 import { formatMon } from '../chain/amount.ts'
 import { explorerTxUrl } from '../chain/network.ts'
 import { paidCardDef } from '../race/cards/paidCards.ts'
-import { CARD_BY_ID } from '../race/cards/pool.ts'
 import { SIM_HZ } from '../race/core/constants.ts'
 import type { RaceResult } from '../race/core/types.ts'
 import { HORSE_PROFILES } from '../game/horses.ts'
@@ -80,6 +79,7 @@ export interface ResultScreenProps {
   onHome: () => void
   onShare: () => void
   shared: boolean
+  choiceNotes?: (string | null)[]
 }
 
 export function ResultScreen(p: ResultScreenProps) {
@@ -90,7 +90,7 @@ export function ResultScreen(p: ResultScreenProps) {
   const settled = paid?.settlement ?? null
   const forfeited = paid?.phase === 'forfeited'
   const rank = settled ? settled.rank : p.result.rank
-  const lookup = (id: string) => (paid ? paidCardDef(id) : CARD_BY_ID[id])
+  const lookup = paidCardDef
   const txUrl = paid?.txHash ? explorerTxUrl(paid.txHash) : null
   const verifyText = !paid ? '' : settled
     ? t(p.lang, 'result.chainRank', { rank: settled.rank })
@@ -158,7 +158,7 @@ export function ResultScreen(p: ResultScreenProps) {
         <div className="result-picks-title">{t(p.lang, 'result.choices')}</div>
         {p.result.choices.map((c, i) => {
           const def = c.cardId ? lookup(c.cardId) ?? null : null
-          const note = paid?.choiceNotes[i] ?? null
+          const note = paid?.choiceNotes[i] ?? p.choiceNotes?.[i] ?? null
           const slot = PICK_SLOTS[i] ?? PICK_SLOTS[0]!
           return (
             <div

@@ -4,7 +4,7 @@
  */
 import { makeSeed } from './race/core/rng.ts'
 
-const FORCED_SEED = /^0x[0-9a-fA-F]{8,}$/
+const FORCED_SEED = /^0x[0-9a-fA-F]{8,64}$/
 
 export function practiceSeed(forced: string | null, entropy: number): string {
   return forced && FORCED_SEED.test(forced) ? forced : makeSeed(entropy)
