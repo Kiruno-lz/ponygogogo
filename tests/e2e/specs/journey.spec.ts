@@ -5,6 +5,7 @@
  * 每个关键节点截图核对。
  */
 import { expect, test } from '@playwright/test'
+import { PAID_CARD_POOL } from '../../../src/race/cards/paidCards.ts'
 import { enterHome, noConsoleErrors, open, playUntilResult, startRace } from '../helpers.ts'
 
 const SHOT = 'tests/e2e/screenshots'
@@ -116,7 +117,7 @@ test('图鉴与设置可进可出', async ({ page }) => {
 
   await page.getByRole('button', { name: /卡牌图鉴|COLLECTION/ }).first().click()
   await expect(page.getByTestId('screen-collection')).toBeVisible()
-  await expect(page.locator('[data-card]')).toHaveCount(26)
+  await expect(page.locator('[data-card]')).toHaveCount(PAID_CARD_POOL.length)
   await page.screenshot({ path: `${SHOT}/09-collection.png` })
   await page.getByRole('button', { name: /返回|Back/ }).first().click()
   await expect(page.getByTestId('screen-home')).toBeVisible()
