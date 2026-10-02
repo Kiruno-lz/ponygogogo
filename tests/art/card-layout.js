@@ -1,7 +1,8 @@
 /** Browser-only art regression: verbose card copy must remain inside the parchment area. */
 export function assertCardCopyFits() {
   const failures = []
-  const cards = [...document.querySelectorAll('.card-root')]
+  const slots = [...document.querySelectorAll('[data-card]')]
+  const cards = slots.filter(card => card.classList.contains('card-root'))
   for (const card of cards) {
     const art = card.querySelector(':scope > div')
     const paragraph = art?.querySelector('p')
@@ -13,5 +14,5 @@ export function assertCardCopyFits() {
     }
   }
   if (failures.length) throw new Error(`Card descriptions overlap the ribbon: ${JSON.stringify(failures)}`)
-  return { cards: cards.length, overflow: 0 }
+  return { cards: slots.length, faces: cards.length, locked: slots.length - cards.length, overflow: 0 }
 }
