@@ -455,7 +455,7 @@ html, body, #root {
 /* 可点的卡面用选中时的同一圈金光表示键盘焦点：filter 按卡框的 alpha 描边，outline 会画成矩形 */
 .card-root[role='button']:focus-visible { outline: none; filter: drop-shadow(0 0 22px rgba(249, 199, 79, .95)); }
 
-/* ---------------- 结算页：art-src/renders/result.png 的原始坐标 ---------------- */
+/* ---------------- 结算页：1620×971 画板，素材等比布局 ---------------- */
 
 .result-screen { background: #8a6a4a; }
 .result-artboard { position: absolute; left: 0; top: 0; width: 1620px; height: 971px; color: #4a2c14; }
@@ -463,14 +463,16 @@ html, body, #root {
 .result-bg { left: 0; top: 0; width: 1620px; height: 971px; }
 .result-hero { position: absolute; }
 .result-stats-board { left: 803px; top: 168px; width: 804px; height: 592px; }
-.result-nameplate { left: 354px; top: 196px; width: 326px; height: 170px; }
-.result-medal-art { left: 140px; top: 113px; width: 262px; height: 237px; }
-/* 标题木牌：素材不是原生尺寸，按两面旗子的跨距与高度对到原画版位 */
-.result-header { left: 419px; top: 14px; width: 780px; height: 250px; }
-.result-title { position: absolute; left: 652px; top: 90px; width: 330px; text-align: center;
-  font-size: 72px; font-weight: 800; letter-spacing: 4px; text-indent: 4px; line-height: 1;
+.result-nameplate { left: 330px; top: 204px; width: 326px; height: auto; }
+.result-medal-art { left: 145px; top: 153px; width: 220px; height: auto; }
+/* 标题与奖章收紧，给角色和信息板留出净空；所有素材保持原始宽高比 */
+.result-heading { position: absolute; left: 50%; top: 20px; width: 700px; height: 234px;
+  transform: translateX(-50%) scale(.9); transform-origin: center top; }
+.result-header { position: absolute; display: block; left: 0; top: 0; width: 700px; height: auto; }
+.result-title { position: absolute; left: 185px; top: 74px; width: 330px; text-align: center;
+  font-size: 64px; font-weight: 800; letter-spacing: 4px; text-indent: 4px; line-height: 1;
   color: #4a2c14; white-space: nowrap; }
-.result-title-en { position: absolute; left: 686px; top: 165px; width: 240px; text-align: center;
+.result-title-en { position: absolute; left: 230px; top: 140px; width: 240px; text-align: center;
   font-size: 24px; font-weight: 700; letter-spacing: 1px; text-indent: 1px; line-height: 1;
   color: #6b4a29; white-space: nowrap; }
 
@@ -509,8 +511,8 @@ html, body, #root {
 .result-tx { position: absolute; left: 912px; top: 664px; width: 184px; height: 26px; line-height: 26px;
   font-size: 15px; font-weight: 700; color: #4a2c14; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .result-verify { color: #ffe9a8; }
-.result-settle-detail { position: absolute; left: 140px; top: 878px; width: 1008px; min-height: 52px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 5px 16px;
+.result-settle-detail { position: absolute; left: 140px; top: 910px; width: 1008px; min-height: 52px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 3px 16px;
   border-radius: 14px; background: rgba(40, 24, 14, .72); color: #ffe9c9; font-size: 20px; font-weight: 700; }
 /* 第一行：名次说明 · 进度或失败原因 · 重试；第二行（有期限时）：结算期限。框顶固定在按钮行下方，
    两行合计须落在 971 画板内（tests/e2e/regressions/REPRO.md 五），所以重试用紧凑的筹码 */
@@ -523,14 +525,14 @@ html, body, #root {
 /* 奖章、名牌与名次条压在 placement 切片被抹空的位置上 */
 /* 名字与金额用仓库里的 Kalam：原画那支圆体比系统无衬线更窄更高，字宽与字高都更接近 */
 .result-name, .result-row-value { font-family: Kalam, 'PingFang SC', sans-serif; }
-.result-name { position: absolute; left: 404px; top: 230px; width: 210px; line-height: 76px;
-  text-align: center; font-size: 60px; font-weight: 700; letter-spacing: 0;
+.result-name { position: absolute; left: 372px; top: 227px; width: 232px; line-height: 62px;
+  text-align: center; font-size: 52px; font-weight: 700; letter-spacing: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.result-rank-line { position: absolute; left: 446px; top: 309px; width: 123px; height: 30px;
+.result-rank-line { position: absolute; left: 422px; top: 294px; width: 123px; height: 30px;
   display: flex; align-items: center; justify-content: space-between; color: #f3ead9;
   font-size: 25px; font-weight: 700; }
 .result-rank-total { font-weight: 800; }
-.result-combo { position: absolute; left: 140px; top: 862px; width: 542px; text-align: center;
+.result-combo { position: absolute; left: 140px; top: 914px; width: 542px; text-align: center;
   font-size: 24px; font-weight: 900; color: #ffe9a8; text-shadow: 0 2px 5px rgba(50, 22, 8, .85); }
 
 /* 三个按钮都是整块透明原画；文字压在原画抹空的牌面上 */
@@ -540,16 +542,16 @@ html, body, #root {
    英文更长，单独给一档小一号的字号，免得压到木牌左端那枚图标。 */
 .result-artboard > .btn > .lbl { position: absolute; font-weight: 800; white-space: nowrap;
   text-align: center; overflow: hidden; text-overflow: ellipsis; pointer-events: none; color: #4a2c14; }
-.result-btn-home { left: 405px; top: 742px; width: 356px; height: 124px; }
+.result-btn-home { left: 405px; top: 782px; width: 356px; height: 124px; }
 .result-btn-home > .lbl { left: 121px; top: 41px; width: 182px; font-size: 31px; letter-spacing: 1.5px; }
-.result-btn-share { left: 771px; top: 743px; width: 377px; height: 123px; }
+.result-btn-share { left: 771px; top: 783px; width: 377px; height: 123px; }
 .result-btn-share > .lbl { left: 128px; top: 43px; width: 186px; font-size: 31px; letter-spacing: 1.5px; }
-.result-btn-again { left: 1150px; top: 683px; width: 467px; height: 247px; }
-.result-btn-again > .lbl { left: 190px; top: 91px; width: 180px; font-size: 42px; letter-spacing: 0; }
-.result-artboard.en .result-title { top: 112px; font-size: 56px; letter-spacing: 0; text-indent: 0; }
+.result-btn-again { left: 1195px; top: 747px; width: 374px; height: 198px; }
+.result-btn-again > .lbl { left: 152px; top: 73px; width: 144px; font-size: 34px; letter-spacing: 0; }
+.result-artboard.en .result-title { top: 92px; font-size: 50px; letter-spacing: 0; text-indent: 0; }
 .result-artboard.en .result-btn-home > .lbl { font-size: 30px; letter-spacing: 0; }
 .result-artboard.en .result-btn-share > .lbl { font-size: 26px; letter-spacing: 0; }
-.result-artboard.en .result-btn-again > .lbl { font-size: 33px; top: 89px; }
+.result-artboard.en .result-btn-again > .lbl { font-size: 27px; top: 73px; }
 
 /* Share controls stay at viewport size, outside the exported poster. */
 .stage-dialog.share-dialog {

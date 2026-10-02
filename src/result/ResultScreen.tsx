@@ -23,8 +23,8 @@ import { t, type Lang } from '../ui/i18n.ts'
 import { deadlineText, type DeadlineView } from '../ui/paidText.ts'
 import { useNow } from '../ui/useNow.ts'
 
-/** 原画里奖台前沿的地平线与角色中轴，五匹马都对到这两条线上 */
-const HERO_BASELINE = 719
+/** 奖台踏面与角色中轴，五匹马按各自蹄底对齐 */
+const HERO_BASELINE = 739
 const HERO_CENTER_X = 380
 /** 五匹马统一缩到 hero-0 的 515×393 画布；每匹的实体位置不同，各自记下中轴与蹄底 */
 const HERO_FRAMES = [
@@ -36,6 +36,7 @@ const HERO_FRAMES = [
 ]
 const HERO_W = 515
 const HERO_H = 393
+const HERO_SCALE = 1.12
 
 /** 五档奖章各一张，名次数字画在牌面上，所以这一层不再叠文字 */
 const MEDAL_COUNT = 5
@@ -113,10 +114,10 @@ export function ResultScreen(p: ResultScreenProps) {
           alt={prof.name}
           draggable={false}
           style={{
-            left: HERO_CENTER_X - hero.centerX,
-            top: HERO_BASELINE - hero.bottom,
-            width: HERO_W,
-            height: HERO_H,
+            left: HERO_CENTER_X - hero.centerX * HERO_SCALE,
+            top: HERO_BASELINE - hero.bottom * HERO_SCALE,
+            width: HERO_W * HERO_SCALE,
+            height: HERO_H * HERO_SCALE,
           }}
         />
 
@@ -227,10 +228,12 @@ export function ResultScreen(p: ResultScreenProps) {
         )}
 
         {/* 标题木牌整块无字，主副标题在这里排版 */}
-        <img className="result-header" src="/assets/art/result/header.webp" alt="" draggable={false} />
-        <span className="result-title">{t(p.lang, 'result.title')}</span>
-        {/* 英文时主副标题说的是同一句话，只留主标题 */}
-        {p.lang === 'zh' && <span className="result-title-en">RACE COMPLETE</span>}
+        <div className="result-heading">
+          <img className="result-header" src="/assets/art/result/header.webp" alt="" draggable={false} />
+          <span className="result-title">{t(p.lang, 'result.title')}</span>
+          {/* 英文时主副标题说的是同一句话，只留主标题 */}
+          {p.lang === 'zh' && <span className="result-title-en">RACE COMPLETE</span>}
+        </div>
 
         <ArtButton art="home" className="result-btn-home" label={t(p.lang, 'result.home')} onClick={p.onHome} />
         <ArtButton
