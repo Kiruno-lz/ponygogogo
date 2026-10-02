@@ -192,6 +192,7 @@ export interface PendingChoice {
 }
 
 export type RaceEvent =
+  | { type: 'cardEffect'; horseId: number; cardId?: string; kind: 'trigger' | 'resource' | 'fixed' | 'target' | 'guard' | 'renew'; value: number; tick: number }
   | { type: 'gogo'; quality: 'good' | 'early' | 'late'; tick: number }
   | { type: 'gogoRejected'; tick: number }
   | { type: 'death'; horseId: number; tick: number }
