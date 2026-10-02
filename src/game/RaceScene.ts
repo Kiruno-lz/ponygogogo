@@ -15,6 +15,7 @@ import {
   PALETTE,
   PARALLAX,
   PLAYER_ANCHOR_X,
+  PLAYER_GOGO_MAX_X,
   PLAYER_START_X,
   START_LINE_X,
   PX_PER_UNIT,
@@ -23,6 +24,7 @@ import {
   laneGroundY,
 } from './layout.ts'
 import { PonySprite, registerPonyTextures, type PonyImages } from './pony.ts'
+import { GogoCameraMotion } from './gogoCamera.ts'
 import type { SceneImages } from './sceneArt.ts'
 import {
   activeEquipmentVisuals,
@@ -66,6 +68,7 @@ export class RaceScene extends Phaser.Scene {
   private dust!: Phaser.GameObjects.Particles.ParticleEmitter
   private windSprites: Phaser.GameObjects.Image[] = []
   private camPos = 0
+  private readonly gogoCamera = new GogoCameraMotion()
   private shakeUntil = 0
 
   constructor() {
@@ -162,6 +165,10 @@ export class RaceScene extends Phaser.Scene {
   handleEvents(events: RaceEvent[]): void {
     for (const ev of events) {
       switch (ev.type) {
+        case 'gogo':
+          if (!this.reducedMotion && this.driver.phase === 'racing'
+            && !this.driver.state.pending && !this.driver.state.playerFinished) this.gogoCamera.press()
+          break
         case 'explosion':
           this.spawnExplosion(ev.laneIndex, ev.pos / FP)
           this.shakeUntil = this.time.now + 260
@@ -191,6 +198,7 @@ export class RaceScene extends Phaser.Scene {
   setReducedMotion(reducedMotion: boolean): void {
     this.reducedMotion = reducedMotion
     if (!reducedMotion) return
+    this.gogoCamera.reset()
     for (const sprite of this.transferSprites) {
       this.tweens.killTweensOf(sprite)
       sprite.destroy()
@@ -246,9 +254,11 @@ export class RaceScene extends Phaser.Scene {
       this.renderPos[h.horseId] = Math.abs(d) > 4000 ? target : cur + d * Math.min(1, delta / 24)
     }
 
-    // 镜头只沿横轴跟随玩家，纵轴与缩放固定
-    const anchorUnits = (PLAYER_ANCHOR_X * DESIGN_W) / PX_PER_UNIT
-    this.camPos = Math.max(-PLAYER_START_X / PX_PER_UNIT, this.renderPos[player.horseId]! - anchorUnits)
+    // 所有世界对象共用同一横向镜头；gogo 只改变玩家在屏幕中的构图。
+    this.gogoCamera.update(delta)
+    const anchorX = (PLAYER_ANCHOR_X
+      + this.gogoCamera.offsetRatio * (PLAYER_GOGO_MAX_X - PLAYER_ANCHOR_X)) * DESIGN_W
+    this.camPos = this.renderPos[player.horseId]! - anchorX / PX_PER_UNIT
 
     const scroll = this.camPos * PX_PER_UNIT
     this.far.tilePositionX = (scroll * PARALLAX.far) / BG_SCALE

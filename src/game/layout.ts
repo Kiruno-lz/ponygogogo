@@ -23,8 +23,9 @@ export function laneGroundY(laneIndex: number): number {
 /** 距离单位 -> 像素。一屏可见约 6000 距离单位 */
 export const PX_PER_UNIT = DESIGN_W / 6000
 
-/** 比赛原画中玩家光圈中心 x=862；起跑构图保留原画的马与白线间距。 */
-export const PLAYER_ANCHOR_X = 862 / DESIGN_W
+/** 默认玩家构图为三分之一；gogo 最多推至三分之二，保留完整马体的可见余量。 */
+export const PLAYER_ANCHOR_X = 1 / 3
+export const PLAYER_GOGO_MAX_X = 2 / 3
 export const PLAYER_START_X = 234
 export const START_LINE_X = 389
 

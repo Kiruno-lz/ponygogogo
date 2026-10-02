@@ -11,7 +11,7 @@ describe('reference artwork registration', () => {
     expect(laneGroundY(0)).toBeCloseTo(758, 0)
     expect(Array.from({ length: 5 }, (_, lane) => laneGroundY(lane))).toEqual([758, 669, 588, 502, 428])
   })
-  test('keeps the player ring at the reference race camera anchor', () => {
-    expect(PLAYER_ANCHOR_X * DESIGN_W).toBeCloseTo(862, 0)
+  test('默认跟随位置将玩家马放在画面左往右三分之一', () => {
+    expect(PLAYER_ANCHOR_X).toBeCloseTo(1 / 3)
   })
 })
