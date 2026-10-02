@@ -354,7 +354,7 @@ contract PonyGameTest is PonyGameBase {
         vm.expectRevert(PonyGame.InvalidCheckpoint.selector);
         _choose(ALICE, sessionId, 4, 0, _noRefresh());
         vm.expectRevert(PonyGame.InvalidCard.selector);
-        _choose(ALICE, sessionId, 2, 27, _noRefresh());
+        _choose(ALICE, sessionId, 2, 41, _noRefresh());
         vm.expectRevert(PonyGame.InvalidCard.selector);
         _choose(ALICE, sessionId, 2, 255, _noRefresh());
         vm.expectRevert(PonyGame.TooManyRefreshes.selector);

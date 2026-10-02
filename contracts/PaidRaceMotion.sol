@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {PaidCardRules} from "./PaidCardRules.sol";
+
 /// @notice Hot path of the paid-race solver (有奖规则 v2 「运动区间」「重力井数值积分」): the per-horse motion state, the
 /// caches that only change at events, and the loop that advances all running horses from one event to the next.
 /// @dev The solver spends almost all of its gas between events, so this library works directly on the memory layout
@@ -15,7 +17,7 @@ pragma solidity ^0.8.28;
 /// clamps) is folded once at the end instead of per step.
 ///
 /// Overflow: profiles are uint32 with cap <= 1e6 (b <= 1e9 mu/s), a stretch is <= 600000 ms, positions stay near
-/// 1e11 µu and percentage sums are bounded by 64 instances of int32 table values plus five wells, so every product
+/// 1e11 µu and percentage sums are bounded by 96 instances of int32 table values plus five wells, so every product
 /// below stays far under 2^255; unchecked Yul arithmetic cannot wrap.
 library PaidRaceMotion {
     error NoProgress();
@@ -24,6 +26,8 @@ library PaidRaceMotion {
     uint256 internal constant TRACK_MICRO = 100_000_000_000;
     uint256 internal constant CHECKPOINT_MICRO = 25_000_000_000;
     uint256 internal constant BPS = 10_000;
+    uint256 internal constant MIN_COST = PaidCardRules.MIN_COST_FACTOR_BPS;
+    uint256 internal constant HORSE_WORDS = 40;
     uint256 internal constant STAMINA_CAPACITY = 1_000_000_000;
     uint256 internal constant COST_PER_MS = 24_000;
     uint256 internal constant REGEN_PER_MS = 10_000;
@@ -41,7 +45,7 @@ library PaidRaceMotion {
         uint256 s;
         uint256 capMilli;
         uint256 accel;
-        uint256 fixedK;
+        int256 fixedK;
         uint256 lane;
         uint256 cp;
         bool exhausted;
@@ -59,14 +63,13 @@ library PaidRaceMotion {
         // Totals over the horse's active effect instances (the reference's `mods` loop, kept incrementally).
         int256 aggP;
         uint256 aggRegen;
-        uint256 aggHalfCost;
         uint256 aggAirborne;
         uint256 aggWired;
         uint256 aggRespawn;
         // Caches written by `refresh`, valid until the next event.
         int256 pStatic;
         uint256 aEff;
-        uint256 fixedMilli;
+        int256 fixedMilli;
         uint256 crossPos;
         uint256 cpDist;
         uint256 cost;
@@ -76,6 +79,8 @@ library PaidRaceMotion {
         uint256 mid;
         int256 field;
         uint256 delta;
+        int256 aggCost;
+        uint256 nextDist;
     }
 
     uint256 internal constant H_POS = 0x000;
@@ -96,20 +101,21 @@ library PaidRaceMotion {
     uint256 internal constant H_EQUIP = 0x260;
     uint256 internal constant H_AGG_P = 0x2c0;
     uint256 internal constant H_AGG_REGEN = 0x2e0;
-    uint256 internal constant H_AGG_HALF = 0x300;
-    uint256 internal constant H_AGG_AIR = 0x320;
-    uint256 internal constant H_AGG_WIRED = 0x340;
-    uint256 internal constant H_P_STATIC = 0x380;
-    uint256 internal constant H_A_EFF = 0x3a0;
-    uint256 internal constant H_FIXED_MILLI = 0x3c0;
-    uint256 internal constant H_CROSS_POS = 0x3e0;
-    uint256 internal constant H_CP_DIST = 0x400;
-    uint256 internal constant H_COST = 0x420;
-    uint256 internal constant H_REGEN = 0x440;
-    uint256 internal constant H_MULT = 0x460;
-    uint256 internal constant H_MID = 0x480;
-    uint256 internal constant H_FIELD = 0x4a0;
-    uint256 internal constant H_DELTA = 0x4c0;
+    uint256 internal constant H_AGG_AIR = 0x300;
+    uint256 internal constant H_AGG_WIRED = 0x320;
+    uint256 internal constant H_P_STATIC = 0x360;
+    uint256 internal constant H_A_EFF = 0x380;
+    uint256 internal constant H_FIXED_MILLI = 0x3a0;
+    uint256 internal constant H_CROSS_POS = 0x3c0;
+    uint256 internal constant H_CP_DIST = 0x3e0;
+    uint256 internal constant H_COST = 0x400;
+    uint256 internal constant H_REGEN = 0x420;
+    uint256 internal constant H_MULT = 0x440;
+    uint256 internal constant H_MID = 0x460;
+    uint256 internal constant H_FIELD = 0x480;
+    uint256 internal constant H_DELTA = 0x4a0;
+    uint256 internal constant H_AGG_COST = 0x4c0;
+    uint256 internal constant H_NEXT_DIST = 0x4e0;
 
     struct Bomb {
         uint256 pos;
@@ -142,7 +148,6 @@ library PaidRaceMotion {
         // Event-invariant environment for `refresh`.
         int256 wind;
         uint256 windPlacer;
-        uint256 rocketCost;
     }
 
     uint256 internal constant S_RUN_COUNT = 0x000;
@@ -155,7 +160,6 @@ library PaidRaceMotion {
     uint256 internal constant S_STEPS = 0x1e0;
     uint256 internal constant S_WIND = 0x200;
     uint256 internal constant S_WIND_PLACER = 0x220;
-    uint256 internal constant S_ROCKET_COST = 0x240;
     uint256 internal constant NONE = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
     uint256 internal constant MAX_OWNERS = 5;
 
@@ -184,11 +188,9 @@ library PaidRaceMotion {
     /// @notice findDue's horse classes in one pass: the first horse (by id) with a base-speed cap or stamina
     /// threshold due (class 1, key horse·2 + sub), at the finish (class 2) or past its next checkpoint (class 5);
     /// NONE where no horse is due. Stamina rates come from the instance totals, like the reference's `mods`.
-    function horseDues(Horse[5] memory horses, uint256 rocketCost)
-        internal
-        pure
-        returns (uint256 cls1, uint256 cls2, uint256 cls5)
+    function horseDues(Horse[5] memory horses) internal pure returns (uint256 cls1, uint256 cls2, uint256 cls5)
     {
+        uint256 minCost = MIN_COST;
         assembly ("memory-safe") {
             cls1 := NONE
             cls2 := NONE
@@ -213,8 +215,9 @@ library PaidRaceMotion {
                                 switch mload(add(h, H_OVERCAP))
                                 case 1 { due := iszero(gt(s, STAMINA_CAPACITY)) }
                                 default {
-                                    let cost := COST_PER_MS
-                                    if mload(add(h, H_AGG_HALF)) { cost := rocketCost }
+                                    let factor := add(BPS, mload(add(h, H_AGG_COST)))
+                                    if slt(factor, minCost) { factor := minCost }
+                                    let cost := div(mul(COST_PER_MS, factor), BPS)
                                     let regen := div(mul(REGEN_PER_MS, add(BPS, mload(add(h, H_AGG_REGEN)))), BPS)
                                     due := and(and(lt(regen, cost), iszero(mload(add(h, H_AGG_WIRED)))), iszero(s))
                                 }
@@ -242,6 +245,7 @@ library PaidRaceMotion {
         Bomb[20] memory bombs,
         uint256 tau
     ) internal pure returns (uint256 next) {
+        uint256 minCost = MIN_COST;
         bytes4 invariant = StaminaInvariant.selector;
         assembly ("memory-safe") {
             function ceilDiv(a, b) -> c {
@@ -320,8 +324,16 @@ library PaidRaceMotion {
                         mstore(0, invariant)
                         revert(0, 4)
                     }
-                    let cost := COST_PER_MS
-                    if mload(add(h, H_AGG_HALF)) { cost := mload(add(sx, S_ROCKET_COST)) }
+                    mstore(
+                        add(h, H_CROSS_POS),
+                        bombAhead(h, i, mload(add(laneLive, shl(5, mload(add(h, H_LANE))))), bombs)
+                    )
+                    let cost := 0
+                    {
+                        let factor := add(BPS, mload(add(h, H_AGG_COST)))
+                        if slt(factor, minCost) { factor := minCost }
+                        cost := div(mul(COST_PER_MS, factor), BPS)
+                    }
                     let regen := div(mul(REGEN_PER_MS, add(BPS, mload(add(h, H_AGG_REGEN)))), BPS)
                     mstore(add(h, H_COST), cost)
                     mstore(add(h, H_REGEN), regen)
@@ -332,14 +344,14 @@ library PaidRaceMotion {
                     }
                     mstore(add(h, H_A_EFF), aEff)
                     mstore(add(h, H_FIXED_MILLI), mul(mload(add(h, H_FIXED)), 1000))
-                    let cp := mload(add(h, H_CP))
-                    let cpDist := not(0)
-                    if lt(cp, 3) { cpDist := mul(add(cp, 1), CHECKPOINT_MICRO) }
-                    mstore(add(h, H_CP_DIST), cpDist)
-                    mstore(
-                        add(h, H_CROSS_POS),
-                        bombAhead(h, i, mload(add(laneLive, shl(5, mload(add(h, H_LANE))))), bombs)
-                    )
+                    {
+                        let cp := mload(add(h, H_CP))
+                        let cpDist := not(0)
+                        if lt(cp, 3) { cpDist := mul(add(cp, 1), CHECKPOINT_MICRO) }
+                        let nd := mload(add(h, H_NEXT_DIST))
+                        if and(iszero(iszero(nd)), lt(nd, cpDist)) { cpDist := nd }
+                        mstore(add(h, H_CP_DIST), cpDist)
+                    }
                     let at := threshold(h, cost, regen, tau)
                     if lt(at, next) { next := at }
                     mstore(add(sx, add(S_RUN, shl(5, n))), h)
@@ -362,16 +374,27 @@ library PaidRaceMotion {
             // Δpos over dt ms at multiplier mu: analytic while not exhausted, constant speed while exhausted.
             function delta(h, mu, dt) -> d {
                 let b := mload(add(h, H_B))
+                let fixed_ := mload(add(h, H_FIXED_MILLI))
                 switch mload(add(h, H_EXHAUSTED))
                 case 0 {
+                    let initial := add(mul(b, mu), mul(fixed_, BPS))
+                    if slt(initial, 0) {
+                        let slope := mul(mload(add(h, H_A_EFF)), mu)
+                        if iszero(slope) { leave }
+                        let zero := div(add(sub(0, initial), sub(slope, 1)), slope)
+                        if iszero(gt(dt, zero)) { leave }
+                        dt := sub(dt, zero)
+                        b := add(b, mul(mload(add(h, H_A_EFF)), zero))
+                    }
                     d := add(
                         div(mul(mu, add(mul(shl(1, b), dt), mul(mload(add(h, H_A_EFF)), mul(dt, dt)))), 20000),
-                        mul(mload(add(h, H_FIXED_MILLI)), dt)
+                        mul(fixed_, dt)
                     )
+                    if slt(d, 0) { d := 0 }
                 }
                 default {
                     let v := add(div(mul(b, mu), BPS), mload(add(h, H_FIXED_MILLI)))
-                    if gt(v, EXHAUST_PENALTY_MILLI) { d := mul(sub(v, EXHAUST_PENALTY_MILLI), dt) }
+                    if sgt(v, EXHAUST_PENALTY_MILLI) { d := mul(sub(v, EXHAUST_PENALTY_MILLI), dt) }
                 }
             }
             // Smallest dt in [1, hi] with delta >= n (firstReach); delta is non-decreasing in dt.

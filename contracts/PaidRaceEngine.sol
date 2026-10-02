@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {IPaidRaceSolver} from "./IPaidRaceSolver.sol";
+import {PaidRaceCardPlan} from "./PaidRaceCardPlan.sol";
 import {PaidCardRules} from "./PaidCardRules.sol";
 import {PaidDrawRules} from "./PaidDrawRules.sol";
 import {PaidProfiles} from "./PaidProfiles.sol";
@@ -10,7 +11,7 @@ import {PaidRaceSupport} from "./PaidRaceSupport.sol";
 import {PaidSwap} from "./PaidSwap.sol";
 import {RaceEntropy} from "./RaceEntropy.sol";
 
-/// @notice Solidity port of the paid ruleset v3 reference solver (src/race/paid/solver.ts). The TS solver is the
+/// @notice Solidity port of the paid ruleset v4 reference solver (src/race/paid/solver.ts). The TS solver is the
 /// specification: every handler below mirrors its namesake there, in the same order, and folds the same event
 /// digest. Memory only; card parameters come from the generated PaidCardRules table.
 /// @dev Deviations are representation only: effect totals per horse are kept incrementally instead of looping over
@@ -42,12 +43,13 @@ library PaidRaceEngine {
     uint256 internal constant NEVER = PaidRaceMotion.NEVER;
     uint256 internal constant STAMINA_CAPACITY = PaidRaceMotion.STAMINA_CAPACITY;
     uint256 internal constant COST_PER_MS = PaidRaceMotion.COST_PER_MS;
+    uint256 internal constant REGEN_PER_MS = PaidRaceMotion.REGEN_PER_MS;
     uint256 internal constant BPS = PaidRaceMotion.BPS;
     uint256 internal constant SLOW_FACTOR = 10;
     uint256 internal constant CHOICE_WINDOW_SEC = 20;
     uint256 internal constant RESPAWN_MS = 5_000;
     uint256 internal constant SWAP_EVENT_STRIDE = 256;
-    uint256 internal constant MAX_INSTANCES = 64;
+    uint256 internal constant MAX_INSTANCES = 96;
     uint256 internal constant MAX_BOMBS = 20;
     uint256 internal constant MAX_EVENTS = 4096;
     uint256 internal constant MAX_PROFILE_CAP = 1_000_000;
@@ -103,12 +105,21 @@ library PaidRaceEngine {
     uint256 internal constant OFF_EXPIRED = 0;
     uint256 internal constant OFF_REPLACED = 1;
     uint256 internal constant OFF_STOLEN = 2;
+    uint256 internal constant OFF_RECYCLED = 3;
+    uint256 internal constant EV_TRIGGER = 29;
+    uint256 internal constant EV_RESOURCE = 30;
+    uint256 internal constant EV_GUARD = 31;
+    uint256 internal constant EV_TARGET = 32;
+    uint256 internal constant EV_EQUIP_REFRESH = 33;
+    uint256 internal constant EV_FIXED = 34;
 
     uint256 internal constant KIND_BUFF = 0;
     uint256 internal constant KIND_EQUIP = 1;
     uint256 internal constant KIND_ABILITY = 2;
     uint256 internal constant KIND_RESPAWN = 3;
     uint256 internal constant KIND_BONUS = 4;
+    uint256 internal constant KIND_WATCH = 5;
+    uint256 internal constant KIND_FIXED = 6;
 
     uint256 internal constant MODE_NONE = 0;
     uint256 internal constant MODE_MANUAL = 1;
@@ -219,7 +230,6 @@ library PaidRaceEngine {
         uint256 regenBps;
         bool airborne;
         bool wired;
-        bool halfCost;
         bool luck;
         bool well;
         bool wheel;
@@ -227,6 +237,10 @@ library PaidRaceEngine {
         uint256 checkpoint;
         uint256 eventBase;
         uint256 count;
+        int256 costDelta;
+        int256 fixedDelta;
+        bool gated;
+        uint256 nextDist;
     }
 
     struct Panel {
@@ -244,7 +258,6 @@ library PaidRaceEngine {
 
     /// @dev Card-table parameters the reference reads as module constants (src/race/paid/constants.ts).
     struct Params {
-        uint256 rocketCost;
         uint256 adrenaline;
         int256 windBps;
         uint256 wheelDeltaV;
@@ -252,7 +265,6 @@ library PaidRaceEngine {
         uint256 swapPeriod;
         uint256 swapAttempts;
         uint256 wheelPeriod;
-        uint256 wheelBursts;
         int256 bonusBps;
     }
 
@@ -266,13 +278,16 @@ library PaidRaceEngine {
         CoreInput input;
         PaidRaceSupport support;
         uint256 player;
+        uint256 currentTau;
+        uint32[5] coats;
         Params params;
+        PaidCardRules.Rule[40] rules;
         PaidRaceMotion.Horse[5] horses;
         PaidRaceMotion.Stretch stretch;
-        Instance[64] instances;
+        Instance[96] instances;
         uint256 instanceCount;
         /// @dev Per instance: min(end, next trigger) while active, else NEVER; instMin is their minimum.
-        uint256[64] instNext;
+        uint256[96] instNext;
         uint256 instMin;
         bool instDirty;
         bool wellsDirty;
@@ -310,11 +325,57 @@ library PaidRaceEngine {
     /// @notice solvePaidCore. Stored choices never make it revert (有奖规则 v3): only malformed profiles/decks, options
     /// and the unreachable instance/bomb/event/owner caps do.
     function solve(CoreInput memory input, Options memory opts) internal pure returns (Result memory) {
+        (State memory st, uint256 tau, uint256 status) = _run(input, opts);
+        return _buildResult(st, status, tau);
+    }
+
+    /// @notice Production result uses the same event loop, without constructing diagnostic panels and records.
+    function solveRace(CoreInput memory input, PaidRaceSupport support)
+        internal
+        pure
+        returns (IPaidRaceSolver.RaceResult memory r)
+    {
+        // The public solver derives this core through PaidRaceSupport; only diagnostics accept arbitrary cores.
+        State memory st = _createState(input, support);
+        uint256 tau;
+        for (;;) {
+            _processProduction(st, tau);
+            if (_allFinished(st) || tau >= MAX_TAU) break;
+            bool cut;
+            (tau, cut) = _advance(st, tau, _nextKnownTau(st, tau));
+            st.pendingCount = 0;
+            if (cut) _collectPending(st);
+        }
+        _unusedChoices(st, tau);
+        for (uint256 h; h < HORSES; ++h) {
+            PaidRaceMotion.Horse memory horse = st.horses[h];
+            r.finishTime[h] = uint32(horse.finished ? horse.finishTime : UNFINISHED_TAU);
+            r.finishWall[h] = uint32(horse.finished ? horse.finishWall : _wallAt(st, tau));
+        }
+        for (uint256 k; k < 3; ++k) {
+            r.acquired[k] = uint8(st.records[k].cardId);
+        }
+        (r.rawOrder, r.settlementOrder, r.playerRawRank, r.playerSettlementRank,) =
+            st.support.settle(r.finishTime, uint8(st.player), r.acquired);
+        r.eventCount = uint32(st.eventCount);
+        r.digest = st.digest;
+    }
+
+    function _run(CoreInput memory input, Options memory opts)
+        private
+        pure
+        returns (State memory st, uint256 tau, uint256 status)
+    {
         _validate(input);
         if (opts.stopAtPanel > 3) revert InvalidOptions();
-        State memory st = _createState(input, opts);
-        uint256 tau;
-        uint256 status = STATUS_COMPLETE;
+        st = _createState(input, opts.support);
+        st.stopAt = opts.stopAtPanel;
+        st.hasUntilWall = opts.hasUntilWall;
+        st.untilWall = opts.untilWall;
+        st.logEvents = opts.logEvents;
+        if (opts.logEvents) st.eventMeta = new uint256[](MAX_EVENTS);
+        st.eventArgs = new int256[](MAX_EVENTS);
+        status = STATUS_COMPLETE;
         for (;;) {
             uint256 stop = _processMillisecond(st, tau);
             if (stop != STATUS_RUNNING) {
@@ -332,22 +393,58 @@ library PaidRaceEngine {
                 if (limit < horizon) horizon = limit;
             }
             bool cut;
-            (tau, cut) = PaidRaceMotion.advance(st.stretch, tau, horizon);
+            (tau, cut) = _advance(st, tau, horizon);
             st.pendingCount = 0;
             if (cut) _collectPending(st);
         }
-        if (status == STATUS_COMPLETE) {
-            // Choices the race never used: a panel that never opened, or one still open when τ hit 600000.
-            for (uint256 k = 1; k <= 3; ++k) {
-                if (!st.input.choices[k - 1].present) continue;
-                if (st.records[k - 1].mode == MODE_NONE) {
-                    _invalidChoice(st, k, tau, INVALID_NOT_OPENED);
-                } else if (st.panel.open && st.panel.k == k && st.panel.hasSlot) {
-                    _invalidChoice(st, k, tau, INVALID_AFTER_FINISH);
-                }
+        if (status == STATUS_COMPLETE) _unusedChoices(st, tau);
+    }
+
+    function _unusedChoices(State memory st, uint256 tau) private pure {
+        // Choices the race never used: a panel that never opened, or one still open when τ hit 600000.
+        for (uint256 k = 1; k <= 3; ++k) {
+            if (!st.input.choices[k - 1].present) continue;
+            if (st.records[k - 1].mode == MODE_NONE) {
+                _invalidChoice(st, k, tau, INVALID_NOT_OPENED);
+            } else if (st.panel.open && st.panel.k == k && st.panel.hasSlot) {
+                _invalidChoice(st, k, tau, INVALID_AFTER_FINISH);
             }
         }
-        return _buildResult(st, status, tau);
+    }
+
+    function _advance(State memory st, uint256 tau, uint256 horizon) private pure returns (uint256 t, bool cut) {
+        uint256 scratch;
+        assembly ("memory-safe") { scratch := mload(0x40) }
+        uint256[200] memory words = _horseWords(st);
+        uint8[] memory owners = new uint8[](st.stretch.ownerCount);
+        uint256 n;
+        for (uint256 i; i < st.instanceCount; ++i) {
+            if (st.instances[i].active && st.instances[i].well) owners[n++] = uint8(st.instances[i].owner);
+        }
+        uint256 steps;
+        (words, t, cut, steps) = st.support
+            .advance(words, owners, [st.stretch.radius, st.stretch.strength, uint256(st.stretch.overlap)], tau, horizon);
+        st.stretch.steps += steps;
+        _setHorseWords(st, words);
+        assembly ("memory-safe") { mstore(0x40, scratch) }
+    }
+
+    function _horseWords(State memory st) private pure returns (uint256[200] memory words) {
+        PaidRaceMotion.Horse[5] memory horses = st.horses;
+        assembly ("memory-safe") {
+            for { let h := 0 } lt(h, 5) { h := add(h, 1) } {
+                mcopy(add(words, mul(h, 0x500)), mload(add(horses, shl(5, h))), 0x500)
+            }
+        }
+    }
+
+    function _setHorseWords(State memory st, uint256[200] memory words) private pure {
+        PaidRaceMotion.Horse[5] memory horses = st.horses;
+        assembly ("memory-safe") {
+            for { let h := 0 } lt(h, 5) { h := add(h, 1) } {
+                mcopy(mload(add(horses, shl(5, h))), add(words, mul(h, 0x500)), 0x500)
+            }
+        }
     }
 
     // ------------------------------------------------------------ setup
@@ -359,11 +456,11 @@ library PaidRaceEngine {
             PaidProfiles.Profile memory p = input.profiles[h];
             if (p.cap < p.base || p.cap > MAX_PROFILE_CAP) revert InvalidProfiles();
         }
-        // Card ids 1..26, no repeats within a deck (bit id of `seen`).
+        // Card ids 1..40, no repeats within a deck (bit id of `seen`).
         uint256 seen;
         for (uint256 i; i < 14; ++i) {
             uint256 id = input.playerDeck[i];
-            if (id == 0 || id > 26 || (seen >> id) & 1 != 0) revert InvalidDeck();
+            if (id == 0 || id > PaidCardRules.CARD_COUNT || (seen >> id) & 1 != 0) revert InvalidDeck();
             seen |= uint256(1) << id;
         }
         for (uint256 h; h < HORSES; ++h) {
@@ -371,15 +468,15 @@ library PaidRaceEngine {
             uint256 cpuSeen;
             for (uint256 i; i < 3; ++i) {
                 uint256 id = input.cpuDecks[h][i];
-                if (id == 0 || id > 26 || (cpuSeen >> id) & 1 != 0) revert InvalidCpuDecks();
+                if (id == 0 || id > PaidCardRules.CARD_COUNT || (cpuSeen >> id) & 1 != 0) revert InvalidCpuDecks();
                 cpuSeen |= uint256(1) << id;
             }
         }
     }
 
-    function _createState(CoreInput memory input, Options memory opts) private pure returns (State memory st) {
+    function _createState(CoreInput memory input, PaidRaceSupport support) private pure returns (State memory st) {
         st.input = input;
-        st.support = opts.support;
+        st.support = support;
         st.player = input.playerHorseId;
         _loadParams(st);
         for (uint256 h; h < HORSES; ++h) {
@@ -398,37 +495,25 @@ library PaidRaceEngine {
         }
         st.instMin = NEVER;
         st.draw = PaidDrawRules.initial();
-        st.stopAt = opts.stopAtPanel;
-        st.hasUntilWall = opts.hasUntilWall;
-        st.untilWall = opts.untilWall;
-        st.logEvents = opts.logEvents;
-        if (opts.logEvents) {
-            st.eventMeta = new uint256[](MAX_EVENTS);
-            st.eventArgs = new int256[](MAX_EVENTS);
+    }
+
+    function _rule(State memory st, uint8 id) private pure returns (PaidCardRules.Rule memory) {
+        PaidCardRules.Rule memory r = st.rules[id - 1];
+        if (r.id == 0) {
+            (uint256 hi, uint256 lo) = st.support.cardRuleWords(id);
+            r = PaidCardRules.decode(hi, lo);
+            st.rules[id - 1] = r;
         }
+        return r;
     }
 
     function _loadParams(State memory st) private pure {
+        uint256[11] memory words = st.support.raceParams();
         Params memory p = st.params;
-        PaidCardRules.Rule memory rocket = PaidCardRules.get(7);
-        p.rocketCost = COST_PER_MS * rocket.costMultiplierBps / BPS;
-        st.stretch.rocketCost = p.rocketCost;
-        p.adrenaline = PaidCardRules.get(15).staminaMicro;
-        PaidCardRules.Rule memory well = PaidCardRules.get(10);
-        st.stretch.radius = well.radiusMicro;
-        st.stretch.strength = well.strengthBps;
-        st.stretch.overlap = well.overlapBps;
-        p.windBps = int256(uint256(PaidCardRules.get(12).strengthBps));
-        PaidCardRules.Rule memory wheel = PaidCardRules.get(11);
-        p.wheelDeltaV = uint256(int256(wheel.fixedSpeed));
-        p.wheelPeriod = wheel.periodMs;
-        p.wheelBursts = wheel.count;
-        PaidCardRules.Rule memory auto_ = PaidCardRules.get(4);
-        p.autoPanelSec = auto_.autoPanelSec;
-        p.bonusBps = int256(uint256(auto_.bonusBps));
-        PaidCardRules.Rule memory swap = PaidCardRules.get(9);
-        p.swapPeriod = swap.periodMs;
-        p.swapAttempts = swap.count;
+        assembly ("memory-safe") { mcopy(p, words, 0x100) }
+        st.stretch.radius = words[8];
+        st.stretch.strength = words[9];
+        st.stretch.overlap = int256(words[10]);
     }
 
     // ------------------------------------------------------------ bookkeeping
@@ -438,7 +523,7 @@ library PaidRaceEngine {
         uint256 count = st.eventCount;
         if (count >= MAX_EVENTS) revert EventLimit();
         bytes32 digest = st.digest;
-        // code <= 28, tau <= 600000 and horse <= 4 already fit uint8/uint32/uint8, so the words equal abi.encode.
+        // code <= 34, tau <= 600000 and horse <= 4 already fit uint8/uint32/uint8, so the words equal abi.encode.
         assembly ("memory-safe") {
             let p := mload(0x40)
             mstore(p, digest)
@@ -495,7 +580,8 @@ library PaidRaceEngine {
         PaidRaceMotion.Horse memory horse = st.horses[inst.owner];
         horse.aggP += inst.pBps;
         horse.aggRegen += inst.regenBps;
-        if (inst.halfCost) horse.aggHalfCost += 1;
+        horse.aggCost += inst.costDelta;
+        horse.fixedK += inst.fixedDelta;
         if (inst.airborne) horse.aggAirborne += 1;
         if (inst.wired) horse.aggWired += 1;
         if (inst.well) st.wellsDirty = true;
@@ -510,7 +596,9 @@ library PaidRaceEngine {
         if (inst.slot != NO_SLOT && horse.equipOf(inst.slot) == id) horse.setEquip(inst.slot, 0);
         horse.aggP -= inst.pBps;
         horse.aggRegen -= inst.regenBps;
-        if (inst.halfCost) horse.aggHalfCost -= 1;
+        horse.aggCost -= inst.costDelta;
+        horse.fixedK -= inst.fixedDelta;
+        inst.fixedDelta = 0;
         if (inst.airborne) horse.aggAirborne -= 1;
         if (inst.wired) horse.aggWired -= 1;
         if (inst.kind == KIND_RESPAWN) horse.aggRespawn -= 1;
@@ -531,15 +619,23 @@ library PaidRaceEngine {
         if (inst.kind == KIND_ABILITY && inst.count < st.params.swapAttempts) {
             return inst.start + st.params.swapPeriod * inst.count;
         }
-        if (inst.kind == KIND_EQUIP && inst.wheel && inst.count < st.params.wheelBursts) {
-            return inst.start + st.params.wheelPeriod * (inst.count + 1);
+        if (inst.kind == KIND_EQUIP && inst.wheel) {
+            uint256 at = inst.start + st.params.wheelPeriod * (inst.count + 1);
+            return at < inst.end ? at : NEVER;
+        }
+        if (inst.kind == KIND_WATCH && st.currentTau < inst.end) {
+            PaidRaceMotion.Horse memory h = st.horses[inst.owner];
+            uint256 state_ = h.dist | inst.nextDist << 64 | uint256(h.exhausted || h.overcap ? 1 : 0) << 128;
+            uint256[4] memory values = [h.s, _cost(h), REGEN_PER_MS * (BPS + h.aggRegen) / BPS, state_];
+            return st.support
+                .watchTrigger(uint8(inst.cardId), uint8(inst.count), uint32(inst.start), uint32(st.currentTau), values);
         }
         return NEVER;
     }
 
     function _instMin(State memory st) private pure returns (uint256 m) {
         if (!st.instDirty) return st.instMin;
-        uint256[64] memory next = st.instNext;
+        uint256[96] memory next = st.instNext;
         uint256 count = st.instanceCount;
         m = NEVER;
         assembly ("memory-safe") {
@@ -567,7 +663,7 @@ library PaidRaceEngine {
                 if (inst.end == tau) return (0, i);
             }
         }
-        (uint256 cls1, uint256 cls2, uint256 cls5) = PaidRaceMotion.horseDues(st.horses, st.params.rocketCost);
+        (uint256 cls1, uint256 cls2, uint256 cls5) = PaidRaceMotion.horseDues(st.horses);
         if (cls1 != PaidRaceMotion.NONE) return (1, cls1);
         if (cls2 != PaidRaceMotion.NONE) return (2, cls2);
         uint256 pendingCount = st.pendingCount;
@@ -586,7 +682,9 @@ library PaidRaceEngine {
     }
 
     function _processMillisecond(State memory st, uint256 tau) private pure returns (uint256 status) {
+        st.currentTau = tau;
         for (;;) {
+            _syncNew(st);
             (uint256 cls, uint256 key) = _findDue(st, tau);
             if (cls == CLS_NONE) return STATUS_RUNNING;
             if (st.hasUntilWall) {
@@ -594,7 +692,31 @@ library PaidRaceEngine {
                 if (stamp > st.untilWall) return STATUS_WALL;
             }
             _applyDue(st, cls, key, tau);
-            if (st.hasStopPanel) return STATUS_PANEL;
+            if (st.hasStopPanel) {
+                Record memory rec = st.records[st.stopAt - 1];
+                if (rec.mode == MODE_CUT) {
+                    PanelView memory v = st.stopPanel;
+                    v.checkpoint = st.stopAt;
+                    v.mode = MODE_CUT;
+                    v.openTau = rec.openTau;
+                    v.openWall = rec.openWall;
+                    v.draw = _copyDraw(st.draw);
+                } else {
+                    st.stopPanel = _panelView(st, st.panel);
+                }
+                return STATUS_PANEL;
+            }
+        }
+    }
+
+    /// @dev The same ordered due scan and handlers; only diagnostic stop conditions are omitted here.
+    function _processProduction(State memory st, uint256 tau) private pure {
+        st.currentTau = tau;
+        for (;;) {
+            _syncNew(st);
+            (uint256 cls, uint256 key) = _findDue(st, tau);
+            if (cls == CLS_NONE) return;
+            _applyDue(st, cls, key, tau);
         }
     }
 
@@ -610,7 +732,7 @@ library PaidRaceEngine {
         _closePanel(st, tau);
     }
 
-    function _expire(State memory st, uint256 index, uint256 tau) private pure {
+    function _expire(State memory st, uint256 index, uint256 tau) internal pure {
         Instance memory inst = st.instances[index];
         uint256 id = index + 1;
         _endInstance(st, inst, id);
@@ -661,10 +783,24 @@ library PaidRaceEngine {
         Instance memory inst = st.instances[index];
         if (inst.kind == KIND_ABILITY) {
             _swapAttempt(st, inst, index, tau);
+        } else if (inst.kind == KIND_WATCH) {
+            PaidCardRules.Rule memory r = _rule(st, uint8(inst.cardId));
+            _triggerLog(st, inst, tau);
+            if (inst.cardId == 23) {
+                _setBuff(st, inst, int256(uint256(r.bonusBps)), 0);
+            } else if (inst.cardId == 24) {
+                _endInstance(st, inst, index + 1);
+                _recover(st, inst.owner, r.staminaMicro, tau);
+            } else if (inst.cardId == 40) {
+                inst.nextDist += r.radiusMicro;
+                st.horses[inst.owner].fixedK += r.triggerFixedSpeed;
+                _log(st, EV_FIXED, tau, inst.owner, r.triggerFixedSpeed);
+            }
+            _touch(st, inst, index);
         } else {
             inst.count += 1;
             _touch(st, inst, index);
-            st.horses[inst.owner].fixedK += st.params.wheelDeltaV;
+            st.horses[inst.owner].fixedK += int256(st.params.wheelDeltaV);
             _log(st, EV_WHEEL_BURST, tau, inst.owner, int256(inst.count));
         }
     }
@@ -675,11 +811,25 @@ library PaidRaceEngine {
         st.instDirty = true;
     }
 
-    function _kill(State memory st, uint256 h, uint256 tau) private pure {
+    function _kill(State memory st, uint256 h, uint256 tau) internal pure {
         PaidRaceMotion.Horse memory horse = st.horses[h];
+        if (horse.finished) return;
         if (_respawning(horse)) {
             _log(st, EV_DEATH_IMMUNE, tau, h, 0);
             return;
+        }
+        uint256 count = st.instanceCount;
+        for (uint256 i; i < count; ++i) {
+            Instance memory inst = st.instances[i];
+            if (inst.active && inst.owner == h && inst.kind == KIND_WATCH && inst.cardId == 37) {
+                _endInstance(st, inst, i + 1);
+                _log(st, EV_GUARD, tau, h, int256(i + 1));
+                return;
+            }
+        }
+        for (uint256 i; i < count; ++i) {
+            Instance memory inst = st.instances[i];
+            if (inst.active && inst.owner == h && inst.kind == KIND_FIXED) _endInstance(st, inst, i + 1);
         }
         horse.b = 0;
         horse.fixedK = 0;
@@ -687,6 +837,20 @@ library PaidRaceEngine {
         (Instance memory respawn, uint256 id) = _addInstance(st, tau, h, 0, KIND_RESPAWN, RESPAWN_MS);
         _activate(st, respawn, id);
         _log(st, EV_DEATH, tau, h, int256(id));
+        for (uint256 i; i < count; ++i) {
+            Instance memory inst = st.instances[i];
+            if (!inst.active || inst.owner != h || inst.kind != KIND_WATCH || inst.cardId != 38 || tau >= inst.end) {
+                continue;
+            }
+            _endInstance(st, inst, i + 1);
+            _triggerLog(st, inst, tau);
+            PaidCardRules.Rule memory r = _rule(st, 38);
+            (Instance memory burst, uint256 bid) = _addInstance(st, tau, h, 38, KIND_FIXED, r.triggerDurationMs);
+            burst.fixedDelta = r.fixedSpeed;
+            _activate(st, burst, bid);
+            _log(st, EV_FIXED, tau, h, r.fixedSpeed);
+            break;
+        }
     }
 
     function _swapAttempt(State memory st, Instance memory inst, uint256 index, uint256 tau) private pure {
@@ -779,7 +943,7 @@ library PaidRaceEngine {
 
     function _applyCard(State memory st, uint256 h, uint256 cardId, CardSource memory src, uint256 tau) private pure {
         PaidRaceMotion.Horse memory horse = st.horses[h];
-        PaidCardRules.Rule memory rule = PaidCardRules.get(uint8(cardId));
+        PaidCardRules.Rule memory rule = _rule(st, uint8(cardId));
         _log(st, EV_CARD, tau, h, int256(cardId));
         uint256 lootMs;
         uint8 effect = rule.effect;
@@ -827,8 +991,12 @@ library PaidRaceEngine {
             horse.s += st.params.adrenaline;
             if (!horse.exhausted) horse.overcap = horse.s > STAMINA_CAPACITY;
         } else if (effect == PaidCardRules.EFFECT_FIXED || effect == PaidCardRules.EFFECT_BLIND_FIXED) {
-            horse.fixedK += uint256(int256(rule.fixedSpeed));
+            horse.fixedK += int256(rule.fixedSpeed);
             if (effect == PaidCardRules.EFFECT_BLIND_FIXED) horse.blindedPro = true;
+        } else if (effect == PaidCardRules.EFFECT_COAT) {
+            st.coats[h] = rule.coatRgb;
+        } else if (effect >= PaidCardRules.EFFECT_PAY) {
+            lootMs = _newCard(st, h, rule, tau);
         }
         if (horse.bonus) {
             (Instance memory bonus, uint256 id) =
@@ -837,6 +1005,168 @@ library PaidRaceEngine {
             _activate(st, bonus, id);
         }
         if (effect == PaidCardRules.EFFECT_DRAW_AUTO) horse.bonus = true;
+    }
+
+    function _cost(PaidRaceMotion.Horse memory h) private pure returns (uint256) {
+        int256 factor = int256(BPS) + h.aggCost;
+        if (factor < int256(uint256(PaidCardRules.MIN_COST_FACTOR_BPS))) {
+            factor = int256(uint256(PaidCardRules.MIN_COST_FACTOR_BPS));
+        }
+        return COST_PER_MS * uint256(factor) / BPS;
+    }
+
+    function _setBuff(State memory st, Instance memory inst, int256 p, uint256 regen) private pure {
+        PaidRaceMotion.Horse memory h = st.horses[inst.owner];
+        h.aggP += p - inst.pBps;
+        h.aggRegen = h.aggRegen - inst.regenBps + regen;
+        inst.pBps = p;
+        inst.regenBps = regen;
+    }
+
+    function _syncNew(State memory st) private pure {
+        uint256 scratch;
+        assembly ("memory-safe") { scratch := mload(0x40) }
+        for (uint256 h; h < HORSES; ++h) {
+            st.horses[h].nextDist = 0;
+        }
+        for (uint256 i; i < st.instanceCount; ++i) {
+            Instance memory inst = st.instances[i];
+            if (!inst.active) continue;
+            PaidRaceMotion.Horse memory h = st.horses[inst.owner];
+            if (inst.gated) {
+                (int256 p, uint256 regen) = st.support
+                    .gatedModifiers(
+                        uint8(inst.cardId),
+                        h.aggAirborne != 0,
+                        h.aggWired != 0,
+                        h.equipTorso != 0 || h.equipTail != 0 || h.equipHooves != 0,
+                        st.coats[inst.owner]
+                    );
+                _setBuff(st, inst, p, regen);
+            }
+            if (inst.kind == KIND_WATCH) {
+                if (inst.cardId == 40 && inst.count < _rule(st, 40).count) {
+                    if (h.nextDist == 0 || inst.nextDist < h.nextDist) h.nextDist = inst.nextDist;
+                }
+                _touch(st, inst, i);
+            }
+        }
+        assembly ("memory-safe") { mstore(0x40, scratch) }
+    }
+
+    function _buff(State memory st, uint256 h, uint256 card, uint256 tau, uint256 duration, int256 p) private pure {
+        (Instance memory inst, uint256 id) = _addInstance(st, tau, h, card, KIND_BUFF, duration);
+        inst.pBps = p;
+        _activate(st, inst, id);
+    }
+
+    function _recover(State memory st, uint256 h, uint256 amount, uint256 tau) private pure {
+        PaidRaceMotion.Horse memory horse = st.horses[h];
+        uint256 room = horse.s < STAMINA_CAPACITY ? STAMINA_CAPACITY - horse.s : 0;
+        uint256 gain = amount < room ? amount : room;
+        horse.s += gain;
+        _log(st, EV_RESOURCE, tau, h, int256(gain));
+    }
+
+    function _triggerLog(State memory st, Instance memory inst, uint256 tau) private pure {
+        inst.count += 1;
+        _log(st, EV_TRIGGER, tau, inst.owner, int256(inst.cardId * 256 + inst.count));
+    }
+
+    function _onEquipment(State memory st, uint256 h, uint256 tau) private pure {
+        uint256 n = st.instanceCount;
+        for (uint256 i; i < n; ++i) {
+            Instance memory inst = st.instances[i];
+            if (!inst.active || inst.owner != h || inst.kind != KIND_WATCH || inst.cardId != 31) continue;
+            PaidCardRules.Rule memory r = _rule(st, 31);
+            _triggerLog(st, inst, tau);
+            _buff(st, h, 31, tau, r.triggerDurationMs, int256(uint256(r.bonusBps)));
+        }
+    }
+
+    function _onForfeit(State memory st, uint256 tau) private pure {
+        for (uint256 i; i < st.instanceCount; ++i) {
+            Instance memory inst = st.instances[i];
+            if (
+                !inst.active || inst.owner != st.player || inst.kind != KIND_WATCH || inst.cardId != 39
+                    || inst.start >= tau
+            ) continue;
+            PaidCardRules.Rule memory r = _rule(st, 39);
+            _endInstance(st, inst, i + 1);
+            _triggerLog(st, inst, tau);
+            _recover(st, st.player, r.staminaMicro, tau);
+            _buff(st, st.player, 39, tau, r.triggerDurationMs, int256(uint256(r.bonusBps)));
+            break;
+        }
+    }
+
+    function _newCard(State memory st, uint256 h, PaidCardRules.Rule memory r, uint256 tau)
+        private
+        pure
+        returns (uint256 lootMs)
+    {
+        uint256[5] memory horses;
+        for (uint256 id; id < HORSES; ++id) {
+            PaidRaceMotion.Horse memory x = st.horses[id];
+            horses[id] = x.pos | x.dist << 64 | x.s << 128 | uint256(x.finished ? 1 : 0) << 192
+                | uint256(x.blindedPro ? 1 : 0) << 193;
+        }
+        uint256[3] memory equipment;
+        for (uint256 slot; slot < 3; ++slot) {
+            uint256 id = st.horses[h].equipOf(slot);
+            if (id != 0) equipment[slot] = id | st.instances[id - 1].cardId << 8 | st.instances[id - 1].end << 16;
+        }
+        uint256[] memory actions;
+        (actions, lootMs) = st.support.newCardPlan(r.id, uint8(h), horses, equipment);
+        for (uint256 i; i < actions.length; ++i) {
+            uint256 w = actions[i];
+            PaidRaceCardPlan.Action memory a = PaidRaceCardPlan.Action(
+                uint8(w), uint8(w >> 8), uint32(w >> 16), int64(uint64(w >> 48)), uint64(w >> 112)
+            );
+            if (a.kind <= PaidRaceCardPlan.GATE) {
+                _activateAction(st, r, a, tau);
+            } else if (a.kind == PaidRaceCardPlan.PAY) {
+                st.horses[h].s -= uint256(a.value);
+                _log(st, EV_RESOURCE, tau, h, -a.value);
+            } else if (a.kind == PaidRaceCardPlan.RECOVER) {
+                _recover(st, a.horse, uint256(a.value), tau);
+            } else if (a.kind == PaidRaceCardPlan.RECYCLE) {
+                uint256 id = uint256(a.value);
+                _endInstance(st, st.instances[id - 1], id);
+                _log(st, EV_EQUIP_OFF, tau, h, int256(id * 4 + OFF_RECYCLED));
+            } else if (a.kind == PaidRaceCardPlan.RENEW) {
+                uint256 id = uint256(a.value);
+                Instance memory inst = st.instances[id - 1];
+                inst.end = tau + a.duration;
+                _touch(st, inst, id - 1);
+                _log(st, EV_EQUIP_REFRESH, tau, h, int256(id));
+            } else if (a.kind == PaidRaceCardPlan.FIXED) {
+                st.horses[h].fixedK += a.value;
+                _log(st, EV_FIXED, tau, h, a.value);
+            } else if (a.kind == PaidRaceCardPlan.TARGET) {
+                _log(st, EV_TARGET, tau, h, a.value);
+            } else if (a.kind == PaidRaceCardPlan.TINKER) {
+                _onEquipment(st, h, tau);
+            }
+        }
+    }
+
+    function _activateAction(
+        State memory st,
+        PaidCardRules.Rule memory r,
+        PaidRaceCardPlan.Action memory a,
+        uint256 tau
+    ) private pure {
+        bool watch = a.kind == PaidRaceCardPlan.WATCH;
+        bool gate = a.kind == PaidRaceCardPlan.GATE;
+        (Instance memory inst, uint256 id) =
+            _addInstance(st, tau, a.horse, r.id, watch ? KIND_WATCH : KIND_BUFF, a.duration);
+        inst.gated = gate && r.id != 25;
+        inst.pBps = gate ? (r.id == 25 ? r.pBps : int256(0)) : (watch && r.id != 23 ? int256(0) : a.value);
+        if (gate) inst.costDelta = a.value;
+        if (watch && r.id == 23) inst.regenBps = a.aux;
+        if (watch && r.id == 40) inst.nextDist = a.aux;
+        _activate(st, inst, id);
     }
 
     /// @notice bonusDurationMs: C-04 bonus length (NEVER = permanent); lootMs is the stolen equipment's duration.
@@ -864,20 +1194,17 @@ library PaidRaceEngine {
         (Instance memory inst, uint256 id) = _addInstance(st, tau, h, rule.id, KIND_EQUIP, duration);
         inst.slot = slot;
         uint8 effect = rule.effect;
+        inst.pBps = rule.pBps;
         if (effect == PaidCardRules.EFFECT_ROCKET) {
-            inst.pBps = rule.pBps;
-            inst.halfCost = true;
-        } else if (effect == PaidCardRules.EFFECT_RAINBOW) {
-            inst.pBps = rule.pBps;
-        } else if (effect == PaidCardRules.EFFECT_GRAVITY) {
-            inst.well = true;
-        } else {
-            inst.airborne = true;
-            inst.wheel = true;
+            inst.costDelta = int256(uint256(rule.costMultiplierBps)) - int256(BPS);
         }
+        inst.well = effect == PaidCardRules.EFFECT_GRAVITY;
+        inst.wheel = effect == PaidCardRules.EFFECT_WHEEL;
+        inst.airborne = inst.wheel;
         _activate(st, inst, id);
         horse.setEquip(slot, id);
         _log(st, EV_EQUIP_ON, tau, h, int256(id));
+        _onEquipment(st, h, tau);
     }
 
     function _placeBombs(State memory st, uint256 h, uint256 tau) private pure {
@@ -919,7 +1246,7 @@ library PaidRaceEngine {
         _log(st, EV_STEAL, tau, h, int256(lootId));
         _endInstance(st, loot, lootId);
         _log(st, EV_EQUIP_OFF, tau, loot.owner, int256(lootId * 4 + OFF_STOLEN));
-        return _equip(st, h, PaidCardRules.get(uint8(loot.cardId)), tau);
+        return _equip(st, h, _rule(st, uint8(loot.cardId)), tau);
     }
 
     // ------------------------------------------------------------ panels
@@ -970,15 +1297,7 @@ library PaidRaceEngine {
             rec.closeTau = tau;
             _log(st, EV_PANEL_CUT, tau, st.player, int256(k));
             if (slot.present) _invalidChoice(st, k, tau, INVALID_CUT);
-            if (st.stopAt == k) {
-                st.hasStopPanel = true;
-                PanelView memory v = st.stopPanel;
-                v.checkpoint = k;
-                v.mode = MODE_CUT;
-                v.openTau = tau;
-                v.openWall = stamp;
-                v.draw = _copyDraw(st.draw);
-            }
+            if (st.stopAt == k) st.hasStopPanel = true;
             return;
         }
         uint256 openSec = (stamp + 999) / 1000;
@@ -1022,10 +1341,7 @@ library PaidRaceEngine {
         _setMapping(st, tau, stamp, true);
         _log(st, mode == MODE_AUTO ? EV_PANEL_AUTO : EV_PANEL_OPEN, tau, st.player, int256(k));
         if (invalid != 0) _invalidChoice(st, k, tau, invalid);
-        if (st.stopAt == k) {
-            st.hasStopPanel = true;
-            st.stopPanel = _panelView(st, panel);
-        }
+        if (st.stopAt == k) st.hasStopPanel = true;
     }
 
     function _closePanel(State memory st, uint256 tau) private pure {
@@ -1072,6 +1388,7 @@ library PaidRaceEngine {
         _setMapping(st, tau, panel.closeWall, false);
         _log(st, EV_PANEL_CLOSE, tau, st.player, int256(k * 16 + code));
         if (cardId != 0) _applyCard(st, st.player, cardId, src, tau);
+        if (reason == REASON_FORFEIT_TX) _onForfeit(st, tau);
         _openDeferred(st, tau);
     }
 
@@ -1107,16 +1424,25 @@ library PaidRaceEngine {
 
     /// @notice nextKnownTau; also refreshes the motion caches, the running list and the well owners.
     function _nextKnownTau(State memory st, uint256 tau) private pure returns (uint256 next) {
-        PaidRaceMotion.Stretch memory sx = st.stretch;
-        sx.wind = st.wind;
-        sx.windPlacer = st.windPlacer;
-        next = PaidRaceMotion.refresh(st.horses, sx, st.laneLive, st.bombs, tau);
+        uint256 scratch;
+        assembly ("memory-safe") { scratch := mload(0x40) }
+        uint256[80] memory bombWords;
+        PaidRaceMotion.Bomb[20] memory bombs = st.bombs;
+        assembly ("memory-safe") {
+            for { let b := 0 } lt(b, 20) { b := add(b, 1) } {
+                mcopy(add(bombWords, shl(7, b)), mload(add(bombs, shl(5, b))), 0x80)
+            }
+        }
+        uint256[200] memory words;
+        (words, next) = st.support.refresh(_horseWords(st), st.laneLive, bombWords, st.wind, st.windPlacer, tau);
+        _setHorseWords(st, words);
         if (next > MAX_TAU) next = MAX_TAU;
         if (st.wellsDirty) _collectOwners(st);
         uint256 instMin = _instMin(st);
         if (instMin < next) next = instMin;
         if (st.panel.open && st.panel.closeTau < next) next = st.panel.closeTau;
         if (next <= tau) revert PaidRaceMotion.NoProgress();
+        assembly ("memory-safe") { mstore(0x40, scratch) }
     }
 
     /// @dev wellOwners: one entry per active well instance (finished owners have none).

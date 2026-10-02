@@ -78,7 +78,7 @@ contract FieldStretchProbe {
 contract PaidRaceMotionTest {
     event log_named_uint(string key, uint256 val);
 
-    /// @dev Theoretical field ceiling: 10 well instances (5 × C-10 + 5 × C-13 refreshes) × 10 s at H = 50 ms.
+    /// @dev Fixed benchmark: ten ten-second well lifetimes at H = 50 ms; refresh extends the v4 budget.
     uint256 internal constant CEILING_STEPS = 2_000;
     uint256 internal constant CEILING_MS = 100_000;
 
@@ -99,7 +99,6 @@ contract PaidRaceMotionTest {
         h.equipTorso = 12;
         h.aggP = 13;
         h.aggRegen = 14;
-        h.aggHalfCost = 15;
         h.aggAirborne = 16;
         h.aggWired = 17;
         h.pStatic = 18;
@@ -113,7 +112,12 @@ contract PaidRaceMotionTest {
         h.mid = 26;
         h.field = 27;
         h.delta = 28;
-        uint256[28] memory offsets = [
+        h.aggCost = -4000;
+        h.nextDist = 45000000000;
+        require(_word(h, PaidRaceMotion.H_AGG_COST) == uint256(int256(-4000)), "signed cost offset");
+        require(_word(h, PaidRaceMotion.H_NEXT_DIST) == 45000000000, "mileage offset");
+        require(PaidRaceMotion.HORSE_WORDS * 32 == PaidRaceMotion.H_NEXT_DIST + 32, "raw ABI size");
+        uint256[27] memory offsets = [
             PaidRaceMotion.H_POS,
             PaidRaceMotion.H_DIST,
             PaidRaceMotion.H_PREV,
@@ -128,7 +132,6 @@ contract PaidRaceMotionTest {
             PaidRaceMotion.H_EQUIP,
             PaidRaceMotion.H_AGG_P,
             PaidRaceMotion.H_AGG_REGEN,
-            PaidRaceMotion.H_AGG_HALF,
             PaidRaceMotion.H_AGG_AIR,
             PaidRaceMotion.H_AGG_WIRED,
             PaidRaceMotion.H_P_STATIC,
@@ -143,7 +146,7 @@ contract PaidRaceMotionTest {
             PaidRaceMotion.H_FIELD,
             PaidRaceMotion.H_DELTA
         ];
-        uint256[28] memory expected = [
+        uint256[27] memory expected = [
             uint256(1),
             2,
             3,
@@ -158,7 +161,6 @@ contract PaidRaceMotionTest {
             12,
             13,
             14,
-            15,
             16,
             17,
             18,
@@ -173,7 +175,7 @@ contract PaidRaceMotionTest {
             27,
             28
         ];
-        for (uint256 i; i < 28; ++i) {
+        for (uint256 i; i < 27; ++i) {
             require(_word(h, offsets[i]) == expected[i], "horse offset");
         }
         PaidRaceMotion.Horse memory flags;
@@ -196,14 +198,12 @@ contract PaidRaceMotionTest {
         sx.steps = 36;
         sx.wind = 37;
         sx.windPlacer = 38;
-        sx.rocketCost = 39;
         require(
             _sword(sx, PaidRaceMotion.S_RUN_COUNT) == 31 && _sword(sx, PaidRaceMotion.S_OWNER_COUNT) == 32, "S counts"
         );
         require(_sword(sx, PaidRaceMotion.S_RADIUS) == 33 && _sword(sx, PaidRaceMotion.S_STRENGTH) == 34, "S well");
         require(_sword(sx, PaidRaceMotion.S_OVERLAP) == 35 && _sword(sx, PaidRaceMotion.S_STEPS) == 36, "S steps");
         require(_sword(sx, PaidRaceMotion.S_WIND) == 37 && _sword(sx, PaidRaceMotion.S_WIND_PLACER) == 38, "S wind");
-        require(_sword(sx, PaidRaceMotion.S_ROCKET_COST) == 39, "S rocket");
         sx.run0 = 40;
         sx.own0 = 41;
         require(_sword(sx, PaidRaceMotion.S_RUN) == 40 && _sword(sx, PaidRaceMotion.S_OWN) == 41, "S lists");
@@ -234,9 +234,8 @@ contract PaidRaceMotionTest {
         require(posOnce[0] > 0, "moved");
     }
 
-    /// @notice The field-stepping part of the theoretical worst case, measured: 2000 RK2 steps with one well, and the
-    /// same 2000 well-steps as 400 steps with five wells. Cost is affine in (steps, well-steps), so no split of the
-    /// 100 s well budget costs more than 2000 one-well steps.
+    /// @notice Compare a fixed 100-second field-work budget as 2000 one-well steps or 400 five-well steps.
+    /// Refresh can extend well lifetimes; this benchmark is not the full v4 worst-case gas proof.
     function testTheoreticalFieldCeilingGas() public {
         FieldStretchProbe probe = new FieldStretchProbe();
         (uint256 one, uint256 steps1,,) = probe.stretch(1, CEILING_MS);

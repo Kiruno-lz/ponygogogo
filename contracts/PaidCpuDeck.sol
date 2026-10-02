@@ -13,9 +13,9 @@ library PaidCpuDeck {
 
     function derive(bytes32 seed, bytes32 anchor, uint8 horseId) internal pure returns (uint8[3] memory deck) {
         if (horseId >= 5) revert InvalidHorse();
-        uint8[13] memory remaining;
+        uint8[40] memory remaining;
         uint256 length;
-        for (uint8 id = 1; id <= 21; ++id) {
+        for (uint8 id = 1; id <= PaidCardRules.CARD_COUNT; ++id) {
             if (CPU_MASK & (1 << (id - 1)) != 0) remaining[length++] = id;
         }
         for (uint256 position; position < 3; ++position) {

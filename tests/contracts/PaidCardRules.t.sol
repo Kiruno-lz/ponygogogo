@@ -5,12 +5,12 @@ import {PaidCardRules} from "../../contracts/PaidCardRules.sol";
 
 contract PaidCardRulesTest {
     function testGeneratedCardRulesAndMasks() public pure {
-        require(PaidCardRules.RARE_MASK == 0x12973e && PaidCardRules.CPU_MASK == 0x3fae3, "eligibility masks");
+        require(PaidCardRules.RARE_MASK == 0xf6e232973e && PaidCardRules.CPU_MASK == 0xbfefe3fae3, "eligibility masks");
         require(
-            PaidCardRules.TABLE_HASH == 0xefde6ab7e0485adacf6a2c7da46532ddb26480e62ef01a7360e28814a0e3f1c4, "table hash"
+            PaidCardRules.TABLE_HASH == 0xb8351e02bafc73263c6f8c040ab3c53f2dae91e1515e10b0540145d11e07336e, "table hash"
         );
         require(
-            PaidCardRules.RULESET_HASH == 0x5ff01a27886c1cad8a1d286cf2bb15280f711d7133ab3377b375855bf5d3f84b,
+            PaidCardRules.RULESET_HASH == 0x1f3e8d6c57b309a94e9550a022396329611552c9d1f982cf64d050afa95fe85b,
             "ruleset hash"
         );
         PaidCardRules.Rule memory gravity = PaidCardRules.get(10);
@@ -21,13 +21,13 @@ contract PaidCardRulesTest {
         PaidCardRules.Rule memory wheel = PaidCardRules.get(11);
         require(wheel.periodMs == 7_000 && wheel.count == 4 && wheel.fixedSpeed == 10, "wheel schedule");
         PaidCardRules.Rule memory placeholder = PaidCardRules.get(26);
-        require(placeholder.effect == 0 && !placeholder.rare && !placeholder.cpu, "placeholder");
+        require(placeholder.effect == PaidCardRules.EFFECT_RAGE && placeholder.rare && placeholder.cpu, "rage");
     }
 
     /// @dev The packed get() decodes to exactly the TS table (the generator hashes the same ABI encoding with viem).
     function testPackedTableDecodesToTheTsTable() public pure {
-        PaidCardRules.Rule[] memory rules = new PaidCardRules.Rule[](26);
-        for (uint8 id = 1; id <= 26; ++id) {
+        PaidCardRules.Rule[] memory rules = new PaidCardRules.Rule[](40);
+        for (uint8 id = 1; id <= 40; ++id) {
             rules[id - 1] = PaidCardRules.get(id);
             require(rules[id - 1].id == id, "card id");
         }
@@ -36,7 +36,7 @@ contract PaidCardRulesTest {
 
     function testUnknownCardReverts() public {
         (bool ok0, bytes memory r0) = address(this).call(abi.encodeCall(this.ruleOf, (0)));
-        (bool ok27, bytes memory r27) = address(this).call(abi.encodeCall(this.ruleOf, (27)));
+        (bool ok27, bytes memory r27) = address(this).call(abi.encodeCall(this.ruleOf, (41)));
         require(!ok0 && !ok27, "unknown card accepted");
         require(
             bytes4(r0) == PaidCardRules.InvalidCard.selector && bytes4(r27) == PaidCardRules.InvalidCard.selector,

@@ -5,6 +5,7 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AgentBudget} from "./AgentBudget.sol";
 import {IPaidRaceSolver} from "./IPaidRaceSolver.sol";
+import {PaidCardRules} from "./PaidCardRules.sol";
 import {PaidSeed} from "./PaidSeed.sol";
 import {PonyVault} from "./PonyVault.sol";
 import {RacePayout} from "./RacePayout.sol";
@@ -40,7 +41,7 @@ contract PonyGame is Ownable2Step, AgentBudget {
     uint8 public constant STATE_SETTLED = 2;
     uint8 public constant STATE_FORFEITED = 3;
     uint8 public constant CHECKPOINTS = 3;
-    uint8 public constant MAX_CARD_ID = 26;
+    uint8 public constant MAX_CARD_ID = PaidCardRules.CARD_COUNT;
     uint8 public constant MAX_REFRESHES = 3;
     uint8 public constant MAX_REFRESH_SLOT = 2;
     /// @notice SessionForfeited reasons.
