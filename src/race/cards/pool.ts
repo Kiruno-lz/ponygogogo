@@ -4,9 +4,11 @@
  * 加一张卡的正常路径是往本文件加一条记录，不改 src/race/core/ 一行。
  */
 import { fx } from '../core/fixed.ts'
+import { paidCardRule } from '../paid/cardRules.ts'
 import type { CardDef } from './types.ts'
 
 const S = 50 // 1 秒 = 50 tick
+const GRAVITY_STRENGTH = paidCardRule(10).strengthBps!
 
 export const CARD_POOL: CardDef[] = [
   {
@@ -249,8 +251,8 @@ export const CARD_POOL: CardDef[] = [
     quality: 'rare',
     name: { zh: '重力井', en: 'Gravity Well' },
     desc: {
-      zh: '躯干挂上史瓦西黑洞 10 秒：前方的马按距离减速，最高 60%；后方的马同样被加速——追兵会被拉近。',
-      en: 'A Schwarzschild black hole on your torso for 10s: horses ahead slow down by up to 60%, horses behind speed up by the same amount.',
+      zh: `躯干挂上史瓦西黑洞 10 秒：前方的马按距离减速，最高 ${GRAVITY_STRENGTH / 100}%；后方的马同样被加速——追兵会被拉近。`,
+      en: `A Schwarzschild black hole on your torso for 10s: horses ahead slow down by up to ${GRAVITY_STRENGTH / 100}%, horses behind speed up by the same amount.`,
     },
     meme: '史瓦西黑洞',
     art: { icon: 'icon_03' },
@@ -269,7 +271,7 @@ export const CARD_POOL: CardDef[] = [
         moduleId: 'mod.field',
         durationTicks: 10 * S,
         tags: ['buff'],
-        payload: { fieldKind: 'gravityWell', radius: 8000 * 10000, strength: fx(0.6) },
+        payload: { fieldKind: 'gravityWell', radius: 8000 * 10000, strength: GRAVITY_STRENGTH },
       },
     ],
   },

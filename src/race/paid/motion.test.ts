@@ -46,18 +46,18 @@ test('first reach returns the minimal whole millisecond satisfying the crossing'
 
 test('gravity field matches browser at overlap, by relative position and at radius', () => {
   // Overlap takes the browser mod.field trailing branch: the target is pulled forward at full strength.
-  expect(wellFieldBps(10n, 10n)).toBe(6_000n)
-  expect(wellFieldBps(0n, 1n)).toBe(-6_000n)
-  expect(wellFieldBps(1n, 0n)).toBe(6_000n)
+  expect(wellFieldBps(10n, 10n)).toBe(3_000n)
+  expect(wellFieldBps(0n, 1n)).toBe(-3_000n)
+  expect(wellFieldBps(1n, 0n)).toBe(3_000n)
   expect(wellFieldBps(0n, WELL_RADIUS_MICRO)).toBe(0n)
   expect(wellFieldBps(WELL_RADIUS_MICRO, 0n)).toBe(0n)
   expect(wellFieldBps(0n, WELL_RADIUS_MICRO - 1n)).toBe(0n)
-  expect(wellFieldBps(0n, WELL_RADIUS_MICRO - 1_000_000n)).toBe(-1n)
-  expect(wellFieldBps(0n, WELL_RADIUS_MICRO / 2n)).toBe(-3_000n)
-  expect(wellFieldBps(WELL_RADIUS_MICRO / 4n, 0n)).toBe(4_500n)
+  expect(wellFieldBps(0n, WELL_RADIUS_MICRO - 1_000_000n)).toBe(0n)
+  expect(wellFieldBps(0n, WELL_RADIUS_MICRO / 2n)).toBe(-1_500n)
+  expect(wellFieldBps(WELL_RADIUS_MICRO / 4n, 0n)).toBe(2_250n)
   // Frozen values of the browser-equivalent field (the former paidGravity oracle): target ahead, then behind.
-  const ahead = [6_000n, -6_000n, -6_000n, -3_000n, 0n, 0n]
-  const behind = [6_000n, 6_000n, 6_000n, 3_000n, 0n, 0n]
+  const ahead = [3_000n, -3_000n, -3_000n, -1_500n, 0n, 0n]
+  const behind = [3_000n, 3_000n, 3_000n, 1_500n, 0n, 0n]
   const distances = [0n, 1n, 777_777n, 4_000_000_000n, 7_999_999_999n, 8_000_000_000n]
   distances.forEach((d, i) => {
     expect(wellFieldBps(0n, d)).toBe(ahead[i]!)

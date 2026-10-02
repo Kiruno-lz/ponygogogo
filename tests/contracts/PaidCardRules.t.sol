@@ -7,17 +7,17 @@ contract PaidCardRulesTest {
     function testGeneratedCardRulesAndMasks() public pure {
         require(PaidCardRules.RARE_MASK == 0x12973e && PaidCardRules.CPU_MASK == 0x3fae3, "eligibility masks");
         require(
-            PaidCardRules.TABLE_HASH == 0xefde6ab7e0485adacf6a2c7da46532ddb26480e62ef01a7360e28814a0e3f1c4, "table hash"
+            PaidCardRules.TABLE_HASH == 0x30dea918dfc50683a877ad59c4381a0ef3812ec44456f44a92a6960aaa9b4450, "table hash"
         );
         require(
-            PaidCardRules.RULESET_HASH == 0x5ff01a27886c1cad8a1d286cf2bb15280f711d7133ab3377b375855bf5d3f84b,
+            PaidCardRules.RULESET_HASH == 0xeb03664a530fd6d5251118e5074b9bd2fa6c5cce60385d94779199160f45edd6,
             "ruleset hash"
         );
         PaidCardRules.Rule memory gravity = PaidCardRules.get(10);
         require(gravity.effect == 10 && gravity.rare && gravity.cpu, "gravity identity");
         require(gravity.durationMs == 10_000 && gravity.slot == 0, "gravity equipment");
-        require(gravity.radiusMicro == 8_000_000_000 && gravity.strengthBps == 6_000, "gravity field");
-        require(gravity.overlapBps == 6_000, "browser overlap branch");
+        require(gravity.radiusMicro == 8_000_000_000 && gravity.strengthBps == 3_000, "gravity field");
+        require(gravity.overlapBps == 3_000, "browser overlap branch");
         PaidCardRules.Rule memory wheel = PaidCardRules.get(11);
         require(wheel.periodMs == 7_000 && wheel.count == 4 && wheel.fixedSpeed == 10, "wheel schedule");
         PaidCardRules.Rule memory placeholder = PaidCardRules.get(26);

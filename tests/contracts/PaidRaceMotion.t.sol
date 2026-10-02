@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {PaidRaceMotion} from "../../contracts/PaidRaceMotion.sol";
+import {PaidCardRules} from "../../contracts/PaidCardRules.sol";
 
 /// @notice Synthetic stretches for PaidRaceMotion: five running horses spaced inside the well radius, never crossing.
 contract FieldStretchProbe {
@@ -41,9 +42,10 @@ contract FieldStretchProbe {
         pure
         returns (PaidRaceMotion.Horse[5] memory horses, PaidRaceMotion.Stretch memory sx)
     {
-        sx.radius = 8_000_000_000;
-        sx.strength = 6_000;
-        sx.overlap = 6_000;
+        PaidCardRules.Rule memory gravity = PaidCardRules.get(10);
+        sx.radius = gravity.radiusMicro;
+        sx.strength = gravity.strengthBps;
+        sx.overlap = gravity.overlapBps;
         for (uint256 h; h < 5; ++h) {
             PaidRaceMotion.Horse memory horse = horses[h];
             horse.pos = h * 1_000_000_000;

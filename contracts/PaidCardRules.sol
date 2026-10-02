@@ -5,8 +5,8 @@ pragma solidity ^0.8.28;
 library PaidCardRules {
     error InvalidCard();
 
-    bytes32 internal constant TABLE_HASH = 0xefde6ab7e0485adacf6a2c7da46532ddb26480e62ef01a7360e28814a0e3f1c4;
-    bytes32 internal constant RULESET_HASH = 0x5ff01a27886c1cad8a1d286cf2bb15280f711d7133ab3377b375855bf5d3f84b;
+    bytes32 internal constant TABLE_HASH = 0x30dea918dfc50683a877ad59c4381a0ef3812ec44456f44a92a6960aaa9b4450;
+    bytes32 internal constant RULESET_HASH = 0xeb03664a530fd6d5251118e5074b9bd2fa6c5cce60385d94779199160f45edd6;
     uint256 internal constant RARE_MASK = 0x12973e;
     uint256 internal constant CPU_MASK = 0x3fae3;
     uint32 internal constant PERMANENT_MS = type(uint32).max;
@@ -56,7 +56,7 @@ library PaidCardRules {
     }
 
     /// @notice keccak256(abi.encode(Rule[26])) of the TS table; PaidCardRules.t.sol recomputes it from get().
-    bytes32 internal constant ENCODED_RULES_HASH = 0x06799dff3f584ca3e47897e2460ea950440759de6b4ae36a21020307d323ea29;
+    bytes32 internal constant ENCODED_RULES_HASH = 0x1a06d5f0bc6ec40e64fcaf2107e4049bec48ea5eaa4856798a2d01d68f723cc1;
 
     function get(uint8 id) internal pure returns (Rule memory rule) {
         (uint256 hi, uint256 lo) = _packed(id);
@@ -128,10 +128,10 @@ library PaidCardRules {
             return
                 (0x0909010000007530000000000000000000000000000000ff0000000000000000, 0x00000000000007d00f00000000000000);
         }
-        // C-10 gravity: effect=10 rare=1 cpu=1 durationMs=10000 slot=0 radiusMicro=8000000000 strengthBps=6000 overlapBps=6000
+        // C-10 gravity: effect=10 rare=1 cpu=1 durationMs=10000 slot=0 radiusMicro=8000000000 strengthBps=3000 overlapBps=3000
         if (id == 10) {
             return
-                (0x0a0a0101000027100000000000000000000000000000000000000001dcd65000, 0x17701770000000000000000000000000);
+                (0x0a0a0101000027100000000000000000000000000000000000000001dcd65000, 0x0bb80bb8000000000000000000000000);
         }
         // C-11 wheel: effect=11 rare=1 durationMs=30000 fixedSpeed=10 slot=2 periodMs=7000 count=4
         if (id == 11) {

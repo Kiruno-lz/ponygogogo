@@ -182,6 +182,21 @@ describe('mod.swap 交换', () => {
 })
 
 describe('mod.field 重力井', () => {
+  test('C-10 的最大影响减半，电脑马在半径中点分别获得 -15% 和 +15%', () => {
+    const e = mk()
+    const owner = e.state.horses[2]!
+    const ahead = e.state.horses[1]!
+    const behind = e.state.horses[3]!
+    owner.pos = fx(10_000)
+    ahead.pos = fx(14_000)
+    behind.pos = fx(6_000)
+    e.applyCard(owner.horseId, 'C-10')
+    e.step([])
+    expect(e.state.effects.find((fx) => fx.primitive === 'Field')!.payload.strength).toBe(fx(.3))
+    expect(ahead.fieldMul).toBe(-fx(.15))
+    expect(behind.fieldMul).toBe(fx(.15))
+    expect(owner.fieldMul).toBe(0)
+  })
   test('前方的马减速、后方的马加速，且距离越远影响越小', () => {
     const e = mk()
     run(e, 60)
@@ -201,7 +216,7 @@ describe('mod.field 重力井', () => {
     expect(Math.abs(ahead.fieldMul)).toBeLessThan(near)
   })
 
-  test('作用于玩家时走 B3 子池，钳制在 ±60%', () => {
+  test('作用于玩家时走 B3 子池，单个井的影响不超过 ±30%', () => {
     const e = mk()
     run(e, 60)
     const p = e.player()
@@ -213,11 +228,11 @@ describe('mod.field 重力井', () => {
     e.step([])
     expect(p.bandHigh).toBeLessThan(before)
     expect(p.bandHigh).toBeGreaterThan(0)
-    // 反过来：井主在前方时玩家在后方，应当被加速，且钳在 +60% 以内
+    // 反过来：井主在前方时玩家在后方，应当被加速，且不超过 +30%
     owner.pos = p.pos + fx(20)
     e.step([])
     expect(p.bandHigh).toBeGreaterThan(before)
-    expect(p.bandHigh).toBeLessThanOrEqual(Math.trunc((before * 16) / 10) + 2)
+    expect(p.bandHigh).toBeLessThanOrEqual(Math.trunc((before * 13) / 10) + 2)
   })
 })
 

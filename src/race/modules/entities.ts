@@ -6,6 +6,7 @@ import { TRACK_LEN } from '../core/constants.ts'
 import { FP, clamp, divFx, mulFx, type Fixed } from '../core/fixed.ts'
 import type { ModuleCtx, RaceModule } from '../core/module.ts'
 import { H } from '../core/rng.ts'
+import { paidCardRule } from '../paid/cardRules.ts'
 import type { EffectInstance, EquipSlot, ModifierContribution } from '../core/types.ts'
 
 const ALL_SLOTS: EquipSlot[] = ['torso', 'head', 'hoof_fl', 'hoof_fr', 'hoof_bl', 'hoof_br', 'tail']
@@ -290,10 +291,10 @@ export const modHazard: RaceModule = {
 
 // ---------------------------------------------------------------------------
 
-/** k = 0.6 × max(0, 1 − d / R) */
+/** k = strength × max(0, 1 − d / R) */
 function wellFactor(inst: EffectInstance, d: Fixed): Fixed {
   const radius = (inst.payload.radius as Fixed) ?? 1
-  const strength = (inst.payload.strength as Fixed) ?? 6000
+  const strength = (inst.payload.strength as Fixed) ?? paidCardRule(10).strengthBps!
   if (d >= radius) return 0
   return mulFx(strength, FP - divFx(d, radius))
 }

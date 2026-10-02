@@ -43,7 +43,7 @@ export const PAID_CARD_RULES: readonly PaidCardRule[] = [
   { id: 7, effect: 'rocket', rare: false, cpu: true, durationMs: 40_000, bonusMode: 'follow', pBps: 1_500, costMultiplierBps: 5_000, slot: 0 },
   { id: 8, effect: 'rainbow', rare: false, cpu: true, durationMs: 60_000, bonusMode: 'follow', pBps: 1_000, slot: 1 },
   { id: 9, effect: 'swap', rare: true, cpu: false, durationMs: 30_000, bonusMode: 'follow', periodMs: 2_000, count: 15 },
-  { id: 10, effect: 'gravity', rare: true, cpu: true, durationMs: 10_000, bonusMode: 'follow', slot: 0, radiusMicro: 8_000_000_000, strengthBps: 6_000, overlapBps: 6_000 },
+  { id: 10, effect: 'gravity', rare: true, cpu: true, durationMs: 10_000, bonusMode: 'follow', slot: 0, radiusMicro: 8_000_000_000, strengthBps: 3_000, overlapBps: 3_000 },
   { id: 11, effect: 'wheel', rare: true, cpu: false, durationMs: 30_000, bonusMode: 'follow', slot: 2, periodMs: 7_000, count: 4, fixedSpeed: 10 },
   { id: 12, effect: 'wind', rare: false, cpu: true, durationMs: null, bonusMode: 'permanent', strengthBps: 1_000 },
   { id: 13, effect: 'steal', rare: true, cpu: true, durationMs: 0, bonusMode: 'loot' },
