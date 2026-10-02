@@ -70,18 +70,18 @@ fi
 say "限制核验通过"
 
 # ---- 5b. 缓存规则覆盖核验 ----
-# public/_headers 里素材的缓存规则按子目录写死（/assets/art/*、/assets/placeholder/*、
+# public/_headers 里素材的缓存规则按子目录写死（/assets/art/*、/assets/cards/*、/assets/placeholder/*、
 # /assets/manifest.json），换来规则互不重叠、不依赖 Cloudflare 的头撤销语义。
 # 代价是管线新增顶层目录时会静默漏掉规则，所以在这里守住。
 # SPA 回退不走 _redirects，由 wrangler.toml 的 not_found_handling 负责。
 [ -f "$DIST_DIR/_headers" ] || die "_headers 没有进入产物，站点会失去全部缓存策略"
 UNCOVERED=$(find "$DIST_DIR/assets" -type f 2>/dev/null \
   | sed "s|^$DIST_DIR/||" \
-  | grep -v -e '^assets/art/' -e '^assets/placeholder/' -e '^assets/manifest\.json$' || true)
+  | grep -v -e '^assets/art/' -e '^assets/cards/' -e '^assets/placeholder/' -e '^assets/manifest\.json$' || true)
 if [ -n "$UNCOVERED" ]; then
   say "以下产物不在 public/_headers 的任何一条素材规则内："
   echo "$UNCOVERED" | sed 's/^/  /'
-  die "补一条对应的规则到 public/_headers，或把它们归回 art/ 与 placeholder/"
+  die "补一条对应的规则到 public/_headers，并同步本脚本的覆盖检查"
 fi
 say "缓存规则覆盖核验通过"
 

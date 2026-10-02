@@ -364,6 +364,7 @@ def main() -> int:
             print(f"  {t:<7} {human(by_tier[t])}")
     print(f"进首页需要 {human(by_tier.get('boot', 0) + by_tier.get('home', 0))}，"
           f"其余 {human(sum(v for k, v in by_tier.items() if k in ('race', 'result')))} 后台预取")
+    subprocess.run(["bun", str(ROOT / "scripts/gen-paid-card-icons.ts")], check=True)
     return 0
 
 
