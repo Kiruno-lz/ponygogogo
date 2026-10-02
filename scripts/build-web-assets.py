@@ -53,6 +53,7 @@ MP3_BITRATE = "96k"     # 只给不支持 ogg 的旧 Safari 兜底，不必与 o
 
 # 母版里不进产物的目录与文件。每一项都实际核对过引用，括号里是判据。
 DEAD: list[tuple[str, str]] = [
+    ("QR code.png", "二维码输入母版；只出片 art/share/qr.png 的透明 PNG"),
     ("placeholder/bg/", "整层背景已被 art/track/ 的原画切片取代，src 与 tests 里零引用"),
     ("placeholder/ui/start_gate.png", "起跑线改由 RaceScene 的 graphics 画，零引用"),
     ("placeholder/ui/btn_star.png", "theme.css:110 的 background 被 331 行同特异性规则覆盖，从不绘制"),
@@ -142,6 +143,8 @@ SCREEN_TIER = {
 }
 FALLBACK_TIER = [
     ("art/result/", "result"),
+    ("art/share/", "result"),
+    ("art/share/qr.png", "result"),
     ("audio/jingle_", "result"),
     ("audio/sfx_result", "result"),
     ("audio/bgm_home", "home"),
@@ -229,6 +232,7 @@ def main() -> int:
             print(f"缺少 {tool}：{hint}", file=sys.stderr)
             return 1
 
+    subprocess.run(["bun", str(ROOT / "scripts/prepare-share-qr.ts")], check=True)
     raw = json.loads(SIZES_FILE.read_text())
     # 实测表的 key 是不带扩展名的运行时路径 /assets/art/...，换算成相对母版根的路径。
     # 不带扩展名是刻意的：测量跑在 WebP 产物上，这里查的却是 PNG 母版。
@@ -286,6 +290,8 @@ def main() -> int:
             items.append(Item(path, rel.replace(ext, ".woff2"), "font", "home"))
         elif ext == ".txt":
             items.append(Item(path, rel, "license", "home"))
+        elif rel == "art/share/qr.png":
+            items.append(Item(path, rel, "image", "result"))
         elif KIND_BY_EXT[ext] == "image":
             items.append(Item(path, str(Path(rel).with_suffix(".webp")), "image", tier_of(rel)))
         else:
@@ -316,7 +322,9 @@ def main() -> int:
         dst.parent.mkdir(parents=True, exist_ok=True)
         src_bytes += it.src.stat().st_size
 
-        if it.kind == "image":
+        if it.rel == "art/share/qr.png":
+            shutil.copy2(it.src, dst)
+        elif it.kind == "image":
             target = target_size(it.src, str(it.src.relative_to(SRC)), by_group)
             if target is not None:
                 resized += 1

@@ -550,3 +550,31 @@ html, body, #root {
 .result-artboard.en .result-btn-home > .lbl { font-size: 30px; letter-spacing: 0; }
 .result-artboard.en .result-btn-share > .lbl { font-size: 26px; letter-spacing: 0; }
 .result-artboard.en .result-btn-again > .lbl { font-size: 33px; top: 89px; }
+
+/* Share controls stay at viewport size, outside the exported poster. */
+.stage-dialog.share-dialog {
+  inset: 0; width: 100vw; height: 100dvh; transform: none;
+  background: rgba(13, 9, 7, .86); overflow: auto;
+}
+.stage-dialog.share-dialog::backdrop { background: rgba(13, 9, 7, .86); }
+.share-poster-panel {
+  position: relative; flex: none;
+  width: min(calc(100vw - 148px), calc((100dvh - 48px) * 1620 / 971));
+  aspect-ratio: 1620 / 971; margin-right: 64px;
+}
+.share-poster-image { display: block; width: 100%; height: 100%; border-radius: 8px; box-shadow: 0 12px 50px #0009; }
+.share-placeholder { height: 100%; display: grid; place-items: center; color: #fff0d3; background: #2e211b; border-radius: 8px; }
+.share-close { position: absolute; top: 0; right: -64px; }
+.share-actions { position: absolute; right: -64px; bottom: 0; display: flex; flex-direction: column; gap: 12px; }
+.share-icon-button {
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%;
+  border: 1px solid #ead5ab80; background: transparent; color: #fff0d3; cursor: pointer;
+}
+.share-icon-button:hover { border-color: #ffcf6e; color: #ffcf6e; }
+.share-icon-button:focus-visible { outline: 2px solid #ffcf6e; outline-offset: 3px; }
+.share-icon-button:disabled { opacity: .4; cursor: wait; }
+.share-feedback { position: absolute; right: 0; bottom: -25px; font-size: 13px; color: #fff0d3; }
+@media (max-height: 360px) {
+  .share-icon-button { width: 36px; height: 36px; }
+  .share-actions { gap: 7px; }
+}

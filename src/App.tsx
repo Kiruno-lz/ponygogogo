@@ -28,7 +28,6 @@ import { RaceDriver } from './race/driver.ts'
 import type { PaidRaceDriver } from './race/paidDriver.ts'
 import { paidChoiceNoteKeys, paidRaceResult, settledChoices } from './race/paidResult.ts'
 import type { RaceScreenDriver } from './race/raceView.ts'
-import { drawPoster, sharePoster } from './export/poster.ts'
 import { ResultScreen, type PaidResultView } from './result/ResultScreen.tsx'
 import { CollectionScreen } from './ui/CollectionScreen.tsx'
 import { HomeScreen, type WalletBusy } from './ui/HomeScreen.tsx'
@@ -96,12 +95,11 @@ export default function App() {
   /** 当前这场是有奖比赛时的驱动器（与 driver 同一个对象） */
   const [paidDriver, setPaidDriver] = useState<PaidRaceDriver | null>(null)
   /** 有奖结算页里与链上无关的那部分：下注、预览名次、检查点说明 */
-  const [paidMeta, setPaidMeta] = useState<{ stake: bigint; stakeLabel: string; previewRank: number; notes: (string | null)[] } | null>(null)
+  const [paidMeta, setPaidMeta] = useState<{ stake: bigint; stakeTier: number; stakeLabel: string; previewRank: number; notes: (string | null)[] } | null>(null)
   const [resumeBusy, setResumeBusy] = useState(false)
   /** 有奖合约的链上确认：进选马页时读，读到结论后不再读；读失败保持 checking，下次进选马页再读 */
   const [paidDeployment, setPaidDeployment] = useState<PaidDeployment>('checking')
   const [result, setResult] = useState<RaceResult | null>(null)
-  const [shared, setShared] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   /**
    * 已就绪资源的 url 表。每完成一级就整体替换一次：RaceScreen 只在挂载时读一次它，
@@ -410,7 +408,6 @@ export default function App() {
       setPaidMeta(null)
       setDriver(d)
       setResult(null)
-      setShared(false)
       setPage('race')
       return
     }
@@ -422,7 +419,6 @@ export default function App() {
     d.raceId = practiceRaceId(now, seq)
     setDriver(d)
     setResult(null)
-    setShared(false)
     setPage('race')
   }, [gameAccount, paid, paidGate.open])
 
@@ -435,6 +431,7 @@ export default function App() {
     setResult(r)
     setPaidMeta({
       stake: facts.stake,
+      stakeTier: facts.stakeTier,
       stakeLabel: PAID_STAKE_LABELS[facts.stakeTier] ?? formatMon(facts.stake),
       previewRank: preview.settlementRank,
       notes: paidChoiceNoteKeys(preview.result).map((k) => (k ? t(lang, k) : null)),
@@ -484,7 +481,6 @@ export default function App() {
       const d = await paid.resumeRace(info.facts)
       setPaidDriver(d)
       setDriver(d)
-      setShared(false)
       if (settleNow) showPaidResult(d)
       else {
         setResult(null)
@@ -538,17 +534,6 @@ export default function App() {
     if (!result || !settled) return result
     return { ...result, rank: settled.rank as typeof result.rank, choices: settledChoices(result.choices, settled.acquired) }
   }, [result, paidMeta, paid.settle])
-
-  const doShare = useCallback(async () => {
-    if (!shownResult) return
-    try {
-      const blob = await drawPoster(shownResult, lang, 'x')
-      await sharePoster(blob, `Ponygogogo #${shownResult.rank}`)
-      setShared(true)
-    } catch {
-      setShared(false)
-    }
-  }, [shownResult, lang])
 
   const stageStyle = useMemo(
     () => ({
@@ -630,7 +615,6 @@ export default function App() {
             lang={lang}
             result={shownResult}
             paid={paidMeta ? paidView : undefined}
-            shared={shared}
             choiceNotes={driver instanceof RaceDriver ? paidChoiceNoteKeys(driver.canonicalResult()).map((k) => k ? t(lang, k) : null) : undefined}
             onAgain={() => {
               setDriver(null)
@@ -641,7 +625,6 @@ export default function App() {
               go('select')
             }}
             onHome={backHome}
-            onShare={() => void doShare()}
           />
         )}
         {page === 'collection' && <CollectionScreen

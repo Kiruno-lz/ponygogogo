@@ -356,6 +356,13 @@
     "sha256": "70d4039c1fe183a8",
     "tier": "result"
   },
+  "art.share.background": {
+    "kind": "image",
+    "path": "assets/art/share/background.webp",
+    "bytes": 227052,
+    "sha256": "5ae6bc8218e4480f",
+    "tier": "result"
+  },
   "art.track.far": {
     "kind": "image",
     "path": "assets/art/track/far.webp",
@@ -995,5 +1002,68 @@
     "bytes": 96562,
     "sha256": "67d39b5dcf571bc3",
     "tier": "race"
+  },
+  "art.share.win": {
+    "kind": "image",
+    "path": "assets/art/share/win.webp",
+    "bytes": 149134,
+    "sha256": "5394ab795241c61d",
+    "tier": "result"
+  },
+  "art.share.finish": {
+    "kind": "image",
+    "path": "assets/art/share/finish.webp",
+    "bytes": 435374,
+    "sha256": "557a1f16304db780",
+    "tier": "result"
+  },
+  "art.share.horse-0": {
+    "kind": "image",
+    "path": "assets/art/share/horse-0.webp",
+    "bytes": 143866,
+    "sha256": "f022e5373bc156f5",
+    "tier": "result"
+  },
+  "art.share.horse-1": {
+    "kind": "image",
+    "path": "assets/art/share/horse-1.webp",
+    "bytes": 171684,
+    "sha256": "92a5faad843d9fa7",
+    "tier": "result"
+  },
+  "art.share.horse-2": {
+    "kind": "image",
+    "path": "assets/art/share/horse-2.webp",
+    "bytes": 114756,
+    "sha256": "f4b5a10e699c2cb3",
+    "tier": "result"
+  },
+  "art.share.horse-3": {
+    "kind": "image",
+    "path": "assets/art/share/horse-3.webp",
+    "bytes": 128542,
+    "sha256": "0081a2ca0b893d72",
+    "tier": "result"
+  },
+  "art.share.horse-4": {
+    "kind": "image",
+    "path": "assets/art/share/horse-4.webp",
+    "bytes": 171600,
+    "sha256": "2dbed8ab6cff7052",
+    "tier": "result"
+  },
+  "art.share.qr": {
+    "kind": "image",
+    "path": "assets/art/share/qr.png",
+    "bytes": 160508,
+    "sha256": "ab812969f075e092",
+    "tier": "result"
+  },
+  "art.share.prize-group": {
+    "kind": "image",
+    "path": "assets/art/share/prize-group.webp",
+    "bytes": 50484,
+    "sha256": "cc236db63267cfa8",
+    "tier": "result"
   }
 }

@@ -1,198 +1,124 @@
-/**
- * 出图与分享。海报用离屏 Canvas 自己画，不截屏 DOM：
- * 版式固定，自己画一遍是确定的，截屏是碰运气的。
- */
-import { CARD_BY_ID } from '../race/cards/pool.ts'
-import { PAYOUT_TABLE, SIM_HZ, STAKE_PRESETS } from '../race/core/constants.ts'
-import { FP } from '../race/core/fixed.ts'
+/** Compose a result poster from blank artwork and authoritative settlement data. */
+import { formatMon } from '../chain/amount.ts'
+import { HORSE_PROFILES } from '../game/horses.ts'
 import type { RaceResult } from '../race/core/types.ts'
-import { HORSE_PROFILES, hexCss } from '../game/horses.ts'
-import type { Lang } from '../ui/i18n.ts'
+import type { PaidResultView } from '../result/ResultScreen.tsx'
+import { t, type Lang } from '../ui/i18n.ts'
 
-export type PosterFormat = 'x' | 'ig'
-
-const SIZES: Record<PosterFormat, [number, number]> = {
-  x: [1200, 675],
-  ig: [1080, 1350],
+export function posterContent(result: RaceResult, paid: PaidResultView | undefined, lang: Lang) {
+  const rank = paid?.settlement?.rank ?? paid?.previewRank ?? result.rank
+  const payout = paid?.settlement?.payout ?? (paid?.phase === 'forfeited' ? 0n : null)
+  const net = payout !== null && paid ? payout - paid.stake : null
+  const amount = !paid ? t(lang, 'result.practice') : net === null ? t(lang, 'result.pendingValue')
+    : `${net > 0n ? '+' : ''}${formatMon(net, 4).replace(/\.?0+$/, '')} MON`
+  const status = !paid ? t(lang, 'result.practiceValue') : `${t(lang, `result.stamp.${paid.phase}`)} · ${paid.settlement ? t(lang, 'result.chainRank', { rank }) : t(lang, 'result.previewRank', { rank })}`
+  return { horseId: result.horseId, rank, amount, status, name: HORSE_PROFILES[result.horseId]!.name,
+    headline: rank === 1 && (!paid || (net !== null && net > 0n)) ? 'WIN' : 'FINISH' }
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('poster image failed: ' + src))
-    img.src = src
-  })
+export const POSTER = { width: 1620, height: 971, qr: { x: 220, y: 594, size: 220, angle: -0.04 } } as const
+
+/** Hoof contacts measured on the five generated overlays; register them to the podium plane. */
+export const HORSE_FOOTINGS = [
+  { rear: [286, 694], front: [815, 717] },
+  { rear: [269, 826], front: [898, 838] },
+  { rear: [280, 723], front: [833, 740] },
+  { rear: [267, 738], front: [786, 745] },
+  { rear: [308, 793], front: [908, 818] },
+] as const
+
+export function horseTransform(horseId: number): [number, number, number, number, number, number] {
+  const { rear, front } = HORSE_FOOTINGS[horseId]
+  const scale = 350 / (front[0] - rear[0])
+  const slope = (31 - scale * (front[1] - rear[1])) / (front[0] - rear[0])
+  return [scale, slope, 0, scale, 330 - scale * rear[0], 545 - slope * rear[0] - scale * rear[1]]
 }
 
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-): void {
-  ctx.beginPath()
-  ctx.moveTo(x + r, y)
-  ctx.arcTo(x + w, y, x + w, y + h, r)
-  ctx.arcTo(x + w, y + h, x, y + h, r)
-  ctx.arcTo(x, y + h, x, y, r)
-  ctx.arcTo(x, y, x + w, y, r)
-  ctx.closePath()
+async function loadImage(src: string): Promise<HTMLImageElement> {
+  const img = new Image()
+  img.src = src
+  await img.decode()
+  return img
 }
 
-export async function drawPoster(
-  result: RaceResult,
-  stakeTier: number,
-  lang: Lang,
-  format: PosterFormat,
-): Promise<Blob> {
-  const [W, H] = SIZES[format]
+export async function drawPoster(content: ReturnType<typeof posterContent>): Promise<Blob> {
+  await document.fonts.load('700 40px Kalam')
+  const [background, hero, medal, qr, headline, prizeGroup] = await Promise.all([
+    loadImage('/assets/art/share/background.webp'),
+    loadImage(`/assets/art/share/horse-${content.horseId}.webp`),
+    loadImage(`/assets/art/result/medal-${content.rank}.webp`),
+    loadImage('/assets/art/share/qr.png'),
+    loadImage(`/assets/art/share/${content.headline.toLowerCase()}.webp`),
+    loadImage('/assets/art/share/prize-group.webp'),
+  ])
   const canvas = document.createElement('canvas')
-  canvas.width = W
-  canvas.height = H
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('canvas 2d unavailable')
-
-  const prof = HORSE_PROFILES[result.horseId]!
-  const stake = STAKE_PRESETS[stakeTier]!
-  const payout = (stake * PAYOUT_TABLE[result.rank - 1]!) / FP
-
-  // 背景
-  const grad = ctx.createLinearGradient(0, 0, 0, H)
-  grad.addColorStop(0, '#f7e9d8')
-  grad.addColorStop(1, '#d9b491')
-  ctx.fillStyle = grad
-  ctx.fillRect(0, 0, W, H)
-  ctx.fillStyle = '#b77249'
-  ctx.fillRect(0, H * 0.62, W, H * 0.1)
-  ctx.strokeStyle = '#ebbe9c'
-  ctx.lineWidth = 4
-  for (let i = 1; i < 3; i++) {
-    const y = H * 0.62 + (H * 0.1 * i) / 3
+  canvas.width = POSTER.width; canvas.height = POSTER.height
+  const ctx = canvas.getContext('2d')!
+  ctx.drawImage(background, 0, 0, POSTER.width, POSTER.height)
+  // Sign, coin and the social captions move as one registered artwork layer.
+  ctx.save()
+  ctx.translate(0, 20)
+  ctx.drawImage(prizeGroup, 0, 0, POSTER.width, POSTER.height)
+  ctx.restore()
+  // Dedicated overlays include perspective-correct hooves and contact shadows.
+  ctx.save()
+  ctx.transform(...horseTransform(content.horseId))
+  ctx.drawImage(hero, 0, 0)
+  ctx.restore()
+  ctx.drawImage(medal, 492, 548, 255, 255 * medal.height / medal.width)
+  if (content.headline === 'WIN') {
+    ctx.save()
+    // Preserve the reference's brush texture; exclude the extracted underline.
     ctx.beginPath()
-    ctx.moveTo(0, y)
-    ctx.lineTo(W, y)
-    ctx.stroke()
+    ctx.moveTo(850, 65); ctx.lineTo(1450, 65); ctx.lineTo(1450, 300)
+    ctx.lineTo(1100, 300); ctx.lineTo(1100, 385); ctx.lineTo(850, 385)
+    ctx.closePath(); ctx.clip()
+    ctx.drawImage(headline, 699, 124, 914, 532, 850, 65, 600, 320)
+    ctx.restore()
+  } else {
+    // Clear of the crown above and the white promotional lettering below/right.
+    const height = 470 * 628 / 2097
+    ctx.save()
+    ctx.translate(1125, 145 + height / 2); ctx.rotate(-0.14)
+    ctx.drawImage(headline, 25, 32, 2097, 628, -235, -height / 2, 470, height)
+    ctx.restore()
   }
-
-  // 标题
-  ctx.fillStyle = '#57250c'
-  ctx.font = `900 ${Math.round(W * 0.055)}px "Arial Black", sans-serif`
-  ctx.textBaseline = 'top'
-  ctx.fillText('Ponygogogo', W * 0.06, H * 0.06)
-  ctx.font = `600 ${Math.round(W * 0.021)}px sans-serif`
-  ctx.fillStyle = '#8a5a3a'
-  ctx.fillText('Run · Collect · Play', W * 0.06, H * 0.06 + W * 0.062)
-
-  // 小马
-  try {
-    const pony = await loadImage(`/assets/art/ponies/${result.horseId}-idle-0.webp`)
-    const pw = W * 0.3
-    ctx.drawImage(pony, W * 0.05, H * 0.46, pw, pw * 0.75)
-  } catch {
-    ctx.fillStyle = hexCss(prof.body)
-    ctx.fillRect(W * 0.06, H * 0.5, W * 0.2, H * 0.12)
-  }
-
-  // 名次
-  ctx.fillStyle = result.rank === 1 ? '#d98f12' : '#57250c'
-  ctx.font = `900 ${Math.round(W * 0.16)}px "Arial Black", sans-serif`
-  ctx.fillText(`#${result.rank}`, W * 0.42, H * 0.17)
-  ctx.fillStyle = '#57250c'
-  ctx.font = `800 ${Math.round(W * 0.03)}px sans-serif`
-  ctx.fillText(prof.name, W * 0.42, H * 0.17 + W * 0.17)
-  ctx.font = `600 ${Math.round(W * 0.022)}px sans-serif`
-  ctx.fillStyle = '#7a5236'
-  ctx.fillText(
-    `${(result.finishTick / SIM_HZ).toFixed(2)}s · ${stake} MON → ${payout} MON`,
-    W * 0.42,
-    H * 0.17 + W * 0.21,
-  )
-
-  // 三张牌
-  const cardW = W * 0.15
-  const cardH = cardW * 1.13
-  const baseY = format === 'ig' ? H * 0.74 : H * 0.6
-  for (let i = 0; i < result.choices.length; i++) {
-    const c = result.choices[i]!
-    const x = W * 0.42 + i * (cardW + W * 0.02)
-    ctx.fillStyle = 'rgba(255,248,238,0.92)'
-    roundRect(ctx, x, baseY, cardW, cardH, 14)
-    ctx.fill()
-    ctx.strokeStyle = c.cardId && CARD_BY_ID[c.cardId]?.quality === 'rare' ? '#f4a22a' : '#a3714c'
-    ctx.lineWidth = 5
-    ctx.stroke()
-    const def = c.cardId ? CARD_BY_ID[c.cardId] : null
-    if (def) {
-      try {
-        const icon = await loadImage(`/assets/placeholder/icons/${def.art.icon}.webp`)
-        ctx.drawImage(icon, x + cardW * 0.18, baseY + cardH * 0.1, cardW * 0.64, cardW * 0.64)
-      } catch {
-        /* 图标缺失降级为纯文字 */
-      }
-      ctx.fillStyle = '#5b2d10'
-      ctx.font = `800 ${Math.round(cardW * 0.13)}px sans-serif`
-      ctx.textAlign = 'center'
-      const name = def.name[lang]
-      ctx.fillText(name.slice(0, 7), x + cardW / 2, baseY + cardH * 0.78, cardW * 0.9)
-      ctx.textAlign = 'left'
-    } else {
-      ctx.fillStyle = '#9b7a5f'
-      ctx.font = `700 ${Math.round(cardW * 0.14)}px sans-serif`
-      ctx.textAlign = 'center'
-      ctx.fillText('—', x + cardW / 2, baseY + cardH * 0.42)
-      ctx.textAlign = 'left'
-    }
-  }
-
-  // 页脚：seed 前若干位，便于复现同一副牌堆
-  ctx.fillStyle = '#7a5236'
-  ctx.font = `600 ${Math.round(W * 0.016)}px monospace`
-  ctx.fillText(`seed ${result.seed.slice(0, 12)}…  race ${result.raceId}`, W * 0.06, H * 0.93)
-
-  return await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png')
-  })
+  ctx.save()
+  ctx.translate(1250, 555); ctx.rotate(-0.12)
+  ctx.fillStyle = '#3e220d'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.font = '700 42px Kalam'
+  const amountSize = Math.min(42, 42 * 250 / ctx.measureText(content.amount).width)
+  ctx.font = `700 ${amountSize}px Kalam`
+  ctx.fillText(content.amount, -8, -13)
+  ctx.font = '700 26px Kalam'; ctx.fillText(`Great Run, ${content.name}!`, -30, 47, 320)
+  ctx.restore()
+  // The alpha PNG retains the original QR pattern and follows the parchment's tilt.
+  ctx.save()
+  ctx.translate(POSTER.qr.x + POSTER.qr.size / 2, POSTER.qr.y + POSTER.qr.size / 2)
+  ctx.rotate(POSTER.qr.angle)
+  ctx.imageSmoothingEnabled = false
+  const qrScale = POSTER.qr.size / Math.max(qr.width, qr.height)
+  ctx.drawImage(qr, -qr.width * qrScale / 2, -qr.height * qrScale / 2, qr.width * qrScale, qr.height * qrScale)
+  ctx.restore()
+  return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Poster export failed')), 'image/png'))
 }
 
-export interface ShareCaps {
-  canShareFiles: boolean
+export function copyPoster(blob: Blob): Promise<void> {
+  if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') return Promise.reject(new Error('Clipboard unavailable'))
+  // Invoke write immediately in the click's user activation, including Safari.
+  return navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
 }
 
-export function shareCaps(blob?: Blob): ShareCaps {
-  if (typeof navigator === 'undefined' || !navigator.canShare) return { canShareFiles: false }
-  try {
-    const f = new File([blob ?? new Blob()], 'poster.png', { type: 'image/png' })
-    return { canShareFiles: navigator.canShare({ files: [f] }) }
-  } catch {
-    return { canShareFiles: false }
-  }
-}
-
-export function downloadBlob(blob: Blob, filename: string): void {
+export function downloadBlob(blob: Blob, filename = 'ponygogogo.png'): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
+  a.href = url; a.download = filename
+  document.body.appendChild(a); a.click(); a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 4000)
 }
 
-export async function sharePoster(blob: Blob, text: string): Promise<'shared' | 'downloaded'> {
-  const file = new File([blob], 'ponygogogo.png', { type: 'image/png' })
-  if (navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], text })
-      return 'shared'
-    } catch {
-      /* 用户取消或不支持，降级为下载 */
-    }
-  }
-  downloadBlob(blob, 'ponygogogo.png')
-  return 'downloaded'
+export function platformUrl(platform: 'x' | 'instagram' | 'xiaohongshu', text: string): string {
+  if (platform === 'x') return `https://x.com/intent/post?${new URLSearchParams({ text })}`
+  if (platform === 'instagram') return 'https://www.instagram.com/'
+  return 'https://www.xiaohongshu.com/'
 }

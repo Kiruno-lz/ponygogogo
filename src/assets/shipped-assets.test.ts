@@ -98,6 +98,11 @@ describe('动态拼接的资源族', () => {
   })
 
   // src/result/ResultScreen.tsx——名次 1..5 各一枚奖牌，五匹马各一张结算立绘
+  test('五匹马使用独立海报立绘，结束标题使用两份透明素材', () => {
+    for (const p of HORSE_PROFILES) expect(existsSync(join(PUBLIC, `/assets/art/share/horse-${p.horseId}.webp`))).toBe(true)
+    for (const name of ['win', 'finish', 'prize-group']) expect(existsSync(join(PUBLIC, `/assets/art/share/${name}.webp`))).toBe(true)
+  })
+
   test('结算奖牌与立绘', () => {
     for (let rank = 1; rank <= 5; rank++) {
       expect(existsSync(join(PUBLIC, `/assets/art/result/medal-${rank}.webp`)), `medal-${rank}`).toBe(true)
@@ -196,4 +201,11 @@ describe('显示尺寸表', () => {
     const matched = keys.filter((k) => shipped.has(k)).length
     expect(matched / keys.length, `只有 ${matched}/${keys.length} 对得上`).toBeGreaterThan(0.8)
   })
+})
+
+// The derived alpha QR must ship losslessly; its input stays in art-src unchanged.
+test('透明二维码使用独立 PNG 产物并保持母版像素', () => {
+  const runtime = readFileSync(join(PUBLIC, 'assets/art/share/qr.png'))
+  expect(runtime.equals(readFileSync(join(ROOT, 'art-src/art/share/qr.png')))).toBe(true)
+  expect(runtime[25]).toBe(6) // RGBA
 })

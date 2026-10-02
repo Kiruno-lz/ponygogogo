@@ -6,10 +6,11 @@
  *   （`acquired`）只取 `SessionSettled`。印章写结算中 / 已结算 / 结算失败 / 已判负；结算交易提交后显示 tx 与
  *   浏览器链接；失败的完整说明、结算期限与「重试结算」放在按钮行下方，不挤进印章。没有退款：判负返还 0。
  *
- * 画面按 art-src/renders/result.png 的原始坐标摆放：1620×971 的画板上，
- * 背景、奖章名牌、标题木牌、数据木纸和三个按钮都是各自的透明切片，
- * 文字层压在切片被抹空的位置上。改版面等于改这里的绝对坐标，不靠自动流式布局。
+ * 1620×971 画板上的透明素材保持原始宽高比；文字与素材一起布局。
+ * 分享海报使用独立空白素材，动态内容与本页共用比赛和链上结算结果。
  */
+import { useState } from 'react'
+import { SharePosterDialog } from './SharePosterDialog.tsx'
 import type { Hex } from 'viem'
 import { formatMon } from '../chain/amount.ts'
 import { explorerTxUrl } from '../chain/network.ts'
@@ -77,12 +78,11 @@ export interface ResultScreenProps {
   paid?: PaidResultView
   onAgain: () => void
   onHome: () => void
-  onShare: () => void
-  shared: boolean
   choiceNotes?: (string | null)[]
 }
 
 export function ResultScreen(p: ResultScreenProps) {
+  const [shareOpen, setShareOpen] = useState(false)
   const prof = HORSE_PROFILES[p.result.horseId]!
   const combo = p.result.endReason === 'forced-combo'
   const hero = HERO_FRAMES[p.result.horseId] ?? HERO_FRAMES[0]!
@@ -236,8 +236,8 @@ export function ResultScreen(p: ResultScreenProps) {
         <ArtButton
           art="share"
           className="result-btn-share"
-          label={p.shared ? t(p.lang, 'result.shared') : t(p.lang, 'result.share')}
-          onClick={p.onShare}
+          label={t(p.lang, 'result.share')}
+          onClick={() => setShareOpen(true)}
         />
         <ArtButton art="again" className="result-btn-again" label={t(p.lang, 'result.again')} onClick={p.onAgain} />
 
@@ -269,6 +269,7 @@ export function ResultScreen(p: ResultScreenProps) {
           </div>
         )}
       </div>
+      {shareOpen && <SharePosterDialog lang={p.lang} result={p.result} paid={p.paid} onClose={() => setShareOpen(false)} />}
     </div>
   )
 }

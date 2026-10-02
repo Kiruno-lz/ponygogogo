@@ -10,13 +10,14 @@
 import { useEffectEvent, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { openModal } from './modalHost.ts'
 
-export function StageDialog({ label, testId, busy = false, onDismiss, children }: {
+export function StageDialog({ label, testId, busy = false, onDismiss, children, className }: {
   /** 可访问名：窗口标题 */
   label: string
   testId: string
   /** 进行中：Escape、点遮罩、返回手势都不关闭 */
   busy?: boolean
   onDismiss: () => void
+  className?: string
   children: ReactNode
 }) {
   const ref = useRef<HTMLDialogElement | null>(null)
@@ -34,7 +35,7 @@ export function StageDialog({ label, testId, busy = false, onDismiss, children }
   }, [])
 
   return (
-    <dialog ref={ref} className="stage-dialog" data-testid={testId} aria-label={label}>
+    <dialog ref={ref} className={`stage-dialog${className ? ` ${className}` : ''}`} data-testid={testId} aria-label={label}>
       {children}
     </dialog>
   )
