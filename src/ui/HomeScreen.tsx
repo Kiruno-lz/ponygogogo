@@ -13,7 +13,7 @@ import { t, type Lang } from './i18n.ts'
 export type WalletBusy = 'register' | 'login' | null
 
 export function HomeScreen({ lang, account, gameAccount, balance, busy, error, onStart, onCollection, onSettings,
-  onRegister, onLogin, onOpenWallet, onLogout, onToggleLang }: {
+  onRegister, onLogin, onOpenWallet, onLogout, onToggleLang, onOpenEffects }: {
   /** 根 EOA 只决定「是否已登录」；木牌上展示的是游戏账户（sma-b）的地址与余额 */
   lang: Lang; account: WalletAccount | null; gameAccount: GameAccount | null
   /** sma-b 的原生 MON 余额；null = 还没读到 */
@@ -21,6 +21,8 @@ export function HomeScreen({ lang, account, gameAccount, balance, busy, error, o
   onStart: () => void; onCollection: () => void; onSettings: () => void
   onRegister: () => void; onLogin: () => void; onOpenWallet: () => void; onLogout: () => void
   onToggleLang: () => void
+  /** 仅由 Vite 开发构建传入；生产首页不显示验收入口 */
+  onOpenEffects?: () => void
 }) {
   // 英文时主副标题会重复，只留主标题
   const sub = (key: 'home.startEn' | 'home.collectionEn' | 'home.settingsEn') =>
@@ -45,6 +47,8 @@ export function HomeScreen({ lang, account, gameAccount, balance, busy, error, o
         <ArtButton art="register" label={busy === 'register' ? t(lang, 'home.registering') : t(lang, 'home.register')} onClick={onRegister} disabled={busy !== null}/>
       </>}
       {error && <p className="home-wallet-error" data-testid="wallet-error" role="alert">{error}</p>}
+      {onOpenEffects && <Chip label={t(lang, 'home.effectShowcase')} onClick={onOpenEffects}
+        style={{ position: 'absolute', left: 38, bottom: 30, fontSize: 15, padding: '5px 12px' }} />}
       <Chip label={lang === 'en' ? '中文' : 'EN'} onClick={onToggleLang} style={{ position: 'absolute', right: 38, bottom: 30, fontSize: 15, padding: '5px 12px' }}/>
     </div>
   </div>

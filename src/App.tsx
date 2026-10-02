@@ -39,6 +39,7 @@ import { PaidResumeModal } from './ui/PaidResumeModal.tsx'
 import { usePaidRace } from './ui/usePaidRace.ts'
 import { RaceScreen } from './ui/RaceScreen.tsx'
 import { SelectScreen } from './ui/SelectScreen.tsx'
+import { EffectShowcaseScreen } from './ui/EffectShowcaseScreen.tsx'
 import { SettingsScreen } from './ui/SettingsScreen.tsx'
 import { TierGate } from './ui/TierGate.tsx'
 import { t } from './ui/i18n.ts'
@@ -48,7 +49,7 @@ import { useGameFunds } from './ui/useGameFunds.ts'
 import { useStage } from './ui/useStage.ts'
 import { DESIGN_W, DESIGN_H } from './game/layout.ts'
 
-type Page = 'loading' | 'home' | 'select' | 'race' | 'result' | 'collection' | 'settings'
+type Page = 'loading' | 'home' | 'select' | 'race' | 'result' | 'collection' | 'settings' | 'effectShowcase'
 
 const EMPTY_PROGRESS: LoadProgress = { total: 0, done: 0, current: null, failures: [] }
 
@@ -59,6 +60,7 @@ const PREFETCH_TIERS: readonly AssetTier[] = ['race', 'result']
 /** 每个页面进去之前必须就绪的那一级 */
 const PAGE_TIER: Partial<Record<Page, AssetTier>> = {
   select: 'race',
+  effectShowcase: 'race',
   collection: 'race',
   settings: 'race',
   result: 'result',
@@ -583,6 +585,16 @@ export default function App() {
             onOpenWallet={() => setWalletOpen(true)}
             onLogout={logout}
             onToggleLang={() => setSettings((s) => ({ ...s, lang: s.lang === 'zh' ? 'en' : 'zh' }))}
+            onOpenEffects={import.meta.env.DEV ? () => go('effectShowcase') : undefined}
+          />
+        )}
+        {import.meta.env.DEV && page === 'effectShowcase' && audio && (
+          <EffectShowcaseScreen
+            lang={lang}
+            reducedMotion={settings.reducedMotion}
+            audio={audio}
+            urls={urls}
+            onBack={() => setPage('home')}
           />
         )}
         {page === 'select' && (
