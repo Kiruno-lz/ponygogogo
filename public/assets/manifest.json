@@ -1,18 +1,4 @@
 {
-  "art.cosmetics.blonde-hair": {
-    "kind": "image",
-    "path": "assets/art/cosmetics/blonde-hair.webp",
-    "bytes": 8640,
-    "sha256": "7ab77007782a4760",
-    "tier": "race"
-  },
-  "art.cosmetics.green-hair": {
-    "kind": "image",
-    "path": "assets/art/cosmetics/green-hair.webp",
-    "bytes": 8334,
-    "sha256": "b3b13b94d4c333a8",
-    "tier": "race"
-  },
   "art.effects.blackhole-sheet": {
     "kind": "image",
     "path": "assets/art/effects/blackhole-sheet.webp",
@@ -39,13 +25,6 @@
     "path": "assets/art/effects/rocket-sheet.webp",
     "bytes": 210280,
     "sha256": "8ba4899ab9733671",
-    "tier": "race"
-  },
-  "art.effects.spin-thrust-sheet": {
-    "kind": "image",
-    "path": "assets/art/effects/spin-thrust-sheet.webp",
-    "bytes": 365458,
-    "sha256": "47dcaef60b27c7fd",
     "tier": "race"
   },
   "art.effects.wind-sheet": {
@@ -97,18 +76,18 @@
     "sha256": "e0845ac13e4f3000",
     "tier": "home"
   },
-  "art.ponies.0-idle-0": {
-    "kind": "image",
-    "path": "assets/art/ponies/0-idle-0.webp",
-    "bytes": 14646,
-    "sha256": "e5a15ff9c9cae2dc",
-    "tier": "race"
-  },
   "art.ponies.0-idle": {
     "kind": "image",
     "path": "assets/art/ponies/0-idle.webp",
     "bytes": 115408,
     "sha256": "a8d1a0afd96cf5df",
+    "tier": "race"
+  },
+  "art.ponies.0-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/0-idle-0.webp",
+    "bytes": 14646,
+    "sha256": "e5a15ff9c9cae2dc",
     "tier": "race"
   },
   "art.ponies.0-portrait": {
@@ -125,18 +104,18 @@
     "sha256": "d692a09ccb4c662a",
     "tier": "race"
   },
-  "art.ponies.1-idle-0": {
-    "kind": "image",
-    "path": "assets/art/ponies/1-idle-0.webp",
-    "bytes": 11840,
-    "sha256": "5b828f42f6077137",
-    "tier": "race"
-  },
   "art.ponies.1-idle": {
     "kind": "image",
     "path": "assets/art/ponies/1-idle.webp",
     "bytes": 90334,
     "sha256": "f116435a345a74de",
+    "tier": "race"
+  },
+  "art.ponies.1-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/1-idle-0.webp",
+    "bytes": 11840,
+    "sha256": "5b828f42f6077137",
     "tier": "race"
   },
   "art.ponies.1-portrait": {
@@ -153,18 +132,18 @@
     "sha256": "b347b68061a563fb",
     "tier": "race"
   },
-  "art.ponies.2-idle-0": {
-    "kind": "image",
-    "path": "assets/art/ponies/2-idle-0.webp",
-    "bytes": 13330,
-    "sha256": "db3aa7b3a322c8d2",
-    "tier": "race"
-  },
   "art.ponies.2-idle": {
     "kind": "image",
     "path": "assets/art/ponies/2-idle.webp",
     "bytes": 103028,
     "sha256": "ec926dc2d2d8de07",
+    "tier": "race"
+  },
+  "art.ponies.2-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/2-idle-0.webp",
+    "bytes": 13330,
+    "sha256": "db3aa7b3a322c8d2",
     "tier": "race"
   },
   "art.ponies.2-portrait": {
@@ -181,18 +160,18 @@
     "sha256": "5d0671e863c7ca1c",
     "tier": "race"
   },
-  "art.ponies.3-idle-0": {
-    "kind": "image",
-    "path": "assets/art/ponies/3-idle-0.webp",
-    "bytes": 10500,
-    "sha256": "88609f16ed4e0e6f",
-    "tier": "race"
-  },
   "art.ponies.3-idle": {
     "kind": "image",
     "path": "assets/art/ponies/3-idle.webp",
     "bytes": 82530,
     "sha256": "65c565662a15b229",
+    "tier": "race"
+  },
+  "art.ponies.3-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/3-idle-0.webp",
+    "bytes": 10500,
+    "sha256": "88609f16ed4e0e6f",
     "tier": "race"
   },
   "art.ponies.3-portrait": {
@@ -209,18 +188,18 @@
     "sha256": "123d550d917dafcb",
     "tier": "race"
   },
-  "art.ponies.4-idle-0": {
-    "kind": "image",
-    "path": "assets/art/ponies/4-idle-0.webp",
-    "bytes": 12982,
-    "sha256": "e9d5f62c535501f5",
-    "tier": "race"
-  },
   "art.ponies.4-idle": {
     "kind": "image",
     "path": "assets/art/ponies/4-idle.webp",
     "bytes": 101864,
     "sha256": "94d9f1d96eb40ce4",
+    "tier": "race"
+  },
+  "art.ponies.4-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/4-idle-0.webp",
+    "bytes": 12982,
+    "sha256": "e9d5f62c535501f5",
     "tier": "race"
   },
   "art.ponies.4-portrait": {
@@ -354,13 +333,6 @@
     "path": "assets/art/result/stats-board.webp",
     "bytes": 62284,
     "sha256": "70d4039c1fe183a8",
-    "tier": "result"
-  },
-  "art.share.background": {
-    "kind": "image",
-    "path": "assets/art/share/background.webp",
-    "bytes": 227052,
-    "sha256": "5ae6bc8218e4480f",
     "tier": "result"
   },
   "art.track.far": {
@@ -573,18 +545,18 @@
     "sha256": "7c08e0d5b6365763",
     "tier": "race"
   },
-  "art.ui.stamina-reference-empty": {
-    "kind": "image",
-    "path": "assets/art/ui/stamina-reference-empty.webp",
-    "bytes": 21066,
-    "sha256": "7f9925db694e9dff",
-    "tier": "race"
-  },
   "art.ui.stamina-reference": {
     "kind": "image",
     "path": "assets/art/ui/stamina-reference.webp",
     "bytes": 22786,
     "sha256": "83518a09649b78a8",
+    "tier": "race"
+  },
+  "art.ui.stamina-reference-empty": {
+    "kind": "image",
+    "path": "assets/art/ui/stamina-reference-empty.webp",
+    "bytes": 21066,
+    "sha256": "7f9925db694e9dff",
     "tier": "race"
   },
   "art.ui.star-race-source": {
@@ -807,6 +779,139 @@
     "tier": "home",
     "alt": "assets/placeholder/audio/sfx_ui_hover.mp3"
   },
+  "cards.card-22": {
+    "kind": "image",
+    "path": "assets/cards/card-22.svg",
+    "bytes": 309,
+    "sha256": "c6fe0aac02e463e9",
+    "tier": "race"
+  },
+  "cards.card-23": {
+    "kind": "image",
+    "path": "assets/cards/card-23.svg",
+    "bytes": 311,
+    "sha256": "bfb98b7f004749ac",
+    "tier": "race"
+  },
+  "cards.card-24": {
+    "kind": "image",
+    "path": "assets/cards/card-24.svg",
+    "bytes": 291,
+    "sha256": "b28776c6939ee113",
+    "tier": "race"
+  },
+  "cards.card-25": {
+    "kind": "image",
+    "path": "assets/cards/card-25.svg",
+    "bytes": 307,
+    "sha256": "2cc3326c756a19ca",
+    "tier": "race"
+  },
+  "cards.card-26": {
+    "kind": "image",
+    "path": "assets/cards/card-26.svg",
+    "bytes": 343,
+    "sha256": "3de76e690838119f",
+    "tier": "race"
+  },
+  "cards.card-27": {
+    "kind": "image",
+    "path": "assets/cards/card-27.svg",
+    "bytes": 287,
+    "sha256": "5bffbf1a8a07e900",
+    "tier": "race"
+  },
+  "cards.card-28": {
+    "kind": "image",
+    "path": "assets/cards/card-28.svg",
+    "bytes": 288,
+    "sha256": "d0ca6113c431958e",
+    "tier": "race"
+  },
+  "cards.card-29": {
+    "kind": "image",
+    "path": "assets/cards/card-29.svg",
+    "bytes": 388,
+    "sha256": "89ba5e822b2f51a7",
+    "tier": "race"
+  },
+  "cards.card-30": {
+    "kind": "image",
+    "path": "assets/cards/card-30.svg",
+    "bytes": 314,
+    "sha256": "669876edeeeee26f",
+    "tier": "race"
+  },
+  "cards.card-31": {
+    "kind": "image",
+    "path": "assets/cards/card-31.svg",
+    "bytes": 330,
+    "sha256": "5ff35ac96018a395",
+    "tier": "race"
+  },
+  "cards.card-32": {
+    "kind": "image",
+    "path": "assets/cards/card-32.svg",
+    "bytes": 365,
+    "sha256": "b05bbba813d36674",
+    "tier": "race"
+  },
+  "cards.card-33": {
+    "kind": "image",
+    "path": "assets/cards/card-33.svg",
+    "bytes": 355,
+    "sha256": "b082b48036eb5a3c",
+    "tier": "race"
+  },
+  "cards.card-34": {
+    "kind": "image",
+    "path": "assets/cards/card-34.svg",
+    "bytes": 327,
+    "sha256": "d4a6101bdd05a01d",
+    "tier": "race"
+  },
+  "cards.card-35": {
+    "kind": "image",
+    "path": "assets/cards/card-35.svg",
+    "bytes": 342,
+    "sha256": "d29c3e9d1676004b",
+    "tier": "race"
+  },
+  "cards.card-36": {
+    "kind": "image",
+    "path": "assets/cards/card-36.svg",
+    "bytes": 380,
+    "sha256": "845af0358c6e77d0",
+    "tier": "race"
+  },
+  "cards.card-37": {
+    "kind": "image",
+    "path": "assets/cards/card-37.svg",
+    "bytes": 370,
+    "sha256": "87815dfd4e0eca73",
+    "tier": "race"
+  },
+  "cards.card-38": {
+    "kind": "image",
+    "path": "assets/cards/card-38.svg",
+    "bytes": 342,
+    "sha256": "7b9bbfb0b709c578",
+    "tier": "race"
+  },
+  "cards.card-39": {
+    "kind": "image",
+    "path": "assets/cards/card-39.svg",
+    "bytes": 352,
+    "sha256": "ead315f11131ef9a",
+    "tier": "race"
+  },
+  "cards.card-40": {
+    "kind": "image",
+    "path": "assets/cards/card-40.svg",
+    "bytes": 340,
+    "sha256": "807b8d50137c95ee",
+    "tier": "race"
+  },
   "icons.icon_01": {
     "kind": "image",
     "path": "assets/placeholder/icons/icon_01.webp",
@@ -995,6 +1100,34 @@
     "bytes": 98236,
     "sha256": "e4bfcdedb729db0f",
     "tier": "race"
+  },
+  "art.cosmetics.blonde-hair": {
+    "kind": "image",
+    "path": "assets/art/cosmetics/blonde-hair.webp",
+    "bytes": 8640,
+    "sha256": "7ab77007782a4760",
+    "tier": "race"
+  },
+  "art.cosmetics.green-hair": {
+    "kind": "image",
+    "path": "assets/art/cosmetics/green-hair.webp",
+    "bytes": 8334,
+    "sha256": "b3b13b94d4c333a8",
+    "tier": "race"
+  },
+  "art.effects.spin-thrust-sheet": {
+    "kind": "image",
+    "path": "assets/art/effects/spin-thrust-sheet.webp",
+    "bytes": 365458,
+    "sha256": "47dcaef60b27c7fd",
+    "tier": "race"
+  },
+  "art.share.background": {
+    "kind": "image",
+    "path": "assets/art/share/background.webp",
+    "bytes": 227052,
+    "sha256": "5ae6bc8218e4480f",
+    "tier": "result"
   },
   "art.ui.star-gogo-face": {
     "kind": "image",

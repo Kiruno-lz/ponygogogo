@@ -1,6 +1,5 @@
 import { keccak256, toBytes, type Hex } from 'viem'
 import { chainEntropy } from './chainEntropy.ts'
-import { consumePaidChoice } from './paidChoice.ts'
 import { paidCardRule } from '../paid/cardRules.ts'
 import {
   INVALID_AUTO, INVALID_BAD_SLOT, INVALID_CUT, INVALID_EXHAUSTED, INVALID_NO_CREDIT, INVALID_NOT_OFFERED,
@@ -20,6 +19,11 @@ export function initialPaidDrawState(): PaidDrawState {
   return { cursor: 0, tailCursor: 14, refreshCredits: 0, automatic: false, forfeited: false }
 }
 
+function offer(deck: readonly number[], cursor: number) {
+  if (!Number.isInteger(cursor) || cursor < 0 || cursor + 3 > deck.length) throw new Error('DECK_EXHAUSTED')
+  return { candidates: deck.slice(cursor, cursor + 3), nextCursor: cursor + 3 }
+}
+
 function applyCard(state: PaidDrawState, cardId: number): PaidDrawState {
   if (cardId === 0) return state
   const rule = paidCardRule(cardId)
@@ -37,7 +41,7 @@ export function applyPaidChoice(
 ): PaidDrawState {
   if (state.automatic || state.forfeited) throw new Error('CHOICE_DISABLED')
   if (refreshSlots.length > state.refreshCredits) throw new Error('NO_REFRESH_CREDIT')
-  const { nextCursor, candidates } = consumePaidChoice(deck, state.cursor, [], 0)
+  const { nextCursor, candidates } = offer(deck, state.cursor)
   let tailCursor = state.tailCursor
   let refreshed = 0
   for (const slot of refreshSlots) {
@@ -87,7 +91,7 @@ export function resolvePaidAutomaticChoice(
   deck: readonly number[], state: PaidDrawState, seed: Hex, sealedAnchor: Hex, checkpoint: number,
 ): { state: PaidDrawState; cardId: number } {
   if (!state.automatic || state.forfeited) throw new Error('AUTOMATIC_CHOICE_DISABLED')
-  const offered = consumePaidChoice(deck, state.cursor, [], 0)
+  const offered = offer(deck, state.cursor)
   const index = Number(chainEntropy(seed, sealedAnchor, checkpoint, AUTOPICK_DOMAIN, 0n) % 3n)
   const cardId = offered.candidates[index]!
   return { state: applyCard({ ...state, cursor: offered.nextCursor }, cardId), cardId }

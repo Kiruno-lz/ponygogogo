@@ -41,7 +41,18 @@ export function exhaustedSpeed(m: PaidMotion): bigint {
 /** Δpos over dt whole milliseconds; non-decreasing in dt because m, b, aEff, K ≥ 0. */
 export function motionDelta(m: PaidMotion, dt: bigint): bigint {
   if (m.exhausted) return exhaustedSpeed(m) * dt
-  return m.mult * (2n * m.b * dt + m.aEff * dt * dt) / (2n * BPS) + m.fixed * 1000n * dt
+  let b = m.b
+  const initial = b * m.mult + m.fixed * 1000n * BPS
+  if (initial < 0n) {
+    const slope = m.aEff * m.mult
+    if (slope === 0n) return 0n
+    const zero = ceilDiv(-initial, slope)
+    if (dt <= zero) return 0n
+    dt -= zero
+    b += m.aEff * zero
+  }
+  const delta = m.mult * (2n * b * dt + m.aEff * dt * dt) / (2n * BPS) + m.fixed * 1000n * dt
+  return delta > 0n ? delta : 0n
 }
 
 /** Effective speed (mu/s) dt ms into the interval; rendering only, b is capped by capMilli. */
@@ -49,7 +60,8 @@ export function speedAt(m: PaidMotion, capMilli: bigint, dt: bigint): bigint {
   if (m.exhausted) return exhaustedSpeed(m)
   const grown = m.b + m.aEff * dt
   const b = grown > capMilli ? capMilli : grown
-  return b * m.mult / BPS + m.fixed * 1000n
+  const v = b * m.mult / BPS + m.fixed * 1000n
+  return v > 0n ? v : 0n
 }
 
 /** Smallest dt in [1, maxDt] with motionDelta(dt) ≥ need; caller guarantees motionDelta(maxDt) ≥ need > 0. */

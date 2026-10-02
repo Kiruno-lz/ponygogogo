@@ -186,6 +186,9 @@ export class RaceScene extends Phaser.Scene {
         case 'checkpoint':
           if (ev.horseId === this.driver.state.playerHorseId) this.flashPony(ev.horseId, 0xffe08a)
           break
+        case 'cardEffect':
+          this.showCardFeedback(ev)
+          break
         case 'finish':
           this.flashPony(ev.horseId, 0xfff3c4)
           break
@@ -205,6 +208,17 @@ export class RaceScene extends Phaser.Scene {
     }
     this.transferSprites.clear()
     this.transferringEquipments.clear()
+  }
+
+  private showCardFeedback(ev: Extract<RaceEvent, { type: 'cardEffect' }>): void {
+    const pony = this.ponies[ev.horseId]
+    if (!pony) return
+    const labels = { trigger: '✦', resource: `${ev.value >= 0 ? '+' : ''}${Math.round(ev.value)}`, fixed: `${ev.value >= 0 ? '+' : ''}${ev.value}`, target: '➤', guard: '◇', renew: '↻' }
+    const color = ev.kind === 'guard' ? '#e9c36b' : ev.kind === 'resource' && ev.value < 0 ? '#ed947d' : '#b5e4bf'
+    const label = this.add.text(pony.x, pony.y - 155, labels[ev.kind], { fontFamily: 'sans-serif', fontSize: '28px', color, stroke: '#4a2a14', strokeThickness: 4 })
+      .setOrigin(.5).setDepth(35)
+    if (this.reducedMotion) { this.time.delayedCall(900, () => label.destroy()); return }
+    this.tweens.add({ targets: label, y: label.y - 40, alpha: 0, duration: 1100, onComplete: () => label.destroy() })
   }
 
   private flashPony(horseId: number, color: number): void {

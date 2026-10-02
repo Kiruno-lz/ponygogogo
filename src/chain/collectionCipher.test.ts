@@ -17,5 +17,11 @@ test('wrong key, tampering and non-rare IDs cannot produce accepted collection s
   await expect(decryptCollection(saved, new Uint8Array(32).fill(0x32))).rejects.toThrow()
   const changed = `${saved.ciphertext.slice(0, -2)}${saved.ciphertext.endsWith('00') ? '01' : '00'}` as Hex
   await expect(decryptCollection({ ...saved, ciphertext: changed }, KEY)).rejects.toThrow()
-  await expect(encryptCollection(['C-22'], KEY)).rejects.toThrow('INVALID_RARE_CARD')
+  await expect(encryptCollection(['C-23'], KEY)).rejects.toThrow('INVALID_RARE_CARD')
+})
+
+test('the new event-solver rare cards survive collection encryption and recovery', async () => {
+  const saved = await encryptCollection(['C-22','C-31','C-40'], KEY)
+  expect(await decryptCollection(saved, KEY)).toEqual(['C-22','C-31','C-40'])
+  await expect(encryptCollection(['C-23'], KEY)).rejects.toThrow('INVALID_RARE_CARD')
 })

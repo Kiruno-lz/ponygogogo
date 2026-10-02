@@ -14,9 +14,9 @@ import type { PaidDrawState } from './core/paidDrawRules.ts'
 import { STAMINA_MAX } from './core/constants.ts'
 import { FP } from './core/fixed.ts'
 import type { EffectInstance, EquipSlot, HorseState, PendingChoice, RaceEvent, RaceState } from './core/types.ts'
-import { PAID_RULESET_HASH, paidCardRule } from './paid/cardRules.ts'
+import { PAID_RULESET_HASH, PAID_CARD_COUNT, paidCardRule } from './paid/cardRules.ts'
 import {
-  EV_BOMB_EXPLODE, EV_BOMB_PLACE, EV_CARD, EV_CHECKPOINT, EV_DEATH, EV_EQUIP_OFF, EV_EQUIP_ON, EV_EXHAUST_ENTER,
+  EV_EQUIP_REFRESH, EV_GUARD, EV_RESOURCE, EV_TRIGGER, EV_FIXED, EV_TARGET, EV_BOMB_EXPLODE, EV_BOMB_PLACE, EV_CARD, EV_CHECKPOINT, EV_DEATH, EV_EQUIP_OFF, EV_EQUIP_ON, EV_EXHAUST_ENTER,
   EV_EXHAUST_EXIT, EV_FINISH, EV_RESPAWN_END, EV_STEAL, EV_SWAP, EV_WIND, type PaidLoggedEvent,
 } from './paid/events.ts'
 import { bombsAt, sampleHorse, windAt, type PaidTrace, type PaidTraceInstance } from './paid/trace.ts'
@@ -33,7 +33,7 @@ export function paidCardNumber(key: string | null): number | null {
   const m = /^C-(\d{2})$/.exec(key)
   if (!m) return null
   const id = Number(m[1])
-  return id >= 1 && id <= 26 ? id : null
+  return id >= 1 && id <= PAID_CARD_COUNT ? id : null
 }
 
 export function demoPos(micro: bigint): number {
@@ -64,12 +64,14 @@ function ticks(ms: bigint | null): number | null {
   return ms === null ? null : Number(ms / TICK_MS)
 }
 
-function effectFrom(inst: PaidTraceInstance): EffectInstance[] {
+function effectFrom(inst: PaidTraceInstance, trace: PaidTrace, tau: bigint): EffectInstance[] {
+  let deadline = inst.plannedEndTau
+  for (const renewal of trace.renewals) if (renewal.instanceId === inst.id && renewal.tau <= tau) deadline = renewal.end
   const base = {
     instanceId: inst.id,
     ownerHorseId: inst.horse,
     appliedAtTick: tickOf(inst.startTau),
-    durationTicks: ticks(inst.plannedEndTau === null ? null : inst.plannedEndTau - inst.startTau),
+    durationTicks: ticks(deadline === null ? null : deadline - inst.startTau),
   }
   if (inst.kind === 'respawn') {
     return [{
@@ -95,10 +97,14 @@ function effectFrom(inst: PaidTraceInstance): EffectInstance[] {
     return [{ ...base, sourceCardId: key, primitive: 'Ability', moduleId: 'paid', tags: ['buff'], payload: { abilityId: 'clapSwap' } }]
   }
   if (inst.kind === 'bonus') return []
+  if (inst.kind === 'watch') {
+    const count = trace.events.filter(e => e.code === EV_TRIGGER && e.horse === inst.horse && e.tau <= tau && e.arg / 256n === BigInt(inst.cardId)).at(-1)?.arg ?? 0n
+    return [{ ...base, sourceCardId: key, primitive: 'Modifier', moduleId: 'paid', tags: ['buff'], payload: { stacks: Number(count % 256n), waiting: true } }]
+  }
   const statusId = effect === 'airborneSpeed' ? 'airborne' : effect === 'wired' ? 'wired' : undefined
   return [{
     ...base, sourceCardId: key, primitive: statusId ? 'Status' : 'Modifier', moduleId: 'paid',
-    tags: effect === 'speedDeath' ? ['buff', 'debuff'] : ['buff'],
+    tags: effect === 'speedDeath' ? ['buff', 'debuff'] : inst.initialP < 0 ? ['debuff'] : ['buff'],
     payload: statusId ? { statusId } : {},
   }]
 }
@@ -112,12 +118,15 @@ export function effectsAt(trace: PaidTrace, tau: bigint, exhausted: readonly boo
   const effects: EffectInstance[] = []
   for (const inst of trace.instances) {
     if (inst.startTau > tau || (inst.endTau !== null && tau >= inst.endTau)) continue
-    effects.push(...effectFrom(inst))
+    effects.push(...effectFrom(inst, trace, tau))
   }
+  const latestCoats = new Map<number, typeof trace.cards[number]>()
+  for (const card of trace.cards) if (card.tau <= tau && paidCardRule(card.cardId).effect === 'coat') latestCoats.set(card.horse, card)
   let permanentId = 100_000
   for (const card of trace.cards) {
     if (card.tau > tau) continue
     const rule = paidCardRule(card.cardId)
+    if (rule.effect === 'coat' && latestCoats.get(card.horse) !== card) continue
     const payload = rule.effect === 'coat' ? { statusId: 'coat' as const, coat: coatCss(rule.coatRgb!) }
       : rule.effect === 'blindFixed' ? { statusId: 'blindedPro' as const }
         : rule.effect === 'fixed' || rule.effect === 'refresh' || rule.effect === 'drawAuto' ? {}
@@ -294,6 +303,12 @@ export function toRaceEvent(e: PaidLoggedEvent, trace: PaidTrace, playerHorseId:
     }
     case EV_EXHAUST_ENTER: return { type: 'exhaustEnter', horseId: e.horse, tick }
     case EV_EXHAUST_EXIT: return { type: 'exhaustExit', horseId: e.horse, tick }
+    case EV_TRIGGER: return { type: 'cardEffect', horseId: e.horse, cardId: paidCardKey(Number(e.arg / 256n)), kind: 'trigger', value: Number(e.arg % 256n), tick }
+    case EV_RESOURCE: return { type: 'cardEffect', horseId: e.horse, kind: 'resource', value: Number(e.arg) / 1e6, tick }
+    case EV_FIXED: return { type: 'cardEffect', horseId: e.horse, kind: 'fixed', value: Number(e.arg), tick }
+    case EV_TARGET: return { type: 'cardEffect', horseId: e.horse, cardId: 'C-34', kind: 'target', value: Number(e.arg), tick }
+    case EV_GUARD: return { type: 'cardEffect', horseId: e.horse, cardId: 'C-37', kind: 'guard', value: 1, tick }
+    case EV_EQUIP_REFRESH: return { type: 'cardEffect', horseId: e.horse, cardId: 'C-32', kind: 'renew', value: Number(e.arg), tick }
     case EV_WIND: return { type: 'wind', dir: e.arg < 0n ? -1 : 1, tick }
     default: return null
   }

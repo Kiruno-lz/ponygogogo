@@ -1,6 +1,6 @@
 /**
- * Cross-language vectors for paid ruleset v3 (docs/plan/onchain-services.md 「有奖规则 v3」).
- * The Solidity solver must reproduce every field of tests/vectors/paid-race-v3.json bit for bit.
+ * Cross-language vectors for paid ruleset v4 (docs/plan/onchain-services.md 「有奖规则 v3」).
+ * The Solidity solver must reproduce every field of tests/vectors/paid-race-v4.json bit for bit.
  *
  *   bun scripts/gen-paid-vectors.ts          # (re)write the file
  *   bun scripts/gen-paid-vectors.ts --check  # fail when the file differs from a fresh solve
@@ -19,11 +19,11 @@ import { PAID_RULESET_HASH } from '../src/race/paid/constants.ts'
 import { derivePaidCoreInput } from '../src/race/paid/race.ts'
 import { solvePaidCore, type PaidChoiceSlot, type PaidCoreInput, type PaidCoreProfile } from '../src/race/paid/solver.ts'
 import {
-  FIXTURE_SEED, fixtureAnchor, fixtureInput, fixtureProfiles, ignoredChoice, pickAt, QUIET_DECK, withSlot,
+  FIXTURE_SEED, fixtureAnchor, fixtureInput, fixtureProfiles, ignoredChoice, pickAt, playNewCards, QUIET_DECK, withSlot,
 } from '../src/race/paid/testkit.ts'
 import { solveVectorCase, type PaidVectorCase } from '../src/race/paid/vectorCodec.ts'
 
-const OUT = new URL('../tests/vectors/paid-race-v3.json', import.meta.url)
+const OUT = new URL('../tests/vectors/paid-race-v4.json', import.meta.url)
 const GENERATOR_LABEL = 'ponygogogo/paid-vectors/v3'
 
 function rng(label: string) {
@@ -61,7 +61,7 @@ function randomChoices(input: PaidCoreInput, label: string): PaidCoreInput {
 }
 
 /**
- * 有奖规则 v3 fuzz: arbitrary stored choices as PonyGame.chooseCard accepts them (any txSec, cardId 0..26, 0–3 refresh
+ * 有奖规则 v3 fuzz: arbitrary stored choices as PonyGame.chooseCard accepts them (any txSec, cardId 0..40, 0–3 refresh
  * slots 0..2 with repeats, any checkpoint subset). Seconds: 5/8 inside [open − 2, open + 22], 1/8 on the window edges
  * (open − 1, open + 19, open + 20), 1/8 in [0, 200), 1/8 anywhere in uint32; half without refreshes; two thirds of the
  * cards from the current offer. `open` is the panel's canonical openSec given the earlier stored choices.
@@ -82,7 +82,7 @@ function fuzzChoices(input: PaidCoreInput, label: string): PaidCoreInput {
     if (txSec < 0n) txSec = 0n
     const refreshSlots = r.below(2) === 0 ? [] : Array.from({ length: 1 + r.below(3) }, () => r.below(3))
     const offer = stop.panel?.candidates ?? []
-    const cardId = r.below(3) !== 0 && offer.length === 3 ? [0, ...offer][r.below(4)]! : r.below(27)
+    const cardId = r.below(3) !== 0 && offer.length === 3 ? [0, ...offer][r.below(4)]! : r.below(41)
     current = withSlot(current, k, { txSec, cardId, refreshSlots, anchor: r.hash() })
   }
   return current
@@ -91,7 +91,7 @@ function fuzzChoices(input: PaidCoreInput, label: string): PaidCoreInput {
 /** A 14-card deck with C-05 offered first, and C-04/C-03 somewhere in the first nine cards or absent. */
 function fuzzDeck(label: string): number[] {
   const r = rng(label)
-  const pool = Array.from({ length: 26 }, (_, i) => i + 1).filter((c) => c !== 3 && c !== 4 && c !== 5)
+  const pool = Array.from({ length: 40 }, (_, i) => i + 1).filter((c) => c !== 3 && c !== 4 && c !== 5)
   const deck: number[] = []
   while (deck.length < 14) deck.push(pool.splice(r.below(pool.length), 1)[0]!)
   deck[r.below(3)] = 5
@@ -141,46 +141,46 @@ function build(stats: FuzzStats): PaidVectorCase[] {
   }
 
   // Every card on the player (picked at a varying checkpoint) and on a CPU (at a varying checkpoint).
-  for (let card = 1; card <= 26; card++) {
+  for (let card = 1; card <= 40; card++) {
     const k = ([3, 4, 5].includes(card) ? 1 : card % 3 + 1) as 1 | 2 | 3
     const front = [22, 23, 24, 25, 26, 20, 19, 17, 18].filter((c) => c !== card)
     front.splice(3 * (k - 1), 0, card)
     const playerInput = pickAt(fixtureInput({ playerDeck: deckFront(front.slice(0, 9)) }), k, card, { anchor: fixtureAnchor(0x40 + card) })
     add(`card-${card}-player-cp${k}`, playerInput)
     const horse = [0, 2, 3, 4][card % 4]!
-    const cpuDeck = [24, 25, 26].filter((c) => c !== card).slice(0, 2)
+    const cpuDeck = [19, 20, 5].filter((c) => c !== card).slice(0, 2)
     cpuDeck.splice(card % 3, 0, card)
     add(`card-${card}-cpu${horse}-cp${card % 3 + 1}`, fixtureInput({ cpu: { [horse]: cpuDeck } }))
   }
 
   // Hazards and interactions.
-  add('bombs-two-placers-respawn-immunity', fixtureInput({ cpu: { 0: [6, 25, 26], 2: [6, 25, 26] } }))
+  add('bombs-two-placers-respawn-immunity', fixtureInput({ cpu: { 0: [6, 20, 5], 2: [6, 20, 5] } }))
   add('bombs-airborne-passes', fixtureInput({ profiles: profilesWith({ 3: { base: 1_000n, acceleration: 10n, cap: 1_500n } }),
-    cpu: { 4: [24, 6, 25], 3: [1, 25, 26] } }))
-  add('bombs-blinded-pro-immune', pickAt(fixtureInput({ playerDeck: deckFront([21]), cpu: { 4: [24, 6, 25] } }), 1, 21))
-  add('death-resets-k', fixtureInput({ cpu: { 0: [2, 17, 25] } }))
-  add('gravity-multi-well', fixtureInput({ cpu: { 0: [10, 25, 26], 2: [10, 25, 26], 3: [24, 10, 25] } }))
+    cpu: { 4: [19, 6, 20], 3: [1, 20, 5] } }))
+  add('bombs-blinded-pro-immune', pickAt(fixtureInput({ playerDeck: deckFront([21]), cpu: { 4: [19, 6, 20] } }), 1, 21))
+  add('death-resets-k', fixtureInput({ cpu: { 0: [2, 17, 20] } }))
+  add('gravity-multi-well', fixtureInput({ cpu: { 0: [10, 20, 5], 2: [10, 20, 5], 3: [19, 10, 20] } }))
   add('gravity-owner-finishes', fixtureInput({ profiles: profilesWith({ 0: { base: 3_000n, acceleration: 0n, cap: 3_000n } }),
-    cpu: { 0: [24, 25, 10] } }))
-  add('gravity-well-stolen', pickAt(fixtureInput({ playerDeck: deckFront([22, 23, 24, 13]), cpu: { 2: [24, 10, 25], 0: [10, 25, 26] } }),
+    cpu: { 0: [19, 20, 10] } }))
+  add('gravity-well-stolen', pickAt(fixtureInput({ playerDeck: deckFront([22, 23, 24, 13]), cpu: { 2: [19, 10, 20], 0: [10, 20, 5] } }),
     2, 13, { anchor: fixtureAnchor(0x61) }))
   add('swap-early-finish', pickAt(fixtureInput({ profiles: profilesWith({ 0: { base: 5_150n, acceleration: 0n, cap: 5_150n } }),
     playerDeck: deckFront([9]) }), 1, 9, { anchor: fixtureAnchor(0) }))
-  add('swap-finished-target', fixtureInput({ cpu: { 3: [24, 25, 9] } }))
-  add('swap-immune-owner', fixtureInput({ cpu: { 0: [21, 9, 25] } }))
-  add('swap-immune-target', pickAt(fixtureInput({ playerDeck: deckFront([21]), cpu: { 3: [9, 25, 26] } }), 1, 21))
-  add('wheel-stolen', fixtureInput({ cpu: { 0: [11, 25, 26], 2: [24, 13, 25] } }))
-  add('wind-replaced', fixtureInput({ cpu: { 4: [12, 25, 26], 0: [1, 25, 26], 3: [24, 12, 25] } }))
+  add('swap-finished-target', fixtureInput({ cpu: { 3: [19, 20, 9] } }))
+  add('swap-immune-owner', fixtureInput({ cpu: { 0: [21, 9, 20] } }))
+  add('swap-immune-target', pickAt(fixtureInput({ playerDeck: deckFront([21]), cpu: { 3: [9, 20, 5] } }), 1, 21))
+  add('wheel-stolen', fixtureInput({ cpu: { 0: [11, 20, 5], 2: [19, 13, 20] } }))
+  add('wind-replaced', fixtureInput({ cpu: { 4: [12, 20, 5], 0: [1, 20, 5], 3: [19, 12, 20] } }))
   add('wind-blinded-pro-own', pickAt(pickAt(pickAt(fixtureInput({ playerDeck: [21, 22, 23, 11, 24, 25, 12, 26, 20, 19, 1, 2, 6, 7],
-    cpu: { 4: [12, 25, 26] } }), 1, 21), 2, 11), 3, 12, { anchor: fixtureAnchor(0x53) }))
+    cpu: { 4: [12, 20, 5] } }), 1, 21), 2, 11), 3, 12, { anchor: fixtureAnchor(0x53) }))
   add('steal-ordering', pickAt(pickAt(fixtureInput({ playerDeck: [22, 23, 24, 13, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10],
-    cpu: { 0: [7, 25, 26], 2: [8, 25, 26], 3: [11, 25, 26] } }), 1, 0), 2, 13, { anchor: fixtureAnchor(0x52) }))
-  add('equip-replaced-same-slot', fixtureInput({ cpu: { 0: [7, 10, 25] } }))
+    cpu: { 0: [7, 20, 5], 2: [8, 20, 5], 3: [11, 20, 5] } }), 1, 0), 2, 13, { anchor: fixtureAnchor(0x52) }))
+  add('equip-replaced-same-slot', fixtureInput({ cpu: { 0: [7, 10, 20] } }))
 
   // Draw rules and time mapping.
   add('draw-c03-cut', pickAt(fixtureInput({ playerDeck: deckFront([3]) }), 1, 3))
   add('draw-c04-auto-bonus', pickAt(fixtureInput({ playerDeck: deckFront([4]) }), 1, 4, { anchor: fixtureAnchor(0x41) }))
-  add('draw-c04-cpu-bonus-loot', fixtureInput({ cpu: { 0: [4, 7, 13], 2: [8, 24, 25] } }))
+  add('draw-c04-cpu-bonus-loot', fixtureInput({ cpu: { 0: [4, 7, 13], 2: [8, 19, 20] } }))
   const treasure = pickAt(fixtureInput({ playerDeck: [5, 22, 23, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8, 18] }), 1, 5)
   add('draw-c05-refresh-tail', pickAt(treasure, 2, 18, { refreshSlots: [1], delaySec: 7n }))
   add('draw-c05-then-c04', pickAt(pickAt(fixtureInput({ playerDeck: [5, 22, 23, 4, 25, 26, 20, 19, 1, 2, 6, 7, 8, 18] }), 1, 5), 2, 4))
@@ -231,7 +231,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
   3, 3, { delaySec: 5n, anchor: fixtureAnchor(0x73) }))
   // All five horses carry a well at once (the owner-list maximum).
   add('worst-five-wells-overlap', pickAt(pickAt(fixtureInput({ playerDeck: [10, 22, 23, 13, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8],
-    cpu: { 0: [10, 13, 24], 2: [10, 13, 25], 3: [10, 13, 26], 4: [10, 13, 24] } }), 1, 10, { anchor: fixtureAnchor(0x81) }),
+    cpu: { 0: [10, 13, 19], 2: [10, 13, 20], 3: [10, 13, 5], 4: [10, 13, 19] } }), 1, 10, { anchor: fixtureAnchor(0x81) }),
   2, 13, { anchor: fixtureAnchor(0x82) }))
   // Event count: every horse holds a swap, a bomb and a death (explicit decks; C-09 is only reachable that way), slow
   // tier-1 personalities. Found by a seeded search maximising eventCount; 15 card applications bound it far below 4096.
@@ -262,6 +262,20 @@ function build(stats: FuzzStats): PaidVectorCase[] {
       { txSec: 259n, cardId: 6, refreshSlots: [], anchor: '0x794d4a7317fa89e6314e9270720b4d977531fa995d54a0254fe61e9ddc3ba723' },
     ],
   })
+
+  // New-card interaction traces exercise consumed listeners, phase changes and equipment identities.
+  const newPairs = [[7,25],[7,26,16],[1,27],[28,1],[19,29,20],[7,8,30],[31,7,8],[11,32],[8,33],[2,37],[2,38],[39,0],[40],[22,24],[31,7,32],[15,36],[38,2],[19,20,39],[19,40],[19,20,40],[40,9]]
+  for (const ids of newPairs) add(`new-build-${ids.join('-')}`, playNewCards(ids))
+  for (const ids of [[11,32],[22,24],[40],[31,7,8]]) add(`new-slow-build-${ids.join('-')}`, playNewCards(ids, {
+    profiles: Array.from({ length: 5 }, () => ({ base: 1000n, acceleration: 0n, cap: 1000n })),
+  }))
+
+  add('new-fast-feast-overcap', playNewCards([15,36], {profiles:Array.from({length:5},()=>({base:6000n,acceleration:0n,cap:6000n}))}))
+  add('new-two-airborne-sources', playNewCards([1,11,27], {profiles:Array.from({length:5},()=>({base:3000n,acceleration:0n,cap:3000n}))}))
+  const collisionProfiles=Array.from({length:5},()=>({base:1000n,acceleration:0n,cap:1000n}))
+  collisionProfiles[0]={base:1300n,acceleration:0n,cap:1300n};collisionProfiles[2]={base:1300n,acceleration:0n,cap:1300n}
+  add('new-guard-block-no-death-reward',playNewCards([37,38],{profiles:collisionProfiles,cpu:{0:[19,20,6]}}))
+  add('new-guard-second-bomb-same-ms',playNewCards([37,38],{profiles:collisionProfiles,cpu:{0:[19,20,6],2:[19,20,6]}}))
 
   // Panel stops: what chooseCard validation needs at each checkpoint.
   const chosen = pickAt(pickAt(fixtureInput({ playerDeck: [7, 22, 23, 1, 24, 25, 11, 26, 20, 19, 2, 6, 8, 10] }), 1, 7), 2, 1)
@@ -306,7 +320,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
   add('panel-stop-after-invalid-cp2', at(quiet, 1, 40n, 22), 2)
 
   // Bomb cap: all five horses place C-06, 5 × 4 lanes = MAX_BOMBS (20) exactly.
-  const bombCap = pickAt(fixtureInput({ playerDeck: deckFront([6]), cpu: { 0: [6, 25, 26], 2: [24, 6, 25], 3: [24, 25, 6], 4: [6, 24, 25] } }), 1, 6)
+  const bombCap = pickAt(fixtureInput({ playerDeck: deckFront([6]), cpu: { 0: [6, 20, 5], 2: [19, 6, 20], 3: [19, 20, 6], 4: [6, 19, 20] } }), 1, 6)
   if (solvePaidCore(bombCap, { trace: false }).events.filter((e) => e.code === EV_BOMB_PLACE).length !== 20) {
     throw new Error('bombs-cap-five-placers: expected 20 bomb placements')
   }
@@ -367,10 +381,10 @@ if (stats.notEquivalent.length > 0) console.log(`ignored but not identical to an
 if (process.argv.includes('--check')) {
   const onDisk = readFileSync(OUT, 'utf8')
   if (onDisk !== text) {
-    console.error('paid-race-v3.json is stale: run bun scripts/gen-paid-vectors.ts')
+    console.error('paid-race-v4.json is stale: run bun scripts/gen-paid-vectors.ts')
     process.exit(1)
   }
-  console.log('paid-race-v3.json matches the reference solver')
+  console.log('paid-race-v4.json matches the reference solver')
 } else {
   writeFileSync(OUT, text)
   console.log(`wrote ${OUT.pathname} (${text.length} bytes)`)

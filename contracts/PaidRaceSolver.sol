@@ -6,7 +6,7 @@ import {PaidCardRules} from "./PaidCardRules.sol";
 import {PaidRaceEngine} from "./PaidRaceEngine.sol";
 import {PaidRaceSupport} from "./PaidRaceSupport.sol";
 
-/// @notice Stateless paid ruleset v3 solver (有奖规则 v3). Derives personalities and decks from the opening anchor
+/// @notice Stateless paid ruleset v4 solver (有奖规则 v3). Derives personalities and decks from the opening anchor
 /// (src/race/paid/race.ts derivePaidCoreInput) and runs PaidRaceEngine, the bit-exact port of the TS reference.
 /// @dev Derivation, draw rules and settlement live in PaidRaceSupport, created here, to keep this contract under
 /// EIP-170.
@@ -23,17 +23,7 @@ contract PaidRaceSolver is IPaidRaceSolver {
 
     /// @inheritdoc IPaidRaceSolver
     function solve(RaceInput calldata input) external view returns (RaceResult memory result) {
-        PaidRaceEngine.Result memory r =
-            PaidRaceEngine.solve(coreInput(input), PaidRaceEngine.Options(0, false, 0, false, support));
-        result.finishTime = r.finishTime;
-        result.finishWall = r.finishWall;
-        result.rawOrder = r.rawOrder;
-        result.settlementOrder = r.settlementOrder;
-        result.playerRawRank = r.rawRank;
-        result.playerSettlementRank = r.settlementRank;
-        result.acquired = r.acquiredByCheckpoint;
-        result.eventCount = uint32(r.eventCount);
-        result.digest = r.digest;
+        return PaidRaceEngine.solveRace(coreInput(input), support);
     }
 
     /// @notice derivePaidCoreInput: opening-anchor personalities, the 14-card player deck and the CPU 3-card decks.

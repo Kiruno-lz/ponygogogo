@@ -27,7 +27,7 @@ function tauOf(r: PaidSolveResult, code: number, from = 0n): bigint {
 }
 
 test('stamina empties at ceil(10⁹/14000), exhaustion freezes b and costs 10, recovery takes ceil(10⁹/10000)', () => {
-  const r = cpuRace({ base: 200n, acceleration: 2n, cap: 600n }, [24, 25, 26])
+  const r = cpuRace({ base: 200n, acceleration: 2n, cap: 600n }, [19, 20, 5])
   const enter = ceilDiv(STAMINA_CAPACITY, DRAIN)
   expect(enter).toBe(71_429n)
   expect(tauOf(r, EV_EXHAUST_ENTER)).toBe(enter)
@@ -45,7 +45,7 @@ test('stamina empties at ceil(10⁹/14000), exhaustion freezes b and costs 10, r
 })
 
 test('rocket halves the running cost: net −2 per second while worn', () => {
-  const r = cpuRace({ base: 300n, acceleration: 3n, cap: 500n }, [7, 25, 26])
+  const r = cpuRace({ base: 300n, acceleration: 3n, cap: 500n }, [7, 20, 5])
   const pick = tauOf(r, EV_CARD)
   const s0 = STAMINA_CAPACITY - DRAIN * pick
   expect(sampleHorse(r.trace!, H, pick + 40_000n).stamina).toBe(s0 - 2_000n * 40_000n)
@@ -53,7 +53,7 @@ test('rocket halves the running cost: net −2 per second while worn', () => {
 })
 
 test('C-14 doubles regeneration for 5 s (net −4 per second while running)', () => {
-  const r = cpuRace({ base: 300n, acceleration: 3n, cap: 500n }, [14, 25, 26])
+  const r = cpuRace({ base: 300n, acceleration: 3n, cap: 500n }, [14, 20, 5])
   const pick = tauOf(r, EV_CARD)
   const s0 = STAMINA_CAPACITY - DRAIN * pick
   const s1 = s0 - 4_000n * 5_000n
@@ -63,7 +63,7 @@ test('C-14 doubles regeneration for 5 s (net −4 per second while running)', ()
 })
 
 test('C-15 overcap drains at cost only until the first ms at or below capacity', () => {
-  const r = cpuRace({ base: 5_000n, acceleration: 0n, cap: 5_000n }, [15, 25, 26])
+  const r = cpuRace({ base: 5_000n, acceleration: 0n, cap: 5_000n }, [15, 20, 5])
   expect(log(r)[0]).toBe('0:BASE_CAP')
   const pick = tauOf(r, EV_CARD)
   const s = STAMINA_CAPACITY - DRAIN * pick + 200_000_000n
@@ -75,14 +75,14 @@ test('C-15 overcap drains at cost only until the first ms at or below capacity',
 })
 
 test('C-15 while exhausted: exits immediately when it reaches capacity, otherwise only shortens recovery', () => {
-  const full = cpuRace({ base: 100n, acceleration: 1n, cap: 200n }, [15, 25, 26])
+  const full = cpuRace({ base: 100n, acceleration: 1n, cap: 200n }, [15, 20, 5])
   const pick = tauOf(full, EV_CARD)
   const s = REGEN * (pick - 71_429n) + 200_000_000n
   expect(s).toBeGreaterThan(STAMINA_CAPACITY)
   expect(log(full).slice(1, 4)).toEqual([
     `${pick}:CARD`, `${pick}:EXHAUST_EXIT`, `${pick + ceilDiv(s - STAMINA_CAPACITY, 24_000n)}:OVERCAP_END`,
   ])
-  const partial = cpuRace({ base: 200n, acceleration: 2n, cap: 600n }, [15, 25, 26])
+  const partial = cpuRace({ base: 200n, acceleration: 2n, cap: 600n }, [15, 20, 5])
   const p = tauOf(partial, EV_CARD)
   const s2 = REGEN * (p - 71_429n) + 200_000_000n
   expect(s2).toBeLessThan(STAMINA_CAPACITY)
@@ -90,7 +90,7 @@ test('C-15 while exhausted: exits immediately when it reaches capacity, otherwis
 })
 
 test('C-16 keeps acceleration at zero stamina and exhausts at expiry when s = 0 and net < 0', () => {
-  const r = cpuRace({ base: 330n, acceleration: 1n, cap: 500n }, [16, 25, 26])
+  const r = cpuRace({ base: 330n, acceleration: 1n, cap: 500n }, [16, 20, 5])
   const pick = tauOf(r, EV_CARD)
   const zero = pick + ceilDiv(STAMINA_CAPACITY - DRAIN * pick, DRAIN)
   expect(zero).toBeLessThan(pick + 10_000n)
@@ -102,7 +102,7 @@ test('C-16 keeps acceleration at zero stamina and exhausts at expiry when s = 0 
 })
 
 test('C-16 acquired while exhausted removes exhaustion and keeps the current stamina', () => {
-  const r = cpuRace({ base: 250n, acceleration: 2n, cap: 400n }, [16, 25, 26])
+  const r = cpuRace({ base: 250n, acceleration: 2n, cap: 400n }, [16, 20, 5])
   const pick = tauOf(r, EV_CARD)
   const exit = r.events.find((e) => e.horse === H && e.code === EV_EXHAUST_EXIT)!
   expect(exit.tau).toBe(pick)
@@ -112,7 +112,7 @@ test('C-16 acquired while exhausted removes exhaustion and keeps the current sta
 })
 
 test('wired expiry with positive stamina leaves the normal drain in charge', () => {
-  const r = cpuRace({ base: 5_000n, acceleration: 0n, cap: 5_000n }, [16, 25, 26])
+  const r = cpuRace({ base: 5_000n, acceleration: 0n, cap: 5_000n }, [16, 20, 5])
   const pick = tauOf(r, EV_CARD)
   expect(r.events.some((e) => e.horse === H && e.code === EV_EXHAUST_ENTER)).toBe(false)
   expect(sampleHorse(r.trace!, H, pick + 10_000n).stamina).toBe(STAMINA_CAPACITY - DRAIN * (pick + 10_000n))

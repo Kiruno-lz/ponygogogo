@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidChoice} from "./PaidChoice.sol";
 import {PaidCardRules} from "./PaidCardRules.sol";
 import {RaceEntropy} from "./RaceEntropy.sol";
 
@@ -11,6 +10,8 @@ library PaidDrawRules {
     error NoRefreshCredit();
     error AutomaticChoiceDisabled();
     error InvalidRefresh();
+    error DeckExhausted();
+    error CardNotOffered();
 
     bytes32 internal constant AUTOPICK_DOMAIN = keccak256("autopick");
 
@@ -41,18 +42,17 @@ library PaidDrawRules {
     {
         if (state.automatic || state.forfeited) revert ChoiceDisabled();
         if (refreshSlots.length > state.refreshCredits) revert NoRefreshCredit();
-        uint8[] memory none = new uint8[](0);
-        (uint8 nextCursor, uint8[3] memory candidates) = PaidChoice.consume(deck, state.cursor, none, 0);
+        (uint8 nextCursor, uint8[3] memory candidates) = _offer(deck, state.cursor);
         uint8 refreshed;
         for (uint256 i; i < refreshSlots.length; ++i) {
             uint8 slot = refreshSlots[i];
             if (slot > 2 || refreshed & (uint8(1) << slot) != 0) revert InvalidRefresh();
-            if (state.tailCursor <= nextCursor) revert PaidChoice.DeckExhausted();
+            if (state.tailCursor <= nextCursor) revert DeckExhausted();
             candidates[slot] = deck[--state.tailCursor];
             refreshed |= uint8(1) << slot;
         }
         if (chosenId != 0 && chosenId != candidates[0] && chosenId != candidates[1] && chosenId != candidates[2]) {
-            revert PaidChoice.CardNotOffered();
+            revert CardNotOffered();
         }
         state.cursor = nextCursor;
         state.refreshCredits -= uint8(refreshSlots.length);
@@ -96,8 +96,7 @@ library PaidDrawRules {
         uint8 checkpoint
     ) internal pure returns (State memory, uint8 cardId) {
         if (!state.automatic || state.forfeited) revert AutomaticChoiceDisabled();
-        uint8[] memory none = new uint8[](0);
-        (uint8 nextCursor, uint8[3] memory offered) = PaidChoice.consume(deck, state.cursor, none, 0);
+        (uint8 nextCursor, uint8[3] memory offered) = _offer(deck, state.cursor);
         uint256 index = RaceEntropy.derive(seed, sealedAnchor, checkpoint, AUTOPICK_DOMAIN, 0) % 3;
         cardId = offered[index];
         state.cursor = nextCursor;
@@ -111,5 +110,15 @@ library PaidDrawRules {
         if (rule.effect == PaidCardRules.EFFECT_DRAW_AUTO) state.automatic = true;
         if (rule.effect == PaidCardRules.EFFECT_DRAW_CUT) state.forfeited = true;
         return state;
+    }
+
+    function _offer(uint8[14] memory deck, uint8 cursor)
+        private
+        pure
+        returns (uint8 nextCursor, uint8[3] memory candidates)
+    {
+        if (cursor > 11) revert DeckExhausted();
+        candidates = [deck[cursor], deck[cursor + 1], deck[cursor + 2]];
+        nextCursor = cursor + 3;
     }
 }

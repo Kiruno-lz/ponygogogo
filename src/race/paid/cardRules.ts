@@ -1,15 +1,18 @@
 /** Canonical paid-card data. The Solidity table is generated from this file. */
 import { keccak256, toBytes } from 'viem'
 export const CARD_EFFECT = {
-  none: 0, airborneSpeed: 1, speedDeath: 2, drawCut: 3, drawAuto: 4, refresh: 5,
+  airborneSpeed: 1, speedDeath: 2, drawCut: 3, drawAuto: 4, refresh: 5,
   bomb: 6, rocket: 7, rainbow: 8, swap: 9, gravity: 10, wheel: 11, wind: 12,
   steal: 13, regen: 14, adrenaline: 15, wired: 16, fixed: 17, coat: 18,
   blindFixed: 19,
+  pay: 20, phased: 21, reserve: 22, thrift: 23, rage: 24, paper: 25, ground: 26, coatGate: 27,
+  recycle: 28, tinker: 29, renew: 30, unarmed: 31, target: 32, leader: 33, feast: 34,
+  guard: 35, deathBurst: 36, forfeit: 37, mileage: 38,
 } as const
 
 export type PaidCardEffect = keyof typeof CARD_EFFECT
 export type PaidCardBonusMode = 'follow' | 'permanent' | 'default' | 'loot'
-export const PAID_CARD_GLOBALS = { bonusDefaultMs: 20_000 } as const
+export const PAID_CARD_GLOBALS = { bonusDefaultMs: 20_000, minCostFactorBps: 1_000 } as const
 export type PaidCardRule = {
   id: number
   effect: PaidCardEffect
@@ -31,6 +34,11 @@ export type PaidCardRule = {
   bonusBps?: number
   autoPanelSec?: number
   coatRgb?: number
+  fallbackBps?: number
+  costDeltaBps?: number
+  triggerDurationMs?: number
+  thresholdMicro?: number
+  triggerFixedSpeed?: number
 }
 
 export const PAID_CARD_RULES: readonly PaidCardRule[] = [
@@ -55,12 +63,28 @@ export const PAID_CARD_RULES: readonly PaidCardRule[] = [
   { id: 19, effect: 'coat', rare: false, cpu: false, durationMs: null, bonusMode: 'permanent', coatRgb: 0xf4c542 },
   { id: 20, effect: 'coat', rare: false, cpu: false, durationMs: null, bonusMode: 'permanent', coatRgb: 0x63b34a },
   { id: 21, effect: 'blindFixed', rare: true, cpu: false, durationMs: null, bonusMode: 'permanent', fixedSpeed: 10 },
-  { id: 22, effect: 'none', rare: false, cpu: false, durationMs: 0, bonusMode: 'default' },
-  { id: 23, effect: 'none', rare: false, cpu: false, durationMs: 0, bonusMode: 'default' },
-  { id: 24, effect: 'none', rare: false, cpu: false, durationMs: 0, bonusMode: 'default' },
-  { id: 25, effect: 'none', rare: false, cpu: false, durationMs: 0, bonusMode: 'default' },
-  { id: 26, effect: 'none', rare: false, cpu: false, durationMs: 0, bonusMode: 'default' },
+  { id: 22, effect: 'pay', rare: true, cpu: true, durationMs: 12_000, bonusMode: 'follow', pBps: 3_500, staminaMicro: 300_000_000 },
+  { id: 23, effect: 'phased', rare: false, cpu: true, durationMs: 24_000, bonusMode: 'follow', pBps: -1_500, regenBonusBps: 20_000, periodMs: 6_000, bonusBps: 3_000 },
+  { id: 24, effect: 'reserve', rare: false, cpu: true, durationMs: 20_000, bonusMode: 'follow', pBps: 500, periodMs: 10_000, staminaMicro: 300_000_000, thresholdMicro: 200_000_000 },
+  { id: 25, effect: 'thrift', rare: false, cpu: true, durationMs: 30_000, bonusMode: 'follow', pBps: -500, costDeltaBps: -4_000 },
+  { id: 26, effect: 'rage', rare: true, cpu: true, durationMs: 20_000, bonusMode: 'follow', pBps: 2_500, costDeltaBps: 5_000, bonusBps: 1_000 },
+  { id: 27, effect: 'paper', rare: false, cpu: true, durationMs: 20_000, bonusMode: 'follow', pBps: 500, bonusBps: 1_500 },
+  { id: 28, effect: 'ground', rare: false, cpu: true, durationMs: 20_000, bonusMode: 'follow', pBps: 2_000 },
+  { id: 29, effect: 'coatGate', rare: false, cpu: false, durationMs: 30_000, bonusMode: 'follow', pBps: 1_500, regenBonusBps: 15_000, fallbackBps: 500 },
+  { id: 30, effect: 'recycle', rare: true, cpu: true, durationMs: 15_000, bonusMode: 'loot', pBps: 2_500, staminaMicro: 150_000_000, fallbackBps: 1_000, periodMs: 10_000 },
+  { id: 31, effect: 'tinker', rare: true, cpu: true, durationMs: null, bonusMode: 'permanent', pBps: 500, periodMs: 30_000, bonusBps: 1_000, triggerDurationMs: 10_000 },
+  { id: 32, effect: 'renew', rare: true, cpu: true, durationMs: 0, bonusMode: 'loot', fallbackBps: 500, periodMs: 5_000 },
+  { id: 33, effect: 'unarmed', rare: false, cpu: true, durationMs: 30_000, bonusMode: 'follow', pBps: 2_500, fallbackBps: -500 },
+  { id: 34, effect: 'target', rare: true, cpu: true, durationMs: 8_000, bonusMode: 'follow', pBps: 500, fallbackBps: -2_000 },
+  { id: 35, effect: 'leader', rare: true, cpu: true, durationMs: 8_000, bonusMode: 'follow', pBps: 2_500, fallbackBps: 800 },
+  { id: 36, effect: 'feast', rare: false, cpu: true, durationMs: 10_000, bonusMode: 'follow', pBps: 1_500, staminaMicro: 200_000_000 },
+  { id: 37, effect: 'guard', rare: true, cpu: true, durationMs: null, bonusMode: 'permanent' },
+  { id: 38, effect: 'deathBurst', rare: true, cpu: true, durationMs: 50_000, bonusMode: 'follow', fixedSpeed: 120, triggerDurationMs: 30_000 },
+  { id: 39, effect: 'forfeit', rare: true, cpu: false, durationMs: null, bonusMode: 'permanent', pBps: -1_000, periodMs: 8_000, bonusBps: 2_500, triggerDurationMs: 12_000, staminaMicro: 300_000_000 },
+  { id: 40, effect: 'mileage', rare: true, cpu: true, durationMs: null, bonusMode: 'permanent', fixedSpeed: -20, radiusMicro: 20_000_000_000, count: 4, triggerFixedSpeed: 30 },
 ]
+
+export const PAID_CARD_COUNT = PAID_CARD_RULES.length
 
 export function paidCardRule(cardId: number): PaidCardRule {
   if (!Number.isInteger(cardId) || cardId < 1 || cardId > PAID_CARD_RULES.length) throw new Error('INVALID_PAID_CARD')
@@ -83,9 +107,11 @@ export function paidCardRuleTuple(card: PaidCardRule): number[] {
     card.costMultiplierBps ?? 0, card.slot ?? NO_SLOT, card.radiusMicro ?? 0,
     card.strengthBps ?? 0, card.overlapBps ?? 0, card.periodMs ?? 0,
     card.count ?? 0, card.bonusBps ?? 0, card.autoPanelSec ?? 0, card.coatRgb ?? 0,
+    card.fallbackBps ?? 0, card.costDeltaBps ?? 0, card.triggerDurationMs ?? 0, card.thresholdMicro ?? 0,
+    card.triggerFixedSpeed ?? 0,
   ]
 }
 
 export const PAID_CARD_RULES_HASH = keccak256(toBytes(JSON.stringify({ globals: PAID_CARD_GLOBALS, cards: PAID_CARD_RULES.map(paidCardRuleTuple) })))
 /** New rules are immutable per solver/Game deployment; the hash changes with any card-table edit. */
-export const PAID_RULESET_HASH = keccak256(toBytes(`ponygogogo/paid-rules/v3/${PAID_CARD_RULES_HASH}`))
+export const PAID_RULESET_HASH = keccak256(toBytes(`ponygogogo/paid-rules/v4/${PAID_CARD_RULES_HASH}`))

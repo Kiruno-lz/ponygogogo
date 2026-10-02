@@ -1,3 +1,4 @@
+import { cardIconUrl } from '../race/cards/iconUrl.ts'
 /**
  * 结算页，承接两种比赛：
  * - 免费本地试玩：名次由共享求时器在本地算出，不上链、不计奖金，页面上明确标成「本地试玩」，
@@ -170,7 +171,7 @@ export function ResultScreen(p: ResultScreenProps) {
             >
               <span className="result-pick-no mono">{c.checkpoint + 1}</span>
               {def ? (
-                <img className="result-pick-icon" src={`/assets/placeholder/icons/${def.art.icon}.webp`} alt="" draggable={false} />
+                <img className="result-pick-icon" src={cardIconUrl(def.art.icon)} alt="" draggable={false} />
               ) : (
                 <span className="result-pick-icon result-pick-empty" aria-hidden="true" />
               )}

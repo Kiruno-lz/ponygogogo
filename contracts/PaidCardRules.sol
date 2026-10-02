@@ -5,13 +5,14 @@ pragma solidity ^0.8.28;
 library PaidCardRules {
     error InvalidCard();
 
-    bytes32 internal constant TABLE_HASH = 0x30dea918dfc50683a877ad59c4381a0ef3812ec44456f44a92a6960aaa9b4450;
-    bytes32 internal constant RULESET_HASH = 0xeb03664a530fd6d5251118e5074b9bd2fa6c5cce60385d94779199160f45edd6;
-    uint256 internal constant RARE_MASK = 0x12973e;
-    uint256 internal constant CPU_MASK = 0x3fae3;
+    bytes32 internal constant TABLE_HASH = 0x97caa9441c455075b4f7ef87c655e7461536eda6ead4ec9ed9f49ca93322a57d;
+    bytes32 internal constant RULESET_HASH = 0x57f1149242930a98ef7819e90b5945887432efcc677578a290b19e355536af6e;
+    uint256 internal constant RARE_MASK = 0xf6e232973e;
+    uint256 internal constant CPU_MASK = 0xbfefe3fae3;
     uint32 internal constant PERMANENT_MS = type(uint32).max;
+    uint8 internal constant CARD_COUNT = 40;
+    uint16 internal constant MIN_COST_FACTOR_BPS = 1000;
     uint32 internal constant BONUS_DEFAULT_MS = 20000;
-    uint8 internal constant EFFECT_NONE = 0;
     uint8 internal constant EFFECT_AIRBORNE_SPEED = 1;
     uint8 internal constant EFFECT_SPEED_DEATH = 2;
     uint8 internal constant EFFECT_DRAW_CUT = 3;
@@ -31,6 +32,25 @@ library PaidCardRules {
     uint8 internal constant EFFECT_FIXED = 17;
     uint8 internal constant EFFECT_COAT = 18;
     uint8 internal constant EFFECT_BLIND_FIXED = 19;
+    uint8 internal constant EFFECT_PAY = 20;
+    uint8 internal constant EFFECT_PHASED = 21;
+    uint8 internal constant EFFECT_RESERVE = 22;
+    uint8 internal constant EFFECT_THRIFT = 23;
+    uint8 internal constant EFFECT_RAGE = 24;
+    uint8 internal constant EFFECT_PAPER = 25;
+    uint8 internal constant EFFECT_GROUND = 26;
+    uint8 internal constant EFFECT_COAT_GATE = 27;
+    uint8 internal constant EFFECT_RECYCLE = 28;
+    uint8 internal constant EFFECT_TINKER = 29;
+    uint8 internal constant EFFECT_RENEW = 30;
+    uint8 internal constant EFFECT_UNARMED = 31;
+    uint8 internal constant EFFECT_TARGET = 32;
+    uint8 internal constant EFFECT_LEADER = 33;
+    uint8 internal constant EFFECT_FEAST = 34;
+    uint8 internal constant EFFECT_GUARD = 35;
+    uint8 internal constant EFFECT_DEATH_BURST = 36;
+    uint8 internal constant EFFECT_FORFEIT = 37;
+    uint8 internal constant EFFECT_MILEAGE = 38;
 
     struct Rule {
         uint8 id;
@@ -53,166 +73,59 @@ library PaidCardRules {
         uint16 bonusBps;
         uint8 autoPanelSec;
         uint32 coatRgb;
+        int32 fallbackBps;
+        int16 costDeltaBps;
+        uint32 triggerDurationMs;
+        uint32 thresholdMicro;
+        int16 triggerFixedSpeed;
     }
 
-    /// @notice keccak256(abi.encode(Rule[26])) of the TS table; PaidCardRules.t.sol recomputes it from get().
-    bytes32 internal constant ENCODED_RULES_HASH = 0x1a06d5f0bc6ec40e64fcaf2107e4049bec48ea5eaa4856798a2d01d68f723cc1;
+    /// @notice keccak256(abi.encode(Rule[])) for all 40 cards of the TS table; PaidCardRules.t.sol recomputes it from get().
+    bytes32 internal constant ENCODED_RULES_HASH = 0xa06aa9812ab4707cbe2d1959b5a52106e160e45b787a45e73c84434c3b62e878;
 
     function get(uint8 id) internal pure returns (Rule memory rule) {
-        (uint256 hi, uint256 lo) = _packed(id);
-        rule.id = uint8(hi >> 248);
-        rule.effect = uint8(hi >> 240);
-        rule.rare = uint8(hi >> 232) != 0;
-        rule.cpu = uint8(hi >> 224) != 0;
-        rule.durationMs = uint32(hi >> 192);
-        rule.bonusMode = uint8(hi >> 184);
-        rule.pBps = int32(uint32(hi >> 152));
-        rule.fixedSpeed = int16(uint16(hi >> 136));
-        rule.staminaMicro = uint32(hi >> 104);
-        rule.regenBonusBps = uint16(hi >> 88);
-        rule.costMultiplierBps = uint16(hi >> 72);
-        rule.slot = uint8(hi >> 64);
-        rule.radiusMicro = uint64(hi);
-        rule.strengthBps = uint16(lo >> 112);
-        rule.overlapBps = int16(uint16(lo >> 96));
-        rule.periodMs = uint32(lo >> 64);
-        rule.count = uint8(lo >> 56);
-        rule.bonusBps = uint16(lo >> 40);
-        rule.autoPanelSec = uint8(lo >> 32);
-        rule.coatRgb = uint32(lo);
+        (uint256 hi, uint256 lo) = packed(id);
+        return decode(hi, lo);
     }
 
-    function _packed(uint8 id) private pure returns (uint256 hi, uint256 lo) {
-        // C-01 airborneSpeed: effect=1 cpu=1 durationMs=30000 pBps=2000
-        if (id == 1) {
-            return
-                (0x010100010000753000000007d000000000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
+    function decode(uint256 hi, uint256 lo) internal pure returns (Rule memory rule) {
+        assembly ("memory-safe") {
+            mstore(add(rule, 0), and(shr(248, hi), 0xff)) // id
+            mstore(add(rule, 32), and(shr(240, hi), 0xff)) // effect
+            mstore(add(rule, 64), iszero(iszero(and(shr(232, hi), 255)))) // rare
+            mstore(add(rule, 96), iszero(iszero(and(shr(224, hi), 255)))) // cpu
+            mstore(add(rule, 128), and(shr(192, hi), 0xffffffff)) // durationMs
+            mstore(add(rule, 160), and(shr(184, hi), 0xff)) // bonusMode
+            mstore(add(rule, 192), signextend(3, shr(152, hi))) // pBps
+            mstore(add(rule, 224), signextend(1, shr(136, hi))) // fixedSpeed
+            mstore(add(rule, 256), and(shr(104, hi), 0xffffffff)) // staminaMicro
+            mstore(add(rule, 288), and(shr(88, hi), 0xffff)) // regenBonusBps
+            mstore(add(rule, 320), and(shr(72, hi), 0xffff)) // costMultiplierBps
+            mstore(add(rule, 352), and(shr(64, hi), 0xff)) // slot
+            mstore(add(rule, 384), and(hi, 0xffffffffffffffff)) // radiusMicro
+            mstore(add(rule, 416), and(shr(240, lo), 0xffff)) // strengthBps
+            mstore(add(rule, 448), signextend(1, shr(224, lo))) // overlapBps
+            mstore(add(rule, 480), and(shr(192, lo), 0xffffffff)) // periodMs
+            mstore(add(rule, 512), and(shr(184, lo), 0xff)) // count
+            mstore(add(rule, 544), and(shr(168, lo), 0xffff)) // bonusBps
+            mstore(add(rule, 576), and(shr(160, lo), 0xff)) // autoPanelSec
+            mstore(add(rule, 608), and(shr(128, lo), 0xffffffff)) // coatRgb
+            mstore(add(rule, 640), signextend(3, shr(96, lo))) // fallbackBps
+            mstore(add(rule, 672), signextend(1, shr(80, lo))) // costDeltaBps
+            mstore(add(rule, 704), and(shr(48, lo), 0xffffffff)) // triggerDurationMs
+            mstore(add(rule, 736), and(shr(16, lo), 0xffffffff)) // thresholdMicro
+            mstore(add(rule, 768), signextend(1, lo)) // triggerFixedSpeed
         }
-        // C-02 speedDeath: effect=2 rare=1 cpu=1 durationMs=30000 pBps=3000
-        if (id == 2) {
-            return
-                (0x02020101000075300000000bb800000000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
+    }
+
+    function packed(uint8 id) internal pure returns (uint256 hi, uint256 lo) {
+        if (id == 0 || id > CARD_COUNT) revert InvalidCard();
+        bytes memory data =
+            hex"010100010000753000000007d000000000000000000000ff0000000000000000000000000000000000000000000000000000000000000000000000000000000002020101000075300000000bb800000000000000000000ff000000000000000000000000000000000000000000000000000000000000000000000000000000000303010000004e200000000fa000000000000000000000ff0000000000000000000000000000000000000000000000000000000000000000000000000000000004040100ffffffff020000000000000000000000000000ff000000000000000000000000000000000007d003000000000000000000000000000000000000000005050100ffffffff010000000000000000000000000000ff000000000000000000000000000000000100000000000000000000000000000000000000000000000606010100000000020000000000000000000000000000ff000000000000000000000000000000000000000000000000000000000000000000000000000000000707000100009c4000000005dc000000000000000013880000000000000000000000000000000000000000000000000000000000000000000000000000000000080800010000ea6000000003e80000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000909010000007530000000000000000000000000000000ff000000000000000000000000000007d00f00000000000000000000000000000000000000000000000a0a0101000027100000000000000000000000000000000000000001dcd650000bb80bb8000000000000000000000000000000000000000000000000000000000b0b0100000075300000000000000a00000000000000000200000000000000000000000000001b580400000000000000000000000000000000000000000000000c0c0001ffffffff010000000000000000000000000000ff000000000000000003e80000000000000000000000000000000000000000000000000000000000000d0d010100000000030000000000000000000000000000ff000000000000000000000000000000000000000000000000000000000000000000000000000000000e0e000100001388000000000000000000000027100000ff000000000000000000000000000000000000000000000000000000000000000000000000000000000f0f000100000000020000000000000bebc20000000000ff000000000000000000000000000000000000000000000000000000000000000000000000000000001010010100002710000000000000000000000000000000ff0000000000000000000000000000000000000000000000000000000000000000000000000000000011110001ffffffff0100000000000a0000000000000000ff0000000000000000000000000000000000000000000000000000000000000000000000000000000012110101ffffffff010000000000140000000000000000ff0000000000000000000000000000000000000000000000000000000000000000000000000000000013120000ffffffff010000000000000000000000000000ff000000000000000000000000000000000000000000f4c5420000000000000000000000000000000014120000ffffffff010000000000000000000000000000ff00000000000000000000000000000000000000000063b34a0000000000000000000000000000000015130100ffffffff0100000000000a0000000000000000ff000000000000000000000000000000000000000000000000000000000000000000000000000000001614010100002ee00000000dac000011e1a30000000000ff000000000000000000000000000000000000000000000000000000000000000000000000000000001715000100005dc000fffffa240000000000004e200000ff00000000000000000000000000001770000bb80000000000000000000000000000000000000000001816000100004e2000000001f4000011e1a30000000000ff000000000000000000000000000027100000000000000000000000000000000000000bebc2000000191700010000753000fffffe0c00000000000000000000ff00000000000000000000000000000000000000000000000000000000f060000000000000000000001a18010100004e2000000009c400000000000000000000ff000000000000000000000000000000000003e80000000000000000001388000000000000000000001b19000100004e2000000001f400000000000000000000ff000000000000000000000000000000000005dc0000000000000000000000000000000000000000001c1a000100004e2000000007d000000000000000000000ff000000000000000000000000000000000000000000000000000000000000000000000000000000001d1b00000000753000000005dc0000000000003a980000ff000000000000000000000000000000000000000000000000000001f40000000000000000000000001e1c010100003a9803000009c4000008f0d18000000000ff000000000000000000000000000027100000000000000000000003e80000000000000000000000001f1d0101ffffffff01000001f400000000000000000000ff000000000000000000000000000075300003e8000000000000000000000000002710000000000000201e010100000000030000000000000000000000000000ff000000000000000000000000000013880000000000000000000001f4000000000000000000000000211f00010000753000000009c400000000000000000000ff000000000000000000000000000000000000000000000000fffffe0c0000000000000000000000002220010100001f4000000001f400000000000000000000ff000000000000000000000000000000000000000000000000fffff8300000000000000000000000002321010100001f4000000009c400000000000000000000ff00000000000000000000000000000000000000000000000000000320000000000000000000000000242200010000271000000005dc00000bebc20000000000ff0000000000000000000000000000000000000000000000000000000000000000000000000000000025230101ffffffff010000000000000000000000000000ff00000000000000000000000000000000000000000000000000000000000000000000000000000000262401010000c350000000000000780000000000000000ff0000000000000000000000000000000000000000000000000000000000000000753000000000000027250100ffffffff01fffffc18000011e1a30000000000ff00000000000000000000000000001f400009c4000000000000000000000000002ee000000000000028260101ffffffff0100000000ffec0000000000000000ff00000004a817c800000000000000000004000000000000000000000000000000000000000000001e";
+        assembly ("memory-safe") {
+            let at := add(add(data, 0x20), shl(6, sub(id, 1)))
+            hi := mload(at)
+            lo := mload(add(at, 0x20))
         }
-        // C-03 drawCut: effect=3 rare=1 durationMs=20000 pBps=4000
-        if (id == 3) {
-            return
-                (0x0303010000004e200000000fa000000000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-04 drawAuto: effect=4 rare=1 durationMs=4294967295 bonusMode=2 bonusBps=2000 autoPanelSec=3
-        if (id == 4) {
-            return
-                (0x04040100ffffffff020000000000000000000000000000ff0000000000000000, 0x00000000000000000007d00300000000);
-        }
-        // C-05 refresh: effect=5 rare=1 durationMs=4294967295 bonusMode=1 count=1
-        if (id == 5) {
-            return
-                (0x05050100ffffffff010000000000000000000000000000ff0000000000000000, 0x00000000000000000100000000000000);
-        }
-        // C-06 bomb: effect=6 rare=1 cpu=1 durationMs=0 bonusMode=2
-        if (id == 6) {
-            return
-                (0x0606010100000000020000000000000000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-07 rocket: effect=7 cpu=1 durationMs=40000 pBps=1500 costMultiplierBps=5000 slot=0
-        if (id == 7) {
-            return
-                (0x0707000100009c4000000005dc00000000000000001388000000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-08 rainbow: effect=8 cpu=1 durationMs=60000 pBps=1000 slot=1
-        if (id == 8) {
-            return
-                (0x080800010000ea6000000003e800000000000000000000010000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-09 swap: effect=9 rare=1 durationMs=30000 periodMs=2000 count=15
-        if (id == 9) {
-            return
-                (0x0909010000007530000000000000000000000000000000ff0000000000000000, 0x00000000000007d00f00000000000000);
-        }
-        // C-10 gravity: effect=10 rare=1 cpu=1 durationMs=10000 slot=0 radiusMicro=8000000000 strengthBps=3000 overlapBps=3000
-        if (id == 10) {
-            return
-                (0x0a0a0101000027100000000000000000000000000000000000000001dcd65000, 0x0bb80bb8000000000000000000000000);
-        }
-        // C-11 wheel: effect=11 rare=1 durationMs=30000 fixedSpeed=10 slot=2 periodMs=7000 count=4
-        if (id == 11) {
-            return
-                (0x0b0b0100000075300000000000000a0000000000000000020000000000000000, 0x0000000000001b580400000000000000);
-        }
-        // C-12 wind: effect=12 cpu=1 durationMs=4294967295 bonusMode=1 strengthBps=1000
-        if (id == 12) {
-            return
-                (0x0c0c0001ffffffff010000000000000000000000000000ff0000000000000000, 0x03e80000000000000000000000000000);
-        }
-        // C-13 steal: effect=13 rare=1 cpu=1 durationMs=0 bonusMode=3
-        if (id == 13) {
-            return
-                (0x0d0d010100000000030000000000000000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-14 regen: effect=14 cpu=1 durationMs=5000 regenBonusBps=10000
-        if (id == 14) {
-            return
-                (0x0e0e000100001388000000000000000000000027100000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-15 adrenaline: effect=15 cpu=1 durationMs=0 bonusMode=2 staminaMicro=200000000
-        if (id == 15) {
-            return
-                (0x0f0f000100000000020000000000000bebc20000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-16 wired: effect=16 rare=1 cpu=1 durationMs=10000
-        if (id == 16) {
-            return
-                (0x1010010100002710000000000000000000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-17 fixed: effect=17 cpu=1 durationMs=4294967295 bonusMode=1 fixedSpeed=10
-        if (id == 17) {
-            return
-                (0x11110001ffffffff0100000000000a0000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-18 fixed: effect=17 rare=1 cpu=1 durationMs=4294967295 bonusMode=1 fixedSpeed=20
-        if (id == 18) {
-            return
-                (0x12110101ffffffff010000000000140000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-19 coat: effect=18 durationMs=4294967295 bonusMode=1 coatRgb=16041282
-        if (id == 19) {
-            return
-                (0x13120000ffffffff010000000000000000000000000000ff0000000000000000, 0x00000000000000000000000000f4c542);
-        }
-        // C-20 coat: effect=18 durationMs=4294967295 bonusMode=1 coatRgb=6533962
-        if (id == 20) {
-            return
-                (0x14120000ffffffff010000000000000000000000000000ff0000000000000000, 0x0000000000000000000000000063b34a);
-        }
-        // C-21 blindFixed: effect=19 rare=1 durationMs=4294967295 bonusMode=1 fixedSpeed=10
-        if (id == 21) {
-            return
-                (0x15130100ffffffff0100000000000a0000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-22 none: durationMs=0 bonusMode=2
-        if (id == 22) {
-            return
-                (0x1600000000000000020000000000000000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-23 none: durationMs=0 bonusMode=2
-        if (id == 23) {
-            return
-                (0x1700000000000000020000000000000000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-24 none: durationMs=0 bonusMode=2
-        if (id == 24) {
-            return
-                (0x1800000000000000020000000000000000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-25 none: durationMs=0 bonusMode=2
-        if (id == 25) {
-            return
-                (0x1900000000000000020000000000000000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        // C-26 none: durationMs=0 bonusMode=2
-        if (id == 26) {
-            return
-                (0x1a00000000000000020000000000000000000000000000ff0000000000000000, 0x00000000000000000000000000000000);
-        }
-        revert InvalidCard();
     }
 }

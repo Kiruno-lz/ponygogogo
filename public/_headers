@@ -1,8 +1,8 @@
 # Cloudflare Pages 从部署产物根目录读取本文件；Vite 把 public/ 原样拷到 dist/，故放在 public/_headers。
 # 语法：路径行顶格，头部行缩进两格，注释用 #。
 # 注意：同一响应命中多条规则时，重复的头按逗号拼接而非覆盖——Cache-Control 是单值头，拼接即失效。
-# 所以这里的素材规则按子目录写死而不是一条 /assets/*：产物只有 art/、placeholder/ 和 manifest.json
-# 三样，逐个列出即可做到规则互不重叠，不必依赖 "! 头名" 的撤销语义。
+# 所以这里的素材规则按子目录写死而不是一条 /assets/*：art/、cards/、placeholder/ 和 manifest.json
+# 逐个列出即可做到规则互不重叠，不必依赖 "! 头名" 的撤销语义。
 # scripts/deploy.sh 会核对 dist/assets/ 下没有落在这些规则之外的文件。
 
 # Vite 的 JS/CSS 产物落在 dist/build/，文件名带 content hash，内容一变文件名必变，可判永久不变。
@@ -17,8 +17,11 @@
 /assets/placeholder/*
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
+/assets/cards/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
 # manifest 是资源加载流程的前置数据，素材新旧全靠它的内容判断，必须每次向源站校验。
-# 它不落在上面两条规则里，因此不需要撤销，直接赋值。
+# 它不落在上面的素材目录规则里，因此不需要撤销，直接赋值。
 /assets/manifest.json
   Cache-Control: no-cache
 

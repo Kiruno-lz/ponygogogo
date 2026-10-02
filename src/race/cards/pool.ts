@@ -1,7 +1,7 @@
 /**
  * Demo 卡池：21 张（C-01 … C-21），rare 12 张。
  * 数值取自 docs/card-design.md §8.2 的原始设定，此处只做量纲落地，不做强弱判断。
- * 加一张卡的正常路径是往本文件加一条记录，不改 src/race/core/ 一行。
+ * 这里只保留各卡的声明式效果状态；事件求时器不读取本表，规则数值来自 src/race/paid/cardRules.ts。
  */
 import { fx } from '../core/fixed.ts'
 import { paidCardRule } from '../paid/cardRules.ts'
@@ -22,7 +22,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '网络梗「中国 X 能飞」',
     art: { icon: 'icon_16' },
     cpuUsable: true,
-    modules: ['mod.airborne', 'mod.speed'],
     effects: [
       {
         primitive: 'Status',
@@ -51,7 +50,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '蓝色枪兵的旋转冲刺 / lancer 又死了',
     art: { icon: 'icon_07' },
     cpuUsable: true,
-    modules: ['mod.speed', 'mod.death', 'mod.trail', 'mod.trigger'],
     effects: [
       {
         primitive: 'Modifier',
@@ -87,7 +85,6 @@ export const CARD_POOL: CardDef[] = [
     meme: 'JOJO 的波纹',
     art: { icon: 'icon_12' },
     cpuUsable: false,
-    modules: ['mod.speed', 'mod.draw'],
     effects: [
       {
         primitive: 'Modifier',
@@ -116,7 +113,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '通用网络梗',
     art: { icon: 'icon_13' },
     cpuUsable: false,
-    modules: ['mod.draw', 'mod.speed'],
     effects: [
       {
         primitive: 'DrawRule',
@@ -138,7 +134,6 @@ export const CARD_POOL: CardDef[] = [
     meme: 'One Piece',
     art: { icon: 'icon_18' },
     cpuUsable: false,
-    modules: ['mod.draw'],
     effects: [
       {
         primitive: 'DrawRule',
@@ -160,7 +155,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '炸弹人',
     art: { icon: 'icon_08' },
     cpuUsable: true,
-    modules: ['mod.hazard', 'mod.death'],
     effects: [
       {
         primitive: 'Hazard',
@@ -182,7 +176,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '通用',
     art: { icon: 'icon_02' },
     cpuUsable: true,
-    modules: ['mod.equipment', 'mod.speed', 'mod.stamina'],
     effects: [
       {
         primitive: 'Equipment',
@@ -208,7 +201,6 @@ export const CARD_POOL: CardDef[] = [
     meme: 'Nyan Cat',
     art: { icon: 'icon_10' },
     cpuUsable: true,
-    modules: ['mod.equipment', 'mod.speed', 'mod.trail'],
     effects: [
       {
         primitive: 'Equipment',
@@ -234,7 +226,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '咒术回战 东堂葵',
     art: { icon: 'icon_11' },
     cpuUsable: false,
-    modules: ['mod.ability-bind', 'mod.swap'],
     effects: [
       {
         primitive: 'Ability',
@@ -257,7 +248,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '史瓦西黑洞',
     art: { icon: 'icon_03' },
     cpuUsable: true,
-    modules: ['mod.equipment', 'mod.field'],
     effects: [
       {
         primitive: 'Equipment',
@@ -286,7 +276,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '哪吒',
     art: { icon: 'icon_15' },
     cpuUsable: false,
-    modules: ['mod.equipment', 'mod.ability-bind', 'mod.airborne', 'mod.stack', 'mod.death'],
     effects: [
       {
         primitive: 'Equipment',
@@ -316,7 +305,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '天气预报 /「起风了」',
     art: { icon: 'icon_09' },
     cpuUsable: true,
-    modules: ['mod.env', 'mod.speed'],
     stack: 'replace',
     effects: [
       {
@@ -339,7 +327,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '成语的字面直用',
     art: { icon: 'icon_06' },
     cpuUsable: true,
-    modules: ['mod.steal', 'mod.equipment'],
     stack: 'refresh',
     effects: [
       {
@@ -359,7 +346,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '成语的字面直用',
     art: { icon: 'icon_14' },
     cpuUsable: true,
-    modules: ['mod.stamina'],
     effects: [
       {
         primitive: 'Modifier',
@@ -381,7 +367,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '通用',
     art: { icon: 'icon_04' },
     cpuUsable: true,
-    modules: ['mod.stamina'],
     effects: [
       {
         primitive: 'Modifier',
@@ -403,7 +388,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '熬夜 / 美式续命',
     art: { icon: 'icon_05' },
     cpuUsable: true,
-    modules: ['mod.stamina', 'mod.suppress'],
     effects: [
       {
         primitive: 'Status',
@@ -422,7 +406,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '网络梗「薄肌」',
     art: { icon: 'icon_01' },
     cpuUsable: true,
-    modules: ['mod.speed'],
     effects: [
       {
         primitive: 'Modifier',
@@ -441,7 +424,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '「薄肌」叠加厂商命名梗',
     art: { icon: 'icon_01' },
     cpuUsable: true,
-    modules: ['mod.speed'],
     effects: [
       {
         primitive: 'Modifier',
@@ -460,7 +442,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '通用',
     art: { icon: 'icon_19', tint: 45 },
     cpuUsable: false,
-    modules: ['mod.cosmetic'],
     effects: [
       {
         primitive: 'Status',
@@ -480,7 +461,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '通用',
     art: { icon: 'icon_19', tint: 110 },
     cpuUsable: false,
-    modules: ['mod.cosmetic'],
     effects: [
       {
         primitive: 'Status',
@@ -503,7 +483,6 @@ export const CARD_POOL: CardDef[] = [
     meme: '网络梗「孙学」',
     art: { icon: 'icon_17' },
     cpuUsable: false,
-    modules: ['mod.cosmetic', 'mod.speed'],
     effects: [
       {
         primitive: 'Status',
@@ -526,13 +505,3 @@ export const CARD_POOL: CardDef[] = [
 export const CARD_BY_ID: Record<string, CardDef> = Object.fromEntries(
   CARD_POOL.map((c) => [c.cardId, c]),
 )
-
-/** 强效果子集 === rare 品质的卡集合 */
-export const RARE_POOL = CARD_POOL.filter((c) => c.quality === 'rare')
-export const CPU_POOL = CARD_POOL.filter((c) => c.cpuUsable)
-
-/** 【版本答案】的构件 */
-export const COMBO_PARTS = {
-  all: ['C-19', 'C-21'],
-  anyOf: [['C-17'], ['C-18']],
-}

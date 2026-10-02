@@ -4,8 +4,8 @@
  * 20 秒现实限时与自动面板由共享求时器决定，发牌动画不延后截止时刻。
  */
 import { useEffect, useRef, useState } from 'react'
-import { CARD_BY_ID } from '../race/cards/pool.ts'
-import type { CardDef } from '../race/cards/types.ts'
+import { paidCardDef } from '../race/cards/paidCards.ts'
+import type { CardView } from '../race/cards/types.ts'
 import type { Lang } from '../ui/i18n.ts'
 import { t } from '../ui/i18n.ts'
 import { Card } from './Card.tsx'
@@ -28,7 +28,7 @@ export interface CardChoicePanelProps {
   onRefresh: (slot: number) => void
   onHover?: () => void
   /** 卡面来源；免费与有奖场次均传入由 paidCardRule 生成说明的卡面 */
-  lookup?: (cardId: string) => CardDef | undefined
+  lookup?: (cardId: string) => CardView | undefined
   /** 已截止：不再接受点击（有奖面板在链上窗口末端之前停收），面板保留到规范关闭 */
   locked?: boolean
   /** 自动面板将选中的那一张 */
@@ -135,7 +135,7 @@ export function CardChoicePanel(p: CardChoicePanelProps) {
 
       <div style={{ display: 'flex', gap: 34, alignItems: 'flex-start' }}>
         {p.candidates.map((cardId, i) => {
-          const def = p.lookup ? p.lookup(cardId) : CARD_BY_ID[cardId]
+          const def = (p.lookup ?? paidCardDef)(cardId)
           if (!def) return null
           const fading = chosen !== null && chosen !== i
           const flying = chosen === i

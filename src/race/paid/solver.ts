@@ -1,3 +1,4 @@
+import { staminaPayment, restoredStamina } from './resources.ts'
 import type { Hex } from 'viem'
 import { chainEntropy } from '../core/chainEntropy.ts'
 import {
@@ -5,12 +6,12 @@ import {
 } from '../core/paidDrawRules.ts'
 import { paidSettlement } from '../core/paidSettlement.ts'
 import { paidSwap } from '../core/paidSwap.ts'
-import { paidCardRule } from './cardRules.ts'
+import { paidCardRule, PAID_CARD_COUNT, PAID_CARD_GLOBALS } from './cardRules.ts'
 import {
   ADRENALINE_MICRO, AUTO_PANEL_SEC, bonusDurationMs, BONUS_BPS, CHECKPOINT_MICRO, CHOICE_WINDOW_SEC,
   COST_PER_MS, HORSE_COUNT, MAX_BOMBS, MAX_EVENTS, MAX_INSTANCES, MAX_TAU, NEVER, PURPOSE_STEAL, PURPOSE_WIND,
-  REGEN_PER_MS, RESPAWN_MS, RK_STEP_MS, ROCKET_COST_PER_MS, SLOT_HOOVES, SLOT_TORSO, SLOW_FACTOR,
-  STAMINA_CAPACITY, SWAP_ATTEMPTS, SWAP_EVENT_STRIDE, SWAP_PERIOD_MS, TRACK_MICRO, UNFINISHED_TAU, WHEEL_BURSTS,
+  REGEN_PER_MS, RESPAWN_MS, RK_STEP_MS, SLOT_HOOVES, SLOT_TORSO, SLOW_FACTOR,
+  STAMINA_CAPACITY, SWAP_ATTEMPTS, SWAP_EVENT_STRIDE, SWAP_PERIOD_MS, TRACK_MICRO, UNFINISHED_TAU,
   WHEEL_DELTA_V, WHEEL_PERIOD_MS, WIND_BPS, BPS,
 } from './constants.ts'
 import {
@@ -20,7 +21,7 @@ import {
   EV_PANEL_CUT, EV_PANEL_DEFER, EV_PANEL_OPEN, EV_RESPAWN_END, EV_STEAL, EV_STEAL_NONE, EV_SWAP, EV_SWAP_BLOCKED,
   EV_WHEEL_BURST, EV_WIND, foldPaidEvent, INVALID_AFTER_FINISH, INVALID_AUTO, INVALID_BAD_SLOT, INVALID_CUT,
   INVALID_EARLY, INVALID_EXHAUSTED, INVALID_LATE, INVALID_NO_CREDIT, INVALID_NOT_OFFERED, INVALID_NOT_OPENED,
-  OFF_EXPIRED, OFF_REPLACED, OFF_STOLEN, PAID_CHOICE_INVALID_NAMES, ZERO_DIGEST, type PaidChoiceInvalidReason,
+  OFF_EXPIRED, OFF_REPLACED, OFF_STOLEN, OFF_RECYCLED, EV_TRIGGER, EV_RESOURCE, EV_GUARD, EV_TARGET, EV_EQUIP_REFRESH, EV_FIXED, PAID_CHOICE_INVALID_NAMES, ZERO_DIGEST, type PaidChoiceInvalidReason,
   type PaidLoggedEvent,
 } from './events.ts'
 import {
@@ -33,7 +34,7 @@ export type PaidCoreProfile = { base: bigint; acceleration: bigint; cap: bigint 
 
 /**
  * One stored player transaction for a checkpoint panel; cardId 0 = active forfeit. Values mirror PonyGame storage
- * (txSec uint32, cardId and refresh slots uint8); a slot that breaks a rule counts as no transaction (有奖规则 v3).
+ * (txSec uint32, cardId and refresh slots uint8); a slot that breaks a rule counts as no transaction.
  */
 export type PaidChoiceSlot = {
   txSec: bigint
@@ -132,6 +133,7 @@ type Horse = {
   b: bigint
   s: bigint
   fixed: bigint
+  coat: number
   lane: number
   cp: number
   exhausted: boolean
@@ -159,13 +161,16 @@ type Instance = {
   regenBps: bigint
   airborne: boolean
   wired: boolean
-  halfCost: boolean
   luck: boolean
   well: boolean
   anchor: Hex
   checkpoint: number
   eventBase: bigint
   count: number
+  costDelta: bigint
+  fixed: bigint
+  gated: boolean
+  nextDist: bigint
 }
 
 type Bomb = { lane: number; pos: bigint; placer: number; live: boolean }
@@ -227,7 +232,7 @@ function isHex32(value: unknown): value is Hex {
 }
 
 function validCardId(id: unknown, allowZero: boolean): boolean {
-  return typeof id === 'number' && Number.isInteger(id) && id >= (allowZero ? 0 : 1) && id <= 26
+  return typeof id === 'number' && Number.isInteger(id) && id >= (allowZero ? 0 : 1) && id <= PAID_CARD_COUNT
 }
 
 function isUint8(value: unknown): boolean {
@@ -281,14 +286,14 @@ function createState(input: PaidCoreInput, opts: PaidSolveOptions): State {
     const p = input.profiles[h]!
     horses.push({
       base: p.base, accel: p.acceleration, capMilli: p.cap * 1000n,
-      pos: 0n, dist: 0n, prevPos: 0n, b: p.base * 1000n, s: STAMINA_CAPACITY, fixed: 0n, lane: h, cp: 0,
+      pos: 0n, dist: 0n, prevPos: 0n, b: p.base * 1000n, s: STAMINA_CAPACITY, fixed: 0n, coat: 0, lane: h, cp: 0,
       exhausted: false, overcap: false, atCap: false, finished: false, finishTime: UNFINISHED_TAU, finishWall: NEVER,
       blindedPro: false, drawCut: false, bonus: false, equip: [0, 0, 0],
     })
   }
   const trace: PaidTrace | null = opts.trace === false ? null : {
     tauEnd: 0n, keyframes: [[], [], [], [], []], instances: [], bombs: [], winds: [], cards: [],
-    segments: [{ tau: 0n, wall: 0n, slow: false }], events: [],
+    segments: [{ tau: 0n, wall: 0n, slow: false }], events: [], renewals: [],
   }
   return {
     input, player: input.playerHorseId, horses, instances: [], bombs: [], wind: 0n, windPlacer: 0,
@@ -318,31 +323,36 @@ function setMapping(st: State, tau: bigint, wall: bigint, slow: boolean): void {
 }
 
 function mods(st: State, h: number): Mods {
-  let pBps = 0n
-  let regenBps = 0n
-  let halfCost = false
-  let airborne = false
-  let wired = false
-  let respawning = false
+  let pBps = 0n, regenBps = 0n, costDelta = 0n
+  let airborne = false, wired = false, respawning = false
+  const horse = st.horses[h]!
   for (const inst of st.instances) {
     if (!inst.active || inst.owner !== h) continue
-    pBps += inst.pBps
-    regenBps += inst.regenBps
-    halfCost = halfCost || inst.halfCost
-    airborne = airborne || inst.airborne
-    wired = wired || inst.wired
-    respawning = respawning || inst.kind === 'respawn'
+    if (!inst.gated) { pBps += inst.pBps; regenBps += inst.regenBps }
+    costDelta += inst.costDelta
+    airborne ||= inst.airborne
+    wired ||= inst.wired
+    respawning ||= inst.kind === 'respawn'
   }
-  const horse = st.horses[h]!
+  for (const inst of st.instances) {
+    if (!inst.active || inst.owner !== h || !inst.gated) continue
+    const r = paidCardRule(inst.cardId)
+    switch (r.effect) {
+      case 'rage': pBps += BigInt(r.pBps!) + (wired ? BigInt(r.bonusBps!) : 0n); break
+      case 'paper': pBps += BigInt(r.pBps!) + (airborne ? BigInt(r.bonusBps!) : 0n); break
+      case 'ground': if (!airborne) pBps += BigInt(r.pBps!); break
+      case 'coatGate':
+        if (horse.coat === paidCardRule(19).coatRgb) pBps += BigInt(r.pBps!)
+        else if (horse.coat === paidCardRule(20).coatRgb) regenBps += BigInt(r.regenBonusBps!)
+        else pBps += BigInt(r.fallbackBps!)
+        break
+      case 'unarmed': pBps += BigInt(horse.equip.some(Boolean) ? r.fallbackBps! : r.pBps!); break
+    }
+  }
   if (st.wind !== 0n && airborne && (!horse.blindedPro || st.windPlacer === h)) pBps += st.wind
-  return {
-    pBps,
-    cost: halfCost ? ROCKET_COST_PER_MS : COST_PER_MS,
-    regen: REGEN_PER_MS * (BPS + regenBps) / BPS,
-    airborne,
-    wired,
-    respawning,
-  }
+  const factor = BPS + costDelta
+  return { pBps, cost: COST_PER_MS * (factor < BigInt(PAID_CARD_GLOBALS.minCostFactorBps) ? BigInt(PAID_CARD_GLOBALS.minCostFactorBps) : factor) / BPS,
+    regen: REGEN_PER_MS * (BPS + regenBps) / BPS, airborne, wired, respawning }
 }
 
 function staminaMotion(horse: Horse, m: Mods): PaidStaminaMotion {
@@ -367,12 +377,13 @@ function addInstance(
   const inst: Instance = {
     id: st.instances.length + 1, owner, cardId, kind, slot: -1, start: tau,
     end: duration === null ? NEVER : tau + duration, active: true,
-    pBps: 0n, regenBps: 0n, airborne: false, wired: false, halfCost: false, luck: false, well: false,
-    anchor: ZERO_ANCHOR, checkpoint: 0, eventBase: 0n, count: 0, ...fields,
+    pBps: 0n, regenBps: 0n, airborne: false, wired: false, luck: false, well: false,
+    anchor: ZERO_ANCHOR, checkpoint: 0, eventBase: 0n, count: 0, costDelta: 0n, fixed: 0n, gated: false, nextDist: 0n, ...fields,
   }
   st.instances.push(inst)
+  st.horses[owner]!.fixed += inst.fixed
   st.trace?.instances.push({
-    id: inst.id, horse: owner, cardId, kind, slot: inst.slot, startTau: tau,
+    id: inst.id, horse: owner, cardId, kind, initialP: inst.pBps, slot: inst.slot, startTau: tau,
     plannedEndTau: duration === null ? null : inst.end, endTau: null, endReason: null,
   })
   return inst
@@ -380,6 +391,8 @@ function addInstance(
 
 function endInstance(st: State, inst: Instance, tau: bigint, reason: PaidInstanceEnd): void {
   inst.active = false
+  st.horses[inst.owner]!.fixed -= inst.fixed
+  inst.fixed = 0n
   if (inst.slot >= 0 && st.horses[inst.owner]!.equip[inst.slot] === inst.id) st.horses[inst.owner]!.equip[inst.slot] = 0
   const traced = st.trace?.instances[inst.id - 1]
   if (traced) {
@@ -409,10 +422,7 @@ function findDue(st: State, tau: bigint): Due | null {
   for (const pending of st.pending) if (!pending.done) return { cls: 3, pending }
   for (const inst of st.instances) {
     if (!inst.active) continue
-    if (inst.kind === 'ability' && inst.count < SWAP_ATTEMPTS
-      && inst.start + SWAP_PERIOD_MS * BigInt(inst.count) === tau) return { cls: 4, id: inst.id }
-    if (inst.kind === 'equip' && inst.cardId === 11 && inst.count < WHEEL_BURSTS
-      && inst.start + WHEEL_PERIOD_MS * BigInt(inst.count + 1) === tau) return { cls: 4, id: inst.id }
+    if (triggerAt(st, inst, tau) === tau) return { cls: 4, id: inst.id }
   }
   for (let h = 0; h < HORSE_COUNT; h++) {
     const horse = st.horses[h]!
@@ -429,16 +439,69 @@ function stampOf(st: State, due: Due, tau: bigint): bigint {
 // ---------------------------------------------------------------- effects
 
 function kill(st: State, h: number, tau: bigint): void {
-  if (mods(st, h).respawning) {
-    emit(st, EV_DEATH_IMMUNE, tau, h, 0n)
+  const horse = st.horses[h]!
+  if (horse.finished) return
+  if (mods(st, h).respawning) { emit(st, EV_DEATH_IMMUNE, tau, h, 0n); return }
+  const shield = st.instances.find((i) => i.active && i.owner === h && i.kind === 'watch' && i.cardId === 37)
+  if (shield) {
+    endInstance(st, shield, tau, 'consumed')
+    emit(st, EV_GUARD, tau, h, BigInt(shield.id))
     return
   }
-  const horse = st.horses[h]!
-  horse.b = 0n
-  horse.fixed = 0n
-  horse.atCap = false
+  for (const i of st.instances) if (i.active && i.owner === h && i.kind === 'fixed') endInstance(st, i, tau, 'death')
+  horse.b = 0n; horse.fixed = 0n; horse.atCap = false
   const respawn = addInstance(st, tau, h, 0, 'respawn', RESPAWN_MS)
   emit(st, EV_DEATH, tau, h, BigInt(respawn.id))
+  const listener = st.instances.find((i) => i.active && i.owner === h && i.kind === 'watch' && i.cardId === 38 && tau < i.end)
+  if (listener) {
+    endInstance(st, listener, tau, 'consumed')
+    triggerLog(st, listener, tau)
+    const r = paidCardRule(38)
+    addInstance(st, tau, h, 38, 'fixed', BigInt(r.triggerDurationMs!), { fixed: BigInt(r.fixedSpeed!) })
+    emit(st, EV_FIXED, tau, h, BigInt(r.fixedSpeed!))
+  }
+}
+
+function recover(st: State, h: number, amount: bigint, tau: bigint): void {
+  const horse = st.horses[h]!
+  const gain = restoredStamina(horse.s, amount) - horse.s
+  horse.s += gain
+  emit(st, EV_RESOURCE, tau, h, gain)
+}
+
+function triggerLog(st: State, inst: Instance, tau: bigint): void {
+  inst.count++
+  emit(st, EV_TRIGGER, tau, inst.owner, BigInt(inst.cardId * 256 + inst.count))
+}
+
+function onEquipment(st: State, h: number, tau: bigint): void {
+  const listeners = st.instances.filter((i) => i.active && i.owner === h && i.kind === 'watch' && i.cardId === 31)
+  for (const i of listeners) {
+    const r = paidCardRule(31)
+    triggerLog(st, i, tau)
+    addInstance(st, tau, h, 31, 'buff', BigInt(r.triggerDurationMs!), { pBps: BigInt(r.bonusBps!) })
+  }
+}
+
+function triggerAt(st: State, i: Instance, tau: bigint): bigint {
+  if (!i.active) return NEVER
+  if (i.kind === 'ability' && i.count < SWAP_ATTEMPTS) return i.start + SWAP_PERIOD_MS * BigInt(i.count)
+  if (i.kind === 'equip' && i.cardId === 11) {
+    const at = i.start + WHEEL_PERIOD_MS * BigInt(i.count + 1)
+    return at < i.end ? at : NEVER
+  }
+  if (i.kind !== 'watch' || tau >= i.end) return NEVER
+  const r = paidCardRule(i.cardId)
+  if (r.effect === 'phased' && i.count === 0) return i.start + BigInt(r.periodMs!)
+  if (r.effect === 'reserve') {
+    const h = st.horses[i.owner]!
+    const threshold = BigInt(r.thresholdMicro!)
+    if (h.s <= threshold) return tau
+    const m = mods(st, i.owner)
+    if (!h.exhausted && !h.overcap && m.cost > m.regen) return tau + ceilDiv(h.s - threshold, m.cost - m.regen)
+  }
+  if (r.effect === 'mileage' && i.count < r.count! && st.horses[i.owner]!.dist >= i.nextDist) return tau
+  return NEVER
 }
 
 type EquipSpec = { slot: number; duration: bigint; fields: Partial<Instance> }
@@ -447,7 +510,7 @@ function equipSpec(cardId: number): EquipSpec {
   const rule = paidCardRule(cardId)
   const duration = BigInt(rule.durationMs!)
   switch (rule.effect) {
-    case 'rocket': return { slot: rule.slot!, duration, fields: { pBps: BigInt(rule.pBps!), halfCost: true } }
+    case 'rocket': return { slot: rule.slot!, duration, fields: { pBps: BigInt(rule.pBps!), costDelta: BigInt(rule.costMultiplierBps!) - BPS } }
     case 'rainbow': return { slot: rule.slot!, duration, fields: { pBps: BigInt(rule.pBps!) } }
     case 'gravity': return { slot: rule.slot!, duration, fields: { well: true } }
     case 'wheel': return { slot: rule.slot!, duration, fields: { airborne: true } }
@@ -466,6 +529,7 @@ function equip(st: State, h: number, cardId: number, tau: bigint): bigint {
   const inst = addInstance(st, tau, h, cardId, 'equip', spec.duration, { ...spec.fields, slot: spec.slot })
   horse.equip[spec.slot] = inst.id
   emit(st, EV_EQUIP_ON, tau, h, BigInt(inst.id))
+  onEquipment(st, h, tau)
   return spec.duration
 }
 
@@ -541,11 +605,75 @@ function applyCard(st: State, h: number, cardId: number, src: CardSource, tau: b
         emit(st, EV_EXHAUST_EXIT, tau, h, horse.s)
       }
       break
+    case 'coat': horse.coat = rule.coatRgb!; break
     case 'fixed': horse.fixed += BigInt(rule.fixedSpeed!); break
     case 'blindFixed':
       horse.fixed += BigInt(rule.fixedSpeed!)
       horse.blindedPro = true
       break
+    case 'pay': {
+      const { paid, bps } = staminaPayment(horse.s)
+      horse.s -= paid
+      emit(st, EV_RESOURCE, tau, h, -paid)
+      addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: bps })
+      break
+    }
+    case 'phased': addInstance(st, tau, h, cardId, 'watch', BigInt(rule.durationMs!), { pBps: BigInt(rule.pBps!), regenBps: BigInt(rule.regenBonusBps!) }); break
+    case 'reserve':
+      addInstance(st, tau, h, cardId, 'buff', BigInt(rule.periodMs!), { pBps: BigInt(rule.pBps!) })
+      addInstance(st, tau, h, cardId, 'watch', BigInt(rule.durationMs!)); break
+    case 'thrift': addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(rule.pBps!), costDelta: BigInt(rule.costDeltaBps!) }); break
+    case 'rage': case 'paper': case 'ground': case 'coatGate': case 'unarmed':
+      addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { gated: true, costDelta: BigInt(rule.costDeltaBps ?? 0) }); break
+    case 'recycle': {
+      const candidates = st.instances.filter((i) => i.active && i.owner === h && i.kind === 'equip').sort((a,b) => a.end < b.end ? -1 : a.end > b.end ? 1 : a.id - b.id)
+      const old = candidates[0]
+      lootMs = BigInt(old ? rule.durationMs! : rule.periodMs!)
+      if (old) { endInstance(st, old, tau, 'recycled'); emit(st, EV_EQUIP_OFF, tau, h, BigInt(old.id * 4 + OFF_RECYCLED)); recover(st, h, BigInt(rule.staminaMicro!), tau) }
+      addInstance(st, tau, h, cardId, 'buff', lootMs, { pBps: BigInt(old ? rule.pBps! : rule.fallbackBps!) }); break
+    }
+    case 'tinker':
+      addInstance(st, tau, h, cardId, 'buff', BigInt(rule.periodMs!), { pBps: BigInt(rule.pBps!) })
+      addInstance(st, tau, h, cardId, 'watch', null)
+      if (horse.equip.some(Boolean)) onEquipment(st, h, tau)
+      break
+    case 'renew': {
+      let renewed = false
+      for (const id of horse.equip) {
+        if (!id) continue
+        const i = st.instances[id - 1]!
+        i.end = tau + BigInt(paidCardRule(i.cardId).durationMs!)
+        st.trace?.renewals.push({ instanceId: id, tau, end: i.end })
+        emit(st, EV_EQUIP_REFRESH, tau, h, BigInt(id)); renewed = true
+      }
+      if (!renewed) { lootMs = BigInt(rule.periodMs!); addInstance(st, tau, h, cardId, 'buff', lootMs, { pBps: BigInt(rule.fallbackBps!) }) }
+      break
+    }
+    case 'target': {
+      addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(rule.pBps!) })
+      const targets = st.horses.map((x, id) => ({ x, id })).filter(({ x, id }) => id !== h && !x.finished && !x.blindedPro && x.pos > horse.pos)
+        .sort((a,b) => a.x.pos < b.x.pos ? -1 : a.x.pos > b.x.pos ? 1 : a.id - b.id)
+      const target = targets[0]?.id ?? 255
+      emit(st, EV_TARGET, tau, h, BigInt(target))
+      if (target !== 255) addInstance(st, tau, target, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(rule.fallbackBps!) })
+      break
+    }
+    case 'leader': {
+      const first = !st.horses.some((x,id) => id !== h && (x.finished || x.pos > horse.pos || (x.pos === horse.pos && id < h)))
+      addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(first ? rule.pBps! : rule.fallbackBps!) }); break
+    }
+    case 'feast':
+      for (let target = 0; target < HORSE_COUNT; target++) if (!st.horses[target]!.finished) recover(st, target, BigInt(rule.staminaMicro!), tau)
+      addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(rule.pBps!) }); break
+    case 'guard': addInstance(st, tau, h, cardId, 'watch', null); break
+    case 'deathBurst': addInstance(st, tau, h, cardId, 'watch', BigInt(rule.durationMs!)); break
+    case 'forfeit':
+      addInstance(st, tau, h, cardId, 'buff', BigInt(rule.periodMs!), { pBps: BigInt(rule.pBps!) })
+      addInstance(st, tau, h, cardId, 'watch', null); break
+    case 'mileage':
+      horse.fixed += BigInt(rule.fixedSpeed!)
+      emit(st, EV_FIXED, tau, h, BigInt(rule.fixedSpeed!))
+      addInstance(st, tau, h, cardId, 'watch', null, { nextDist: horse.dist + BigInt(rule.radiusMicro!) }); break
     default: break
   }
   if (horse.bonus) addInstance(st, tau, h, cardId, 'bonus', bonusDurationMs(cardId, lootMs), { pBps: BONUS_BPS })
@@ -566,7 +694,7 @@ function panelState(st: State, panel: OpenPanel): PaidPanelState {
   }
 }
 
-/** 有奖规则 v3: the stored choice for checkpoint k is ignored; the checkpoint proceeds as without a transaction. */
+/** The stored choice for checkpoint k is ignored; the checkpoint proceeds as without a transaction. */
 function invalidChoice(st: State, k: number, tau: bigint, reason: number): void {
   st.records[k - 1]!.invalidReason = reason
   emit(st, EV_CHOICE_INVALID, tau, st.player, BigInt(k * 16 + reason))
@@ -669,6 +797,15 @@ function closePanel(st: State, tau: bigint): void {
     st.acquired.push(cardId)
     applyCard(st, st.player, cardId, src!, tau)
   }
+  if (reason === 'forfeit-tx') {
+    const i = st.instances.find((i) => i.active && i.owner === st.player && i.kind === 'watch' && i.cardId === 39 && i.start < tau)
+    if (i) {
+      const r = paidCardRule(39)
+      endInstance(st, i, tau, 'consumed'); triggerLog(st, i, tau)
+      recover(st, st.player, BigInt(r.staminaMicro!), tau)
+      addInstance(st, tau, st.player, 39, 'buff', BigInt(r.triggerDurationMs!), { pBps: BigInt(r.bonusBps!) })
+    }
+  }
   openDeferred(st, tau)
 }
 
@@ -733,7 +870,13 @@ function applyDue(st: State, due: Due, tau: bigint): void {
     case 4: {
       const inst = st.instances[due.id - 1]!
       if (inst.kind === 'ability') swapAttempt(st, inst, tau)
-      else {
+      else if (inst.kind === 'watch') {
+        const r = paidCardRule(inst.cardId)
+        triggerLog(st, inst, tau)
+        if (r.effect === 'phased') { inst.pBps = BigInt(r.bonusBps!); inst.regenBps = 0n }
+        else if (r.effect === 'reserve') { endInstance(st, inst, tau, 'consumed'); recover(st, inst.owner, BigInt(r.staminaMicro!), tau) }
+        else if (r.effect === 'mileage') { inst.nextDist += BigInt(r.radiusMicro!); st.horses[inst.owner]!.fixed += BigInt(r.triggerFixedSpeed!); emit(st, EV_FIXED, tau, inst.owner, BigInt(r.triggerFixedSpeed!)) }
+      } else {
         inst.count++
         st.horses[inst.owner]!.fixed += WHEEL_DELTA_V
         emit(st, EV_WHEEL_BURST, tau, inst.owner, BigInt(inst.count))
@@ -818,14 +961,8 @@ function nextKnownTau(st: State, tau: bigint): bigint {
   for (const inst of st.instances) {
     if (!inst.active) continue
     if (inst.end < next) next = inst.end
-    if (inst.kind === 'ability' && inst.count < SWAP_ATTEMPTS) {
-      const at = inst.start + SWAP_PERIOD_MS * BigInt(inst.count)
-      if (at < next) next = at
-    }
-    if (inst.kind === 'equip' && inst.cardId === 11 && inst.count < WHEEL_BURSTS) {
-      const at = inst.start + WHEEL_PERIOD_MS * BigInt(inst.count + 1)
-      if (at < next) next = at
-    }
+    const at = triggerAt(st, inst, tau)
+    if (at < next) next = at
   }
   for (let h = 0; h < HORSE_COUNT; h++) {
     const horse = st.horses[h]!
@@ -863,6 +1000,12 @@ function crossingNeed(st: State, h: number, airborne: boolean): bigint {
   if (horse.cp < 3) {
     const toCheckpoint = CHECKPOINT_MICRO[horse.cp]! - horse.dist
     if (toCheckpoint < need) need = toCheckpoint
+  }
+  for (const i of st.instances) {
+    if (i.active && i.owner === h && i.kind === 'watch' && i.cardId === 40 && i.count < paidCardRule(40).count!) {
+      const remaining = i.nextDist - horse.dist
+      if (remaining < need) need = remaining
+    }
   }
   if (!airborne) {
     for (const bomb of st.bombs) {
@@ -963,7 +1106,7 @@ function tauLimit(st: State, untilWall: bigint): bigint {
 }
 
 /**
- * Reference solver for paid ruleset v3; every rule quantity is an integer and every loop is bounded. Stored choices
+ * Reference solver for paid ruleset v4; every rule quantity is an integer and every loop is bounded. Stored choices
  * never make it throw: only malformed input and the unreachable instance/bomb/event caps do.
  */
 export function solvePaidCore(input: PaidCoreInput, opts: PaidSolveOptions = {}): PaidSolveResult {

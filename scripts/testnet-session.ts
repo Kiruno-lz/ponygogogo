@@ -769,7 +769,7 @@ async function heavyProbe(ctx: {
   log: Logger; prepare: Prepare; finish: Finish
 }): Promise<Record<string, unknown>> {
   const { cfg, pub, sma, solver, timed, log, prepare, finish } = ctx
-  const vectors = JSON.parse(readFileSync(resolve(ROOT, 'tests/vectors/paid-race-v3.json'), 'utf8')) as { cases: VectorCase[] }
+  const vectors = JSON.parse(readFileSync(resolve(ROOT, 'tests/vectors/paid-race-v4.json'), 'utf8')) as { cases: VectorCase[] }
   const derived = vectors.cases.filter((c) => c.name.startsWith('derived-') && c.stopAtPanel === undefined)
   const heaviest = derived.reduce((a, b) => (b.expected.stepCount > a.expected.stepCount ? b : a))
   const index = Number(heaviest.name.slice('derived-'.length))

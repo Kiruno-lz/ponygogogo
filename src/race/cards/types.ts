@@ -9,7 +9,8 @@ export interface EffectDecl {
   payload: EffectPayload
 }
 
-export interface CardDef {
+/** Presentation data; the event solver reads numeric rules, never this object. */
+export interface CardView {
   cardId: string
   /** rare 即强效果子集，参与牌堆末两张保底 */
   quality: 'common' | 'rare'
@@ -20,8 +21,13 @@ export interface CardDef {
   art: { icon: string; tint?: number }
   /** 电脑马私有牌堆是否允许取到；所有卡必须显式声明 */
   cpuUsable: boolean
+}
+
+/** Identity and artwork only; gameplay fields are derived from the canonical rule table. */
+export type CardMetadata = Pick<CardView, 'cardId' | 'name' | 'meme' | 'art'>
+
+/** Declarative effect state per card; the event solver never reads it. */
+export interface CardDef extends CardView {
   effects: EffectDecl[]
   stack?: StackPolicy
-  /** 该卡依赖的模块 id，用于构建期静态检查缺模块 */
-  modules: string[]
 }

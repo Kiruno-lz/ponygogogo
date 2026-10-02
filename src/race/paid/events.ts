@@ -68,6 +68,12 @@ export const EV_EXHAUST_EXIT = 25
 export const EV_OVERCAP_END = 26
 export const EV_BASE_CAP = 27
 export const EV_CHOICE_INVALID = 28
+export const EV_TRIGGER = 29
+export const EV_RESOURCE = 30
+export const EV_GUARD = 31
+export const EV_TARGET = 32
+export const EV_EQUIP_REFRESH = 33
+export const EV_FIXED = 34
 
 export const CLOSE_PICKED = 1
 export const CLOSE_FORFEIT_TX = 2
@@ -99,6 +105,7 @@ export const PAID_CHOICE_INVALID_NAMES: Readonly<Record<number, PaidChoiceInvali
 export const OFF_EXPIRED = 0
 export const OFF_REPLACED = 1
 export const OFF_STOLEN = 2
+export const OFF_RECYCLED = 3
 
 export const GLOBAL_HORSE = 255
 
@@ -107,7 +114,8 @@ export const PAID_EVENT_NAMES: Readonly<Record<number, string>> = {
   8: 'PANEL_DEFER', 9: 'PANEL_CLOSE', 10: 'EXPIRE', 11: 'EQUIP_ON', 12: 'EQUIP_OFF', 13: 'BOMB_PLACE',
   14: 'BOMB_EXPLODE', 15: 'DEATH', 16: 'DEATH_IMMUNE', 17: 'RESPAWN_END', 18: 'SWAP', 19: 'SWAP_BLOCKED',
   20: 'WHEEL_BURST', 21: 'WIND', 22: 'STEAL', 23: 'STEAL_NONE', 24: 'EXHAUST_ENTER', 25: 'EXHAUST_EXIT',
-  26: 'OVERCAP_END', 27: 'BASE_CAP', 28: 'CHOICE_INVALID',
+  26: 'OVERCAP_END', 27: 'BASE_CAP', 28: 'CHOICE_INVALID', 29: 'TRIGGER', 30: 'RESOURCE', 31: 'GUARD',
+  32: 'TARGET', 33: 'EQUIP_REFRESH', 34: 'FIXED',
 }
 
 export type PaidLoggedEvent = { code: number; tau: bigint; wall: bigint; horse: number; arg: bigint }

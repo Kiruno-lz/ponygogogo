@@ -23,7 +23,7 @@ function onPlayer(cardId: number): Ctx {
 }
 
 function onCpu(cardId: number): Ctx {
-  const rest = [24, 25, 26].filter((c) => c !== cardId).slice(0, 2)
+  const rest = [19, 20, 5].filter((c) => c !== cardId).slice(0, 2)
   const r = solvePaidCore(fixtureInput({ cpu: { [CPU]: [cardId, ...rest] } }))
   return { r, horse: CPU, tau: cardTau(r, CPU, cardId), asPlayer: false }
 }
@@ -149,10 +149,10 @@ const checks: Record<number, (ctx: Ctx) => void> = {
   },
 }
 
-const NO_EFFECT = [19, 20, 22, 23, 24, 25, 26]
+const NO_EFFECT = [19, 20]
 
 describe('every card on the player and on a CPU', () => {
-  for (let cardId = 1; cardId <= 26; cardId++) {
+  for (let cardId = 1; cardId <= 21; cardId++) {
     for (const who of ['player', 'cpu'] as const) {
       test(`C-${String(cardId).padStart(2, '0')} on ${who}`, () => {
         const ctx = who === 'player' ? onPlayer(cardId) : onCpu(cardId)

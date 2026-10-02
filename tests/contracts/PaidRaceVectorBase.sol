@@ -5,7 +5,7 @@ import {IPaidRaceSolver} from "../../contracts/IPaidRaceSolver.sol";
 import {PaidProfiles} from "../../contracts/PaidProfiles.sol";
 import {PaidRaceEngine} from "../../contracts/PaidRaceEngine.sol";
 
-/// @dev Cheatcodes for reading tests/vectors/paid-race-v3.json (the repo has no forge-std).
+/// @dev Cheatcodes for reading tests/vectors/paid-race-v4.json (the repo has no forge-std).
 interface VectorVm {
     function readFile(string calldata path) external view returns (string memory);
     function split(string calldata input, string calldata delimiter) external pure returns (string[] memory);
@@ -26,7 +26,7 @@ interface VectorVm {
 /// re-parsing the whole 800 KB file for every field.
 abstract contract PaidRaceVectorBase {
     VectorVm internal constant vm = VectorVm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
-    string internal constant VECTOR_FILE = "tests/vectors/paid-race-v3.json";
+    string internal constant VECTOR_FILE = "tests/vectors/paid-race-v4.json";
     uint256 internal constant FIRST_CASE_LINE = 2;
 
     /// @dev Case JSON strings in file order.

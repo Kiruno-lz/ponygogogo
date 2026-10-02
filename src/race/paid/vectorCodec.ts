@@ -4,7 +4,7 @@ import {
   solvePaidCore, type PaidChoiceSlot, type PaidChoiceSlots, type PaidCoreInput, type PaidPanelMode, type PaidSolveResult,
 } from './solver.ts'
 
-/** JSON shape of tests/vectors/paid-race-v3.json: every bigint is a decimal string, small ids stay numbers. */
+/** JSON shape of tests/vectors/paid-race-v4.json: every bigint is a decimal string, small ids stay numbers. */
 export type PaidVectorSlot = { txSec: string; cardId: number; refreshSlots: number[]; anchor: Hex }
 export type PaidVectorInput = {
   profiles: { base: string; acceleration: string; cap: string }[]

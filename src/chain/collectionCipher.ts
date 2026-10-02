@@ -1,7 +1,7 @@
 import { bytesToHex, hexToBytes, type Hex } from 'viem'
-import { RARE_POOL } from '../race/cards/pool.ts'
+import { PAID_CARD_RULES } from '../race/paid/cardRules.ts'
 
-const RARE_IDS = new Set(RARE_POOL.map((card) => card.cardId))
+const RARE_IDS = new Set(PAID_CARD_RULES.filter(card => card.rare).map(card => `C-${String(card.id).padStart(2, '0')}`))
 const AAD = new TextEncoder().encode('ponygogogo/collection/v1')
 
 export type EncryptedCollection = { version: 1; iv: Hex; ciphertext: Hex }

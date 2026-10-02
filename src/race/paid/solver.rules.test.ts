@@ -52,7 +52,7 @@ test('gogo has no input path: the input shape has no such field and extra fields
 })
 
 test('a card acquired at an event ms can trigger in the same ms (C-09 attempt 0 right after the card)', () => {
-  const r = solvePaidCore(fixtureInput({ cpu: { 0: [9, 25, 26] } }))
+  const r = solvePaidCore(fixtureInput({ cpu: { 0: [9, 20, 5] } }))
   const card = r.events.findIndex((e) => e.code === EV_CARD && e.arg === 9n)
   expect([EV_SWAP, EV_SWAP_BLOCKED]).toContain(r.events[card + 1]!.code)
   expect(r.events[card + 1]!.tau).toBe(r.events[card]!.tau)

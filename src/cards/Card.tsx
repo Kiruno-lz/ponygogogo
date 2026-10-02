@@ -1,9 +1,10 @@
+import { cardIconUrl } from '../race/cards/iconUrl.ts'
 /**
  * 卡面只有一套实现。选牌时的候选牌、HUD 上生效中的牌、结算页回顾的牌
  * 是同一个组件的三种状态，不是三套画法。
  */
 import { useId, type CSSProperties, type ReactNode } from 'react'
-import type { CardDef } from '../race/cards/types.ts'
+import type { CardView } from '../race/cards/types.ts'
 import type { Lang } from '../ui/i18n.ts'
 import { t } from '../ui/i18n.ts'
 import { activateOnKey } from './cardKeys.ts'
@@ -35,7 +36,7 @@ export type CardSize = 'choice' | 'hud' | 'review' | 'gallery'
 const HEIGHTS: Record<CardSize, number> = { choice: 430, hud: 74, review: 210, gallery: 330 }
 
 export interface CardProps {
-  def: CardDef
+  def: CardView
   lang: Lang
   size?: CardSize
   selected?: boolean
@@ -113,7 +114,7 @@ export function Card({
         }}
       >
         <img
-          src={`/assets/placeholder/icons/${def.art.icon}.webp`}
+          src={cardIconUrl(def.art.icon)}
           alt=""
           draggable={false}
           style={{
