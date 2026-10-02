@@ -544,13 +544,13 @@ export default function App() {
   const doShare = useCallback(async () => {
     if (!shownResult) return
     try {
-      const blob = await drawPoster(shownResult, lang, 'x')
+      const blob = await drawPoster(shownResult, paidDriver?.sessionFacts?.stakeTier ?? PRACTICE_TIER, lang, 'x')
       await sharePoster(blob, `Ponygogogo #${shownResult.rank}`)
       setShared(true)
     } catch {
       setShared(false)
     }
-  }, [shownResult, lang])
+  }, [shownResult, paidDriver, lang])
 
   const stageStyle = useMemo(
     () => ({
