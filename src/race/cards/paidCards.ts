@@ -49,7 +49,9 @@ function describe(rule: PaidCardRule): { zh: string; en: string } {
     case 'fixed':
       return { zh: `速度固定 +${rule.fixedSpeed}，永久。`, en: `Speed +${rule.fixedSpeed}, permanent.` }
     case 'coat':
-      return { zh: '换一身毛色。没有规则效果，但是酷酷的！', en: 'A new coat. No rule effect, but it looks cool!' }
+      return rule.id === 19
+        ? { zh: '头顶戴上一撮金色尖发。酷酷的！', en: 'A tuft of golden spikes on your head. Looks cool!' }
+        : { zh: '头顶戴上一撮绿色尖发。酷酷的！', en: 'A tuft of green spikes on your head. Looks cool!' }
     case 'blindFixed':
       return { zh: `速度固定 +${rule.fixedSpeed}；【目中无人】：他马的炸弹、风与交换对你无效。`, en: `Speed +${rule.fixedSpeed}; Blinded Pro: other horses' bombs, wind and swaps skip you.` }
     case 'none':

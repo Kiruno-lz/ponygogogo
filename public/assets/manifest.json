@@ -1,4 +1,60 @@
 {
+  "art.cosmetics.blonde-hair": {
+    "kind": "image",
+    "path": "assets/art/cosmetics/blonde-hair.webp",
+    "bytes": 8640,
+    "sha256": "7ab77007782a4760",
+    "tier": "race"
+  },
+  "art.cosmetics.green-hair": {
+    "kind": "image",
+    "path": "assets/art/cosmetics/green-hair.webp",
+    "bytes": 8334,
+    "sha256": "b3b13b94d4c333a8",
+    "tier": "race"
+  },
+  "art.effects.blackhole-sheet": {
+    "kind": "image",
+    "path": "assets/art/effects/blackhole-sheet.webp",
+    "bytes": 343202,
+    "sha256": "0e04ab449204c8e7",
+    "tier": "race"
+  },
+  "art.effects.fire-wheel-sheet": {
+    "kind": "image",
+    "path": "assets/art/effects/fire-wheel-sheet.webp",
+    "bytes": 314096,
+    "sha256": "ae6d5e61ce397fc4",
+    "tier": "race"
+  },
+  "art.effects.rainbow-trail-sheet": {
+    "kind": "image",
+    "path": "assets/art/effects/rainbow-trail-sheet.webp",
+    "bytes": 267132,
+    "sha256": "39a696373f1bbd17",
+    "tier": "race"
+  },
+  "art.effects.rocket-sheet": {
+    "kind": "image",
+    "path": "assets/art/effects/rocket-sheet.webp",
+    "bytes": 210280,
+    "sha256": "8ba4899ab9733671",
+    "tier": "race"
+  },
+  "art.effects.spin-thrust-sheet": {
+    "kind": "image",
+    "path": "assets/art/effects/spin-thrust-sheet.webp",
+    "bytes": 365458,
+    "sha256": "47dcaef60b27c7fd",
+    "tier": "race"
+  },
+  "art.effects.wind-sheet": {
+    "kind": "image",
+    "path": "assets/art/effects/wind-sheet.webp",
+    "bytes": 347226,
+    "sha256": "00f71e0c977f46e4",
+    "tier": "race"
+  },
   "art.home.collection": {
     "kind": "image",
     "path": "assets/art/home/collection.webp",

@@ -24,7 +24,16 @@ import {
 } from './layout.ts'
 import { PonySprite, registerPonyTextures, type PonyImages } from './pony.ts'
 import type { SceneImages } from './sceneArt.ts'
-import { activeEquipmentVisuals, activeWindDirection, EFFECT_TEXTURES } from './effects.ts'
+import {
+  activeEquipmentVisuals,
+  activeHeadCosmetic,
+  activeWindDirection,
+  EFFECT_TEXTURES,
+  equipmentTransferPose,
+  equipmentVisual,
+  isSpinVisualActive,
+  windVisualPose,
+} from './effects.ts'
 
 const TRACK_UNITS = TRACK_LEN / FP
 
@@ -34,6 +43,7 @@ export interface RaceSceneData {
   reducedMotion: boolean
   ponyImages: PonyImages
   sceneImages: SceneImages
+  onReady?: (scene: RaceScene) => void
 }
 
 export class RaceScene extends Phaser.Scene {
@@ -41,6 +51,7 @@ export class RaceScene extends Phaser.Scene {
   private reducedMotion = false
   private ponyImages: PonyImages = {}
   private sceneImages: SceneImages = {}
+  private onReady?: (scene: RaceScene) => void
   private ponies: PonySprite[] = []
   private renderPos: number[] = []
   private far!: Phaser.GameObjects.TileSprite
@@ -48,7 +59,10 @@ export class RaceScene extends Phaser.Scene {
   private lanes: Phaser.GameObjects.TileSprite[] = []
   private finishLine!: Phaser.GameObjects.Graphics
   private gate!: Phaser.GameObjects.Graphics
+  private playerRing!: Phaser.GameObjects.Image
   private hazardIcons = new Map<number, Phaser.GameObjects.Container>()
+  private transferringEquipments = new Map<string, number>()
+  private transferSprites = new Set<Phaser.GameObjects.Image>()
   private dust!: Phaser.GameObjects.Particles.ParticleEmitter
   private windSprites: Phaser.GameObjects.Image[] = []
   private camPos = 0
@@ -63,6 +77,7 @@ export class RaceScene extends Phaser.Scene {
     this.reducedMotion = data.reducedMotion
     this.ponyImages = data.ponyImages
     this.sceneImages = data.sceneImages
+    this.onReady = data.onReady
   }
 
   create(): void {
@@ -114,10 +129,14 @@ export class RaceScene extends Phaser.Scene {
     })
     this.dust.setDepth(5)
 
+    this.playerRing = this.add.image(0, 0, 'fx.gold-ring')
+      .setDisplaySize(194, 48)
+      .setDepth(4)
+
     for (let i = 0; i < 3; i++) {
       const gust = this.add.image(0, 0, EFFECT_TEXTURES.wind.textureKey, 0)
         .setDisplaySize(330 - i * 35, 220 - i * 24)
-        .setAlpha(0.34 - i * 0.05)
+        .setAlpha(0.50 - i * 0.06)
         .setDepth(8)
         .setVisible(false)
       this.windSprites.push(gust)
@@ -126,7 +145,6 @@ export class RaceScene extends Phaser.Scene {
     for (const p of HORSE_PROFILES) {
       const pony = new PonySprite(this, {
         profile: p,
-        isPlayer: p.horseId === this.driver.state.playerHorseId,
       })
       this.ponies.push(pony)
       this.renderPos.push(0)
@@ -138,7 +156,7 @@ export class RaceScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setTileScale(BG_SCALE, BG_SCALE)
       .setDepth(40)
-
+    this.onReady?.(this)
   }
 
   handleEvents(events: RaceEvent[]): void {
@@ -155,6 +173,9 @@ export class RaceScene extends Phaser.Scene {
           this.renderPos[ev.a] = this.driver.state.horses[ev.a]!.pos / FP
           this.renderPos[ev.b] = this.driver.state.horses[ev.b]!.pos / FP
           break
+        case 'steal':
+          this.playEquipmentTransfer(ev.from, ev.to, ev.equipId)
+          break
         case 'checkpoint':
           if (ev.horseId === this.driver.state.playerHorseId) this.flashPony(ev.horseId, 0xffe08a)
           break
@@ -165,6 +186,17 @@ export class RaceScene extends Phaser.Scene {
           break
       }
     }
+  }
+
+  setReducedMotion(reducedMotion: boolean): void {
+    this.reducedMotion = reducedMotion
+    if (!reducedMotion) return
+    for (const sprite of this.transferSprites) {
+      this.tweens.killTweensOf(sprite)
+      sprite.destroy()
+    }
+    this.transferSprites.clear()
+    this.transferringEquipments.clear()
   }
 
   private flashPony(horseId: number, color: number): void {
@@ -239,6 +271,7 @@ export class RaceScene extends Phaser.Scene {
       pony.setDepth(14 - h.laneIndex)
       const hide = blinded && h.horseId !== st.playerHorseId
       pony.setVisible(!hide && pony.x > -260 && pony.x < DESIGN_W + 260)
+      if (h.horseId === st.playerHorseId) this.playerRing.setPosition(pony.x, pony.y - 2).setVisible(pony.visible)
 
       const airborne = st.effects.some(
         (e) => e.ownerHorseId === h.horseId && e.payload.statusId === 'airborne',
@@ -246,15 +279,14 @@ export class RaceScene extends Phaser.Scene {
       const respawning = st.effects.some(
         (e) => e.ownerHorseId === h.horseId && e.payload.statusId === 'respawning',
       )
-      const coat = st.effects.find(
-        (e) => e.ownerHorseId === h.horseId && e.payload.statusId === 'coat',
-      )
-      pony.setCoat(coat ? Number.parseInt(String(coat.payload.coat).slice(1), 16) : null)
+      pony.setHeadCosmetic(activeHeadCosmetic(st.effects, h.horseId))
       pony.setGhost(respawning && Math.floor(this.time.now / 110) % 2 === 0)
       const ratio = Math.min(1, h.v / FP / 45)
       pony.tickAnim(delta, ratio, airborne, h.v === 0)
+      pony.setSpinVisual(isSpinVisualActive(st.effects, h.horseId), st.tick * 20, this.reducedMotion)
       pony.setEquipment(
-        activeEquipmentVisuals(st.effects, h.horseId),
+        activeEquipmentVisuals(st.effects, h.horseId)
+          .filter((visual) => !this.transferringEquipments.has(`${h.horseId}:${visual}`)),
         this.reducedMotion ? 0 : Math.floor(this.time.now / 70) % 16,
       )
 
@@ -266,19 +298,55 @@ export class RaceScene extends Phaser.Scene {
 
   private syncWind(): void {
     const direction = activeWindDirection(this.driver.state.effects)
-    const frame = this.reducedMotion ? 0 : Math.floor(this.time.now / 75) % 16
     for (let i = 0; i < this.windSprites.length; i++) {
       const gust = this.windSprites[i]!
       gust.setVisible(direction !== null)
       if (direction === null) continue
-      gust.setFrame(frame)
-      gust.setFlipX(direction < 0)
-      gust.y = 410 + i * 135
-      const travel = DESIGN_W + 520
-      const phase = this.reducedMotion
-        ? (i + 1) / (this.windSprites.length + 1)
-        : ((this.time.now * (0.045 + i * 0.006) + i * 610) % travel) / travel
-      gust.x = direction > 0 ? phase * travel - 260 : DESIGN_W + 260 - phase * travel
+      const pose = windVisualPose(direction, this.driver.state.tick * 20, i, DESIGN_W, this.reducedMotion)
+      gust.setFrame(pose.frame).setFlipX(pose.flipX).setPosition(pose.x, pose.y)
+    }
+  }
+
+  private playEquipmentTransfer(fromHorseId: number, toHorseId: number, equipId: string): void {
+    if (this.reducedMotion) return
+    const visual = equipmentVisual(equipId)
+    const fromPony = this.ponies[fromHorseId]
+    const toPony = this.ponies[toHorseId]
+    if (!visual || !fromPony || !toPony) return
+    const from = fromPony.equipmentWorldPoints(equipId)
+    const to = toPony.equipmentWorldPoints(equipId)
+    if (from.length === 0 || from.length !== to.length) return
+
+    const spec = EFFECT_TEXTURES[visual]
+    const transferKey = `${toHorseId}:${visual}`
+    this.transferringEquipments.set(transferKey, (this.transferringEquipments.get(transferKey) ?? 0) + from.length)
+    const sizes: Record<typeof visual, [number, number]> = {
+      rocket: [82, 55], rainbowTrail: [118, 79], blackhole: [72, 48], fireWheel: [34, 34],
+    }
+    for (let i = 0; i < from.length; i++) {
+      const start = from[i]!
+      const finish = to[i]!
+      const sprite = this.add.image(start.x, start.y, spec.textureKey, Math.floor(this.time.now / 75) % spec.frameCount)
+        .setDisplaySize(...sizes[visual])
+        .setDepth(35)
+      this.transferSprites.add(sprite)
+      this.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: 460,
+        onUpdate: (tween) => {
+          const p = Number(tween.getValue())
+          const pose = equipmentTransferPose(start, finish, p, false)
+          sprite.setPosition(pose.x, pose.y)
+        },
+        onComplete: () => {
+          this.transferSprites.delete(sprite)
+          sprite.destroy()
+          const remaining = (this.transferringEquipments.get(transferKey) ?? 1) - 1
+          if (remaining <= 0) this.transferringEquipments.delete(transferKey)
+          else this.transferringEquipments.set(transferKey, remaining)
+        },
+      })
     }
   }
 

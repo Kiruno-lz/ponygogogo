@@ -56,6 +56,8 @@ export interface RaceScreenProps {
   reducedMotion: boolean
   audio: AudioManager
   urls: Record<string, string>
+  /** 可选的表现层就绪钩子；验收驱动器用它开始确定性时间线 */
+  onSceneReady?: () => void
   onDone: () => void
   onQuit: () => void
 }
@@ -100,8 +102,12 @@ export function RaceScreen(p: RaceScreenProps) {
         reducedMotion: p.reducedMotion,
         ponyImages,
         sceneImages,
+        onReady: (scene: RaceScene) => {
+          sceneRef.current = scene
+          scene.setReducedMotion(p.reducedMotion)
+          p.onSceneReady?.()
+        },
       })
-      sceneRef.current = game.scene.getScene('race') as RaceScene
     })
     return () => {
       disposed = true
@@ -111,6 +117,10 @@ export function RaceScreen(p: RaceScreenProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    sceneRef.current?.setReducedMotion(p.reducedMotion)
+  }, [p.reducedMotion])
 
   // 主循环
   useEffect(() => {

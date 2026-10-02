@@ -1,5 +1,5 @@
 import { decodeImage } from './images.ts'
-import { EFFECT_TEXTURES } from './effects.ts'
+import { EFFECT_TEXTURES, HEAD_COSMETIC_TEXTURES } from './effects.ts'
 
 export type SceneImages = Record<string, HTMLImageElement>
 
@@ -11,7 +11,8 @@ export async function prepareSceneImages(urls: Record<string, string>): Promise<
     'fx.gold-ring': urls['art.ui.gold-ring-trimmed'],
     'fx.dust': urls['art.ui.dust-trimmed'],
     ...Object.fromEntries(
-      Object.values(EFFECT_TEXTURES).map((spec) => [spec.textureKey, urls[spec.assetKey]]),
+      [...Object.values(EFFECT_TEXTURES), ...Object.values(HEAD_COSMETIC_TEXTURES)]
+        .map((spec) => [spec.textureKey, urls[spec.assetKey]]),
     ),
   }
   const images: SceneImages = {}

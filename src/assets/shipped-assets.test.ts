@@ -9,6 +9,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { HORSE_PROFILES } from '../game/horses.ts'
 import { CARD_POOL } from '../race/cards/pool.ts'
@@ -109,7 +110,7 @@ describe('动态拼接的资源族', () => {
 
 describe('资源清单', () => {
   const manifest = JSON.parse(readFileSync(join(PUBLIC, 'assets/manifest.json'), 'utf8')) as
-    Record<string, { kind: string; path: string; bytes: number; tier: string; alt?: string }>
+    Record<string, { kind: string; path: string; bytes: number; tier: string; sha256: string; alt?: string }>
   const TIERS = ['boot', 'home', 'race', 'result']
 
   test('每一项都指向真实文件，且字节数与文件一致', () => {
@@ -130,6 +131,32 @@ describe('资源清单', () => {
   test('四个分级都非空——某一级为空说明分级规则失配，而不是真的不需要素材', () => {
     for (const tier of TIERS) {
       expect(Object.values(manifest).some((e) => e.tier === tier), `${tier} 级为空`).toBe(true)
+    }
+  })
+
+  test('六套运行时特效素材有 race 级清单项且大小与摘要匹配', () => {
+    const ids = ['blackhole', 'fire-wheel', 'rainbow-trail', 'rocket', 'wind', 'spin-thrust']
+    for (const id of ids) {
+      const key = `art.effects.${id}-sheet`
+      const entry = manifest[key]
+      expect(entry, key).toBeDefined()
+      expect(entry!.path, key).toBe(`assets/art/effects/${id}-sheet.webp`)
+      expect(entry!.tier, key).toBe('race')
+      const bytes = readFileSync(join(PUBLIC, entry!.path))
+      expect(bytes.byteLength, key).toBe(entry!.bytes)
+      expect(createHash('sha256').update(bytes).digest('hex').slice(0, 16), key).toBe(entry!.sha256)
+    }
+  })
+
+  test('黄色和绿色尖发使用独立 race 级素材，清单与实际文件一致', () => {
+    for (const id of ['blonde-hair', 'green-hair']) {
+      const key = `art.cosmetics.${id}`
+      const entry = manifest[key]
+      expect(entry, key).toBeDefined()
+      expect(entry!.tier).toBe('race')
+      const bytes = readFileSync(join(PUBLIC, entry!.path))
+      expect(bytes.length).toBe(entry!.bytes)
+      expect(createHash('sha256').update(bytes).digest('hex').slice(0, 16)).toBe(entry!.sha256)
     }
   })
 

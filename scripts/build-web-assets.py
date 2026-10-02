@@ -109,6 +109,7 @@ FONT_EXT = {".ttf", ".otf"}
 
 # 缩小这些图不是画质取舍，而是功能回归。逐条写明后果与出处。
 NO_DOWNSCALE: list[tuple[str, str]] = [
+    ("art/effects/", "4×4 特效分镜按 effects.ts 的帧尺寸切片，整图降采样会串帧"),
     ("art/track/far.png", "RaceScene.ts:75 tileSprite + setTileScale(1)，贴图宽度就是滚动循环周期，缩小会让远景重复频率翻倍"),
     ("art/track/track.png", "RaceScene.ts:86 同上，且五条白线的间距按原画像素注册"),
     ("art/track/front.png", "RaceScene.ts:119 同上"),
@@ -176,6 +177,10 @@ def ships(rel: str) -> bool:
         return False
     if any(part.startswith(("_", ".")) for part in Path(rel).parts):
         return False
+    if rel.startswith("art/effects/"):
+        return rel.endswith("-sheet.png")
+    if rel.startswith("art/cosmetics/"):
+        return rel in {"art/cosmetics/blonde-hair.png", "art/cosmetics/green-hair.png"}
     ext = Path(rel).suffix.lower()
     if ext in FONT_EXT:
         return True
