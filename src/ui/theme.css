@@ -345,13 +345,12 @@ html, body, #root {
 .stamina-fill { transition: clip-path 90ms linear; }
 .exhausted-art .stamina-fill { filter: saturate(.3) brightness(.7); }
 .over-art .stamina-fill { filter: brightness(1.3); }
-.horse-choice { position: absolute; left: 58px; width: 340px; height: 116px; border: 0; padding: 0; background: none; color: #fff; cursor: pointer; outline-offset: -3px; }
-.horse-choice > .pony-portrait { position: absolute; left: 109px; top: -13.15625px; }
+.horse-choice { position: absolute; isolation: isolate; left: 58px; width: 340px; height: 116px; border: 0; padding: 0; background: none; color: #fff; cursor: pointer; outline-offset: -3px; }
+.horse-choice > .pony-portrait { position: absolute; z-index: 1; filter: none; left: 109px; top: -13.15625px; }
 .lane-pennant { position: absolute; left: 0; bottom: 7px; width: 101px; height: 74px; object-fit: contain; }
-.horse-choice .horse-ground-ring { position: absolute; bottom: -12px; left: 90px; width: 194px; height: 48px; opacity: 0; pointer-events: none; }
+.horse-choice .horse-ground-ring { position: absolute; z-index: 0; bottom: -12px; left: 90px; width: 194px; height: 48px; opacity: 0; pointer-events: none; }
 .horse-choice.selected .horse-ground-ring { opacity: 1; }
-.horse-choice.selected > .pony-portrait { filter: drop-shadow(0 0 5px #ffde83); }
-.horse-choice:hover > .pony-portrait { filter: brightness(1.08); }
+.horse-choice:hover > .pony-portrait { filter: brightness(1.08) drop-shadow(0 0 5px #ffde83); }
 .horse-choice:focus-visible { outline: 3px solid #ffe39b; border-radius: 10px; }
 .bet-art-panel { position: absolute; left: 1259px; top: 72px; width: 360px; height: 475px; background: url('/assets/art/ui/bet-panel-trimmed.webp') center / 100% 100% no-repeat; padding: 64px 29px 18px 40px; color: #2c2019; font-family: 'Trebuchet MS', 'PingFang SC', sans-serif; font-style: italic; }
 .bet-balance { display: flex; align-items: center; gap: 14px; height: 73px; padding: 0 8px; font-size: 27px; font-weight: 800; }
