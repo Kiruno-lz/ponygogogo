@@ -1,0 +1,234 @@
+{
+  "rulesetHash": "0x1f3e8d6c57b309a94e9550a022396329611552c9d1f982cf64d050afa95fe85b",
+  "samples": 80,
+  "policy": "Full pool, actual checkpoint windows; aim for both pieces, take C-05 if missing, refresh slot 0 once when needed, then choose a situational third card. AcquiredBoth counts cards received; triggered additionally checks actual overlap or a corresponding solver trigger. A forfeit is a consumed choice, not a card. This policy is not an optimal strategy or a payout guarantee.",
+  "random": {
+    "races": 80,
+    "rawRanks": [
+      10,
+      4,
+      14,
+      17,
+      35
+    ],
+    "settlementRanks": [
+      10,
+      4,
+      14,
+      17,
+      35
+    ],
+    "versionAnswer": 0
+  },
+  "builds": [
+    {
+      "pair": [
+        7,
+        25
+      ],
+      "races": 80,
+      "acquiredBoth": 2,
+      "triggered": 2,
+      "threeCheckpointsReached": 80,
+      "thirdCard": 2,
+      "refreshes": 7,
+      "ranks": [
+        6,
+        3,
+        13,
+        21,
+        37
+      ]
+    },
+    {
+      "pair": [
+        16,
+        26
+      ],
+      "races": 80,
+      "acquiredBoth": 4,
+      "triggered": 0,
+      "threeCheckpointsReached": 80,
+      "thirdCard": 4,
+      "refreshes": 6,
+      "ranks": [
+        7,
+        3,
+        17,
+        17,
+        36
+      ]
+    },
+    {
+      "pair": [
+        1,
+        27
+      ],
+      "races": 80,
+      "acquiredBoth": 1,
+      "triggered": 0,
+      "threeCheckpointsReached": 80,
+      "thirdCard": 1,
+      "refreshes": 7,
+      "ranks": [
+        6,
+        5,
+        13,
+        19,
+        37
+      ]
+    },
+    {
+      "pair": [
+        28,
+        33
+      ],
+      "races": 80,
+      "acquiredBoth": 2,
+      "triggered": 1,
+      "threeCheckpointsReached": 80,
+      "thirdCard": 2,
+      "refreshes": 8,
+      "ranks": [
+        7,
+        4,
+        19,
+        15,
+        35
+      ]
+    },
+    {
+      "pair": [
+        19,
+        29
+      ],
+      "races": 80,
+      "acquiredBoth": 5,
+      "triggered": 3,
+      "threeCheckpointsReached": 80,
+      "thirdCard": 5,
+      "refreshes": 8,
+      "ranks": [
+        7,
+        2,
+        14,
+        20,
+        37
+      ]
+    },
+    {
+      "pair": [
+        31,
+        7
+      ],
+      "races": 80,
+      "acquiredBoth": 3,
+      "triggered": 2,
+      "threeCheckpointsReached": 80,
+      "thirdCard": 3,
+      "refreshes": 5,
+      "ranks": [
+        7,
+        4,
+        15,
+        15,
+        39
+      ]
+    },
+    {
+      "pair": [
+        11,
+        32
+      ],
+      "races": 80,
+      "acquiredBoth": 0,
+      "triggered": 0,
+      "threeCheckpointsReached": 80,
+      "thirdCard": 0,
+      "refreshes": 7,
+      "ranks": [
+        6,
+        3,
+        15,
+        17,
+        39
+      ]
+    },
+    {
+      "pair": [
+        2,
+        37
+      ],
+      "races": 80,
+      "acquiredBoth": 1,
+      "triggered": 1,
+      "threeCheckpointsReached": 80,
+      "thirdCard": 1,
+      "refreshes": 7,
+      "ranks": [
+        8,
+        2,
+        14,
+        16,
+        40
+      ]
+    },
+    {
+      "pair": [
+        2,
+        38
+      ],
+      "races": 80,
+      "acquiredBoth": 4,
+      "triggered": 3,
+      "threeCheckpointsReached": 80,
+      "thirdCard": 4,
+      "refreshes": 5,
+      "ranks": [
+        7,
+        1,
+        13,
+        17,
+        42
+      ]
+    },
+    {
+      "pair": [
+        39,
+        0
+      ],
+      "races": 80,
+      "acquiredBoth": 13,
+      "triggered": 13,
+      "threeCheckpointsReached": 80,
+      "thirdCard": 0,
+      "refreshes": 6,
+      "ranks": [
+        7,
+        2,
+        16,
+        19,
+        36
+      ]
+    },
+    {
+      "pair": [
+        40,
+        14
+      ],
+      "races": 80,
+      "acquiredBoth": 3,
+      "triggered": 2,
+      "threeCheckpointsReached": 80,
+      "thirdCard": 3,
+      "refreshes": 5,
+      "ranks": [
+        6,
+        2,
+        16,
+        17,
+        39
+      ]
+    }
+  ]
+}
