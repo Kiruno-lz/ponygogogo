@@ -15,3 +15,7 @@ test('local race ids never look like transaction hashes and do not repeat', () =
   expect(a.startsWith('local-')).toBe(true)
   expect(a).not.toBe(b)
 })
+
+test('forced seeds exceeding the shared rules bytes32 input fall back to local entropy', () => {
+  expect(practiceSeed(`0x${'ab'.repeat(33)}`, 7)).toBe(makeSeed(7))
+})

@@ -149,6 +149,24 @@ describe('paid driver: canonical time and snapshots', () => {
     expect(ev.map((e) => e.type)).toEqual(['gogo'])
     expect(r.driver.state.horses.map((h) => h.pos)).toEqual(before)
   })
+
+  test('连续 gogo 不改变有奖体力、轨迹和完整求解结果，也不提交链上选择', () => {
+    const f = facts(plain)
+    const idle = rig(f), clicked = rig(f)
+    idle.driver.open(f)
+    clicked.driver.open(f)
+    for (let now = 0; now <= 12_000; now += 20) {
+      idle.driver.update(now)
+      if (now % 200 === 0) {
+        clicked.driver.input({ kind: 'gogoDown' })
+        clicked.driver.input({ kind: 'gogoUp' })
+      }
+      clicked.driver.update(now)
+    }
+    expect(clicked.driver.state.horses).toEqual(idle.driver.state.horses)
+    expect(clicked.driver.preview()!.result).toEqual(idle.driver.preview()!.result)
+    expect(clicked.calls).toEqual([])
+  })
 })
 
 describe('paid driver: choice window', () => {

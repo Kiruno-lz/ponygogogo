@@ -2,7 +2,7 @@
  * 比赛页：Phaser 画布 + DOM 的 HUD 与选牌浮层。
  * 卡牌层绝不暂停 Phaser 场景；选牌浮层出现时赛道继续以 0.1 倍速跑。
  *
- * 同一套画面承接两种驱动器：免费试玩（本地内核）与有奖（链上规范时间线，见 race/paidDriver.ts）。
+ * 同一套画面承接两种驱动器：免费试玩（本地时钟）与有奖（链上时钟），二者使用同一事件求时器。
  * 有奖时额外显示入场/选牌交易状态、断卡提示与「待链上验证」，页面切到后台也不终止比赛——
  * 链上会话不会因为关页而停下，回来时按规范时间继续。入块但按规则不生效的选择（有奖规则 v3）显示一行原因，
  * 例如「选择晚于截止，按超时处理」；画面本身已按规范求解渲染成超时、自动或断卡。
@@ -17,7 +17,6 @@ import { HORSE_PROFILES } from '../game/horses.ts'
 import { preparePonyImages } from '../game/pony.ts'
 import { prepareSceneImages } from '../game/sceneArt.ts'
 import { paidCardDef } from '../race/cards/paidCards.ts'
-import { CARD_BY_ID } from '../race/cards/pool.ts'
 import type { RaceEvent } from '../race/core/types.ts'
 import type { PaidOverlay } from '../race/paidDriver.ts'
 import type { RaceScreenDriver } from '../race/raceView.ts'
@@ -320,9 +319,9 @@ export function RaceScreen(p: RaceScreenProps) {
           refreshCredits={st.refreshCredits}
           auto={st.drawMode === 'auto'}
           timeLeftMs={p.driver.choiceLeftMs}
-          lookup={p.paid ? paidCardDef : (id => CARD_BY_ID[id])}
-          locked={paid?.locked ?? false}
-          autoPick={paid?.autoPick ?? null}
+          lookup={paidCardDef}
+          locked={p.driver.choiceInteraction?.locked ?? paid?.locked ?? false}
+          autoPick={p.driver.choiceInteraction?.autoPick ?? paid?.autoPick ?? null}
           note={choiceNote}
           lang={p.lang}
           reducedMotion={p.reducedMotion}

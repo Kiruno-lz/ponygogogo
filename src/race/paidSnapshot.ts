@@ -1,5 +1,5 @@
 /**
- * 有奖轨迹 → 表现层快照。RaceScreen / RaceScene / Hud 只认识免费试玩内核的 `RaceState` 与 `RaceEvent`，
+ * 共享求时器轨迹 → 表现层快照。RaceScreen / RaceScene / Hud 使用 `RaceState` 与 `RaceEvent`，
  * 这里把 P2 求时器的渲染轨迹（µu、mu/s、µ体力、模拟毫秒）按固定比例换成同一套字段，表现层一行不改。
  *
  * 单位换算（两边赛道都是 100000 单位）：
@@ -180,6 +180,7 @@ export type SnapshotInput = {
   playerDeck: readonly number[]
   finishTime: readonly bigint[]
   raceOver: boolean
+  versionAnswer?: boolean
 }
 
 /** 冲线名次：按 (finishTime, horseId) 在已冲线的马里排序。 */
@@ -255,7 +256,7 @@ export function buildPaidSnapshot(input: SnapshotInput): RaceState {
     cpuDecks: {},
     cpuDeckCursor: {},
     finishedOrder,
-    forcedRank: null,
+    forcedRank: input.versionAnswer ? { horseId: playerHorseId, rank: 1 } : null,
     endReason: input.raceOver ? 'finished' : null,
     playerFinished,
     raceOver: input.raceOver,

@@ -3,7 +3,7 @@
  *              → TailRace → Result。
  *
  * 两种比赛共用这条动线：
- * - 免费本地试玩（档位 0）：本地生成 seed、跑本地 50Hz 内核、结果只在本地展示，不碰任何余额。
+ * - 免费本地试玩（档位 0）：本地生成 seed、使用与有奖场相同的事件求时器、结果只在本地展示，不碰任何余额。
  * - 有奖比赛（档位 1–4，只在 chain/paidGate 的 `paidEntry` 开放时可选：构建期地址、链上代码、已登录）：开场交易
  *   → 链上规范时间线上的 P2 求时器画面 → 选牌交易 → 冲线后自动结算 → 结算页以 SessionSettled 为准。
  *   编排在 ui/usePaidRace.ts；登录后若链上还有未完结会话，首页弹出恢复窗口。
@@ -419,7 +419,7 @@ export default function App() {
     const seq = raceSeq.current++
     const now = Date.now()
     const d = new RaceDriver({ seed: practiceSeed(qs('seed'), now + seq), playerHorseId: horseId, stakeTier: PRACTICE_TIER })
-    ;(d as unknown as { raceId: string }).raceId = practiceRaceId(now, seq)
+    d.raceId = practiceRaceId(now, seq)
     setDriver(d)
     setResult(null)
     setShared(false)
@@ -452,11 +452,9 @@ export default function App() {
       return
     }
     if (!(driver instanceof RaceDriver)) return
-    // 尾场只决定玩家身后电脑马彼此的先后，直接在规则内核里跑完，结果确定且不阻塞
-    let guard = 0
-    while (!driver.state.raceOver && guard++ < 60000) driver.engine.step([])
-    const raceId = (driver as unknown as { raceId?: string }).raceId ?? 'local'
-    const r = driver.engine.buildResult(raceId)
+    // 共享求时器已求出完整结果，尾场演出不参与规则计算。
+    const raceId = driver.raceId
+    const r = driver.buildResult(raceId)
     setResult(r)
     // 结算页的素材是后台预取的，极端情况下要等一下；等的时候比赛画面留在原地，不闪白
     go('result')
@@ -634,6 +632,7 @@ export default function App() {
             result={shownResult}
             paid={paidMeta ? paidView : undefined}
             shared={shared}
+            choiceNotes={driver instanceof RaceDriver ? paidChoiceNoteKeys(driver.canonicalResult()).map((k) => k ? t(lang, k) : null) : undefined}
             onAgain={() => {
               setDriver(null)
               setPaidDriver(null)

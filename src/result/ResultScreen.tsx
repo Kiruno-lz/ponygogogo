@@ -1,7 +1,7 @@
 import { cardIconUrl } from '../race/cards/iconUrl.ts'
 /**
  * 结算页，承接两种比赛：
- * - 免费本地试玩：名次由浏览器本地内核算出，不上链、不计奖金，页面上明确标成「本地试玩」，
+ * - 免费本地试玩：名次由共享求时器在本地算出，不上链、不计奖金，页面上明确标成「本地试玩」，
  *   不出现下注、返还或盈亏数字。
  * - 有奖比赛（`paid`）：冲线时先显示浏览器预览名次并标「待链上验证」；名次、返还、净盈亏与三次选择
  *   （`acquired`）只取 `SessionSettled`。印章写结算中 / 已结算 / 结算失败 / 已判负；结算交易提交后显示 tx 与
@@ -80,6 +80,7 @@ export interface ResultScreenProps {
   onHome: () => void
   onShare: () => void
   shared: boolean
+  choiceNotes?: (string | null)[]
 }
 
 export function ResultScreen(p: ResultScreenProps) {
@@ -158,7 +159,7 @@ export function ResultScreen(p: ResultScreenProps) {
         <div className="result-picks-title">{t(p.lang, 'result.choices')}</div>
         {p.result.choices.map((c, i) => {
           const def = c.cardId ? lookup(c.cardId) ?? null : null
-          const note = paid?.choiceNotes[i] ?? null
+          const note = paid?.choiceNotes[i] ?? p.choiceNotes?.[i] ?? null
           const slot = PICK_SLOTS[i] ?? PICK_SLOTS[0]!
           return (
             <div
