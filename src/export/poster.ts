@@ -1,8 +1,9 @@
+import { paidCardDef } from '../race/cards/paidCards.ts'
+import { cardIconUrl } from '../race/cards/iconUrl.ts'
 /**
  * 出图与分享。海报用离屏 Canvas 自己画，不截屏 DOM：
  * 版式固定，自己画一遍是确定的，截屏是碰运气的。
  */
-import { CARD_BY_ID } from '../race/cards/pool.ts'
 import { PAYOUT_TABLE, SIM_HZ, STAKE_PRESETS } from '../race/core/constants.ts'
 import { FP } from '../race/core/fixed.ts'
 import type { RaceResult } from '../race/core/types.ts'
@@ -122,13 +123,13 @@ export async function drawPoster(
     ctx.fillStyle = 'rgba(255,248,238,0.92)'
     roundRect(ctx, x, baseY, cardW, cardH, 14)
     ctx.fill()
-    ctx.strokeStyle = c.cardId && CARD_BY_ID[c.cardId]?.quality === 'rare' ? '#f4a22a' : '#a3714c'
+    const def = c.cardId ? paidCardDef(c.cardId) : null
+    ctx.strokeStyle = def?.quality === 'rare' ? '#f4a22a' : '#a3714c'
     ctx.lineWidth = 5
     ctx.stroke()
-    const def = c.cardId ? CARD_BY_ID[c.cardId] : null
     if (def) {
       try {
-        const icon = await loadImage(`/assets/placeholder/icons/${def.art.icon}.webp`)
+        const icon = await loadImage(cardIconUrl(def.art.icon))
         ctx.drawImage(icon, x + cardW * 0.18, baseY + cardH * 0.1, cardW * 0.64, cardW * 0.64)
       } catch {
         /* 图标缺失降级为纯文字 */

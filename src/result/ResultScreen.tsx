@@ -1,3 +1,4 @@
+import { cardIconUrl } from '../race/cards/iconUrl.ts'
 /**
  * 结算页，承接两种比赛：
  * - 免费本地试玩：名次由浏览器本地内核算出，不上链、不计奖金，页面上明确标成「本地试玩」，
@@ -14,7 +15,6 @@ import type { Hex } from 'viem'
 import { formatMon } from '../chain/amount.ts'
 import { explorerTxUrl } from '../chain/network.ts'
 import { paidCardDef } from '../race/cards/paidCards.ts'
-import { CARD_BY_ID } from '../race/cards/pool.ts'
 import { SIM_HZ } from '../race/core/constants.ts'
 import type { RaceResult } from '../race/core/types.ts'
 import { HORSE_PROFILES } from '../game/horses.ts'
@@ -90,7 +90,7 @@ export function ResultScreen(p: ResultScreenProps) {
   const settled = paid?.settlement ?? null
   const forfeited = paid?.phase === 'forfeited'
   const rank = settled ? settled.rank : p.result.rank
-  const lookup = (id: string) => (paid ? paidCardDef(id) : CARD_BY_ID[id])
+  const lookup = paidCardDef
   const txUrl = paid?.txHash ? explorerTxUrl(paid.txHash) : null
   const verifyText = !paid ? '' : settled
     ? t(p.lang, 'result.chainRank', { rank: settled.rank })
@@ -169,7 +169,7 @@ export function ResultScreen(p: ResultScreenProps) {
             >
               <span className="result-pick-no mono">{c.checkpoint + 1}</span>
               {def ? (
-                <img className="result-pick-icon" src={`/assets/placeholder/icons/${def.art.icon}.webp`} alt="" draggable={false} />
+                <img className="result-pick-icon" src={cardIconUrl(def.art.icon)} alt="" draggable={false} />
               ) : (
                 <span className="result-pick-icon result-pick-empty" aria-hidden="true" />
               )}

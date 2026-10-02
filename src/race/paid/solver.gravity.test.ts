@@ -36,7 +36,7 @@ function checkRk2Step(r: PaidSolveResult, tau: bigint): number {
 }
 
 test('one well: every full 50 ms step equals the frozen RK2 midpoint rule', () => {
-  const r = solvePaidCore(fixtureInput({ cpu: { 2: [10, 25, 26] } }))
+  const r = solvePaidCore(fixtureInput({ cpu: { 2: [10, 20, 5] } }))
   const [well] = wellWindows(r)
   expect(well).toMatchObject({ owner: 2, to: well!.from + 10_000n })
   const steps = r.trace!.keyframes[2]!.filter((f) => f.tau0 >= well!.from && f.tau0 < well!.to)
@@ -50,7 +50,7 @@ test('one well: every full 50 ms step equals the frozen RK2 midpoint rule', () =
 })
 
 test('field sign: horses ahead of the owner are slowed, horses behind are pulled along', () => {
-  const r = solvePaidCore(fixtureInput({ cpu: { 2: [10, 25, 26] } }))
+  const r = solvePaidCore(fixtureInput({ cpu: { 2: [10, 20, 5] } }))
   const [well] = wellWindows(r)
   let ahead = 0
   let behind = 0
@@ -73,7 +73,7 @@ test('field sign: horses ahead of the owner are slowed, horses behind are pulled
 })
 
 test('overlapping wells sum; each owner feels the other well but not its own', () => {
-  const r = solvePaidCore(fixtureInput({ cpu: { 0: [10, 25, 26], 2: [10, 25, 26], 3: [24, 10, 25] } }))
+  const r = solvePaidCore(fixtureInput({ cpu: { 0: [10, 20, 5], 2: [10, 20, 5], 3: [19, 10, 20] } }))
   const windows = wellWindows(r)
   expect(windows.map((w) => w.owner)).toEqual([2, 0, 3])
   const overlap = windows[1]!.from + 1_000n
@@ -84,7 +84,7 @@ test('overlapping wells sum; each owner feels the other well but not its own', (
 test('the field stops when its owner finishes; finished targets are not computed', () => {
   const profiles = fixtureProfiles()
   profiles[0] = { base: 3_000n, acceleration: 0n, cap: 3_000n }
-  const r = solvePaidCore(fixtureInput({ profiles, cpu: { 0: [24, 25, 10] } }))
+  const r = solvePaidCore(fixtureInput({ profiles, cpu: { 0: [19, 20, 10] } }))
   const on = r.events.find((e) => e.code === EV_EQUIP_ON)!
   const finish = r.events.find((e) => e.code === EV_FINISH && e.horse === 0)!
   expect(finish.tau).toBeLessThan(on.tau + 10_000n)
@@ -99,6 +99,6 @@ test('the field stops when its owner finishes; finished targets are not computed
 test('an expiring well ends at its canonical ms before same-ms finishes (class 0 before class 2)', () => {
   const profiles = fixtureProfiles()
   profiles[0] = { base: 2_500n, acceleration: 0n, cap: 2_500n }
-  const r = solvePaidCore(fixtureInput({ profiles, cpu: { 0: [24, 25, 10] } }))
+  const r = solvePaidCore(fixtureInput({ profiles, cpu: { 0: [19, 20, 10] } }))
   expect(r.events.filter((e) => e.tau === 40_000n).map((e) => PAID_EVENT_NAMES[e.code])).toEqual(['EQUIP_OFF', 'FINISH'])
 })

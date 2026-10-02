@@ -1,10 +1,11 @@
+import { paidCardDef } from '../race/cards/paidCards.ts'
+import { cardIconUrl } from '../race/cards/iconUrl.ts'
 /**
  * 竞速 HUD。布局对齐 art-src/renders/race_gaming.png：
  * 左上玩家头像牌、顶部体力条、体力条下方的状态图标行、右侧羊皮纸名次榜、右下 GOGOGO 星形按钮。
  */
 import { useEffect, useRef, useState } from 'react'
 import { SIM_HZ, STAMINA_MAX, TRACK_LEN } from '../race/core/constants.ts'
-import { CARD_BY_ID } from '../race/cards/pool.ts'
 import type { EffectInstance, RaceState } from '../race/core/types.ts'
 import { HORSE_PROFILES, hexCss } from '../game/horses.ts'
 import { t, type Lang } from './i18n.ts'
@@ -36,7 +37,7 @@ interface Slot {
 function buildSlots(state: RaceState, horseId: number): Slot[] {
   const byCard = new Map<string, Slot>()
   const push = (inst: EffectInstance): void => {
-    const def = CARD_BY_ID[inst.sourceCardId]
+    const def = paidCardDef(inst.sourceCardId)
     const icon = HUD_ICON[inst.sourceCardId] ?? def?.art.icon ?? SYSTEM_ICON[inst.sourceCardId]
     if (!icon) return
     const left =
@@ -95,7 +96,7 @@ function StatusBadge({ slot, reduced }: { slot: Slot; reduced: boolean }) {
         }}
       >
         <img
-          src={slot.icon.startsWith('buff-') ? `/assets/art/ui/${slot.icon}-trimmed.webp` : `/assets/placeholder/icons/${slot.icon}.webp`}
+          src={slot.icon.startsWith('buff-') ? `/assets/art/ui/${slot.icon}-trimmed.webp` : cardIconUrl(slot.icon)}
           alt=""
           style={{
             width: 54,

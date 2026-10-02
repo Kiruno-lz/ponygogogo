@@ -277,7 +277,7 @@ describe('input validation', () => {
     expect(() => solvePaidCore(bad({ profiles: [{ base: 2n, acceleration: 0n, cap: 1n }, ...quiet.profiles.slice(1)] })))
       .toThrow('INVALID_PROFILES')
     expect(() => solvePaidCore(bad({ playerDeck: [...quiet.playerDeck.slice(0, 13), 22] }))).toThrow('INVALID_DECK')
-    expect(() => solvePaidCore(bad({ playerDeck: [...quiet.playerDeck.slice(0, 13), 27] }))).toThrow('INVALID_DECK')
+    expect(() => solvePaidCore(bad({ playerDeck: [...quiet.playerDeck.slice(0, 13), 41] }))).toThrow('INVALID_DECK')
     expect(() => solvePaidCore(bad({ cpuDecks: [[1, 1, 2], ...quiet.cpuDecks.slice(1)] }))).toThrow('INVALID_CPU_DECKS')
     expect(() => solvePaidCore(bad({ cpuDecks: quiet.cpuDecks.slice(1) }))).toThrow('INVALID_CPU_DECKS')
     expect(() => solvePaidCore(bad({ seed: '0x12' }))).toThrow('INVALID_ANCHOR')

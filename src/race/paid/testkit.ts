@@ -14,9 +14,9 @@ export function fixtureAnchor(n: number): Hex {
   return `0x${n.toString(16).padStart(2, '0').repeat(32)}` as Hex
 }
 
-/** Nine offered slots hold no-effect cards, so timeouts and forfeits leave the race untouched. */
+/** No choice is submitted by default; offered cards do not apply on timeout or forfeit. */
 export const QUIET_DECK: readonly number[] = [22, 23, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10, 12]
-export const QUIET_CPU_DECK: readonly number[] = [24, 25, 26]
+export const QUIET_CPU_DECK: readonly number[] = [19, 20, 5]
 
 export function fixtureProfiles(playerHorseId = 1): PaidCoreProfile[] {
   return derivePaidProfiles(FIXTURE_SEED, FIXTURE_ANCHOR, 2, playerHorseId).map((p) => ({
@@ -90,4 +90,18 @@ export function ignoredChoice(input: PaidCoreInput, k: 1 | 2 | 3): IgnoredChoice
   const equivalent = outcomeKey(withChoice, k) === outcomeKey(without, k)
     && JSON.stringify(eventKeys(withChoice, k)) === JSON.stringify(eventKeys(without, k))
   return { reason, equivalent }
+}
+
+const quiet = [19, 20, 5]
+export function newCardInput(ids: number[], overrides: FixtureOverrides = {}): PaidCoreInput {
+  const deck = Array<number>(14).fill(0)
+  ids.forEach((id, k) => { if (id) deck[k * 3] = id })
+  const pool = Array.from({ length: 40 }, (_, i) => i + 1).filter((id) => !deck.includes(id))
+  for (let i = 0; i < 14; i++) if (!deck[i]) deck[i] = pool.shift()!
+  return fixtureInput({ playerDeck: deck, cpu: { 0: quiet, 2: quiet, 3: quiet, 4: quiet }, ...overrides })
+}
+export function playNewCards(ids: number[], overrides: FixtureOverrides = {}): PaidCoreInput {
+  let input = newCardInput(ids, overrides)
+  ids.forEach((id, k) => { input = pickAt(input, (k + 1) as 1 | 2 | 3, id) })
+  return input
 }

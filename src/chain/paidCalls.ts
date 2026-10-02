@@ -1,3 +1,4 @@
+import { PAID_CARD_COUNT } from '../race/paid/cardRules.ts'
 /**
  * 有奖会话的调用编码与手写 ABI（会话协议 v2，对应 contracts/PonyGame.sol 与 PonyVault.sol）。
  *
@@ -105,7 +106,7 @@ export function chooseCardCall(
     && refreshSlots.every((slot) => Number.isInteger(slot) && slot >= 0 && slot <= 2)
     && new Set(refreshSlots).size === refreshSlots.length
   if (!Number.isInteger(checkpoint) || checkpoint < 1 || checkpoint > 3 || !Number.isInteger(cardId)
-    || cardId < 0 || cardId > 26 || !slotsOk) {
+    || cardId < 0 || cardId > PAID_CARD_COUNT || !slotsOk) {
     throw new Error('INVALID_CARD_CHOICE')
   }
   return {

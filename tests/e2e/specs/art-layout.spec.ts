@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
-import { PAID_CARD_POOL } from '../../../src/race/cards/paidPlaceholders.ts'
+import { PAID_CARD_POOL } from '../../../src/race/cards/paidCards.ts'
 import { enterHome, open } from '../helpers.ts'
 
 const cardCheck = readFileSync(new URL('../../art/card-layout.js', import.meta.url), 'utf8')

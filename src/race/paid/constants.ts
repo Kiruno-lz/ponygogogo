@@ -1,7 +1,7 @@
 import { keccak256, toBytes } from 'viem'
 import { PAID_CARD_GLOBALS, PAID_RULESET_HASH, paidCardRule } from './cardRules.ts'
 
-/** Paid ruleset v3. Units: τ/wall ms, pos/dist µu, b mu/s. */
+/** Paid ruleset v4. Units: τ/wall ms, pos/dist µu, b mu/s. */
 export { PAID_RULESET_HASH }
 
 export const HORSE_COUNT = 5
@@ -16,7 +16,6 @@ export const NEVER = 0xffff_ffffn
 export const BPS = 10_000n
 export const STAMINA_CAPACITY = 1_000_000_000n
 export const COST_PER_MS = 24_000n
-export const ROCKET_COST_PER_MS = COST_PER_MS * BigInt(paidCardRule(7).costMultiplierBps!) / BPS
 export const REGEN_PER_MS = 10_000n
 export const ADRENALINE_MICRO = BigInt(paidCardRule(15).staminaMicro!)
 export const EXHAUST_PENALTY = 10n
@@ -35,13 +34,12 @@ export const RESPAWN_MS = 5_000n
 export const SWAP_PERIOD_MS = BigInt(paidCardRule(9).periodMs!)
 export const SWAP_ATTEMPTS = paidCardRule(9).count!
 export const WHEEL_PERIOD_MS = BigInt(paidCardRule(11).periodMs!)
-export const WHEEL_BURSTS = paidCardRule(11).count!
 /** CPU C-09 swap eventIndex = cardEventIndex · 256 + attempt (player cardEventIndex = 0). */
 export const SWAP_EVENT_STRIDE = 256n
 export const BONUS_BPS = BigInt(paidCardRule(4).bonusBps!)
 export const BONUS_DEFAULT_MS = BigInt(PAID_CARD_GLOBALS.bonusDefaultMs)
 
-export const MAX_INSTANCES = 64
+export const MAX_INSTANCES = 96
 export const MAX_BOMBS = 20
 export const MAX_EVENTS = 4096
 

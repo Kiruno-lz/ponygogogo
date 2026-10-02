@@ -17,6 +17,7 @@ import { HORSE_PROFILES } from '../game/horses.ts'
 import { preparePonyImages } from '../game/pony.ts'
 import { prepareSceneImages } from '../game/sceneArt.ts'
 import { paidCardDef } from '../race/cards/paidCards.ts'
+import { CARD_BY_ID } from '../race/cards/pool.ts'
 import type { RaceEvent } from '../race/core/types.ts'
 import type { PaidOverlay } from '../race/paidDriver.ts'
 import type { RaceScreenDriver } from '../race/raceView.ts'
@@ -319,7 +320,7 @@ export function RaceScreen(p: RaceScreenProps) {
           refreshCredits={st.refreshCredits}
           auto={st.drawMode === 'auto'}
           timeLeftMs={p.driver.choiceLeftMs}
-          lookup={p.paid ? paidCardDef : undefined}
+          lookup={p.paid ? paidCardDef : (id => CARD_BY_ID[id])}
           locked={paid?.locked ?? false}
           autoPick={paid?.autoPick ?? null}
           note={choiceNote}

@@ -5,7 +5,7 @@
 import { CURRENCY } from '../chain/network.ts'
 import { formatMon } from '../chain/amount.ts'
 import type { GameAccount, WalletAccount } from '../chain/wallet.ts'
-import { PAID_CARD_POOL } from '../race/cards/paidPlaceholders.ts'
+import { PAID_CARD_POOL } from '../race/cards/paidCards.ts'
 import { Chip, usePress } from './Button.tsx'
 import { t, type Lang } from './i18n.ts'
 

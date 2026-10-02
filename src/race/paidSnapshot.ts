@@ -14,7 +14,7 @@ import type { PaidDrawState } from './core/paidDrawRules.ts'
 import { STAMINA_MAX } from './core/constants.ts'
 import { FP } from './core/fixed.ts'
 import type { EffectInstance, EquipSlot, HorseState, PendingChoice, RaceEvent, RaceState } from './core/types.ts'
-import { PAID_RULESET_HASH, paidCardRule } from './paid/cardRules.ts'
+import { PAID_RULESET_HASH, PAID_CARD_COUNT, paidCardRule } from './paid/cardRules.ts'
 import {
   EV_BOMB_EXPLODE, EV_BOMB_PLACE, EV_CARD, EV_CHECKPOINT, EV_DEATH, EV_EQUIP_OFF, EV_EQUIP_ON, EV_EXHAUST_ENTER,
   EV_EXHAUST_EXIT, EV_FINISH, EV_RESPAWN_END, EV_STEAL, EV_SWAP, EV_WIND, type PaidLoggedEvent,
@@ -33,7 +33,7 @@ export function paidCardNumber(key: string | null): number | null {
   const m = /^C-(\d{2})$/.exec(key)
   if (!m) return null
   const id = Number(m[1])
-  return id >= 1 && id <= 26 ? id : null
+  return id >= 1 && id <= PAID_CARD_COUNT ? id : null
 }
 
 export function demoPos(micro: bigint): number {

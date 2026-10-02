@@ -1,5 +1,5 @@
+import { PAID_CARD_POOL } from '../race/cards/paidCards.ts'
 import { useState } from 'react'
-import { PAID_CARD_POOL } from '../race/cards/paidPlaceholders.ts'
 import { Card } from '../cards/Card.tsx'
 import { WoodButton, Chip } from './Button.tsx'
 import { t, type Lang } from './i18n.ts'

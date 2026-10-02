@@ -29,10 +29,10 @@ describe('unit mapping', () => {
     expect(tickOf(1_000n)).toBe(50)
   })
 
-  test('card keys round-trip and reject anything outside C-01..C-26', () => {
+  test('card keys round-trip and reject anything outside C-01..C-40', () => {
     expect(paidCardKey(7)).toBe('C-07')
     expect(paidCardNumber('C-26')).toBe(26)
-    for (const bad of ['C-00', 'C-27', 'C-7', 'X-01', null]) expect(paidCardNumber(bad)).toBeNull()
+    for (const bad of ['C-00', 'C-41', 'C-7', 'X-01', null]) expect(paidCardNumber(bad)).toBeNull()
   })
 
   test('finish ranks order by (finishTime, horseId) among horses already over the line', () => {

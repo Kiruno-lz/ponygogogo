@@ -1,13 +1,13 @@
 import type { Hex } from 'viem'
 import { chainEntropy, PURPOSE_CARD } from './chainEntropy.ts'
-import { PAID_RARE_MASK } from '../paid/cardRules.ts'
+import { PAID_RARE_MASK, PAID_CARD_COUNT } from '../paid/cardRules.ts'
 
-export const FULL_CARD_MASK = (1n << 26n) - 1n
+export const FULL_CARD_MASK = (1n << BigInt(PAID_CARD_COUNT)) - 1n
 export const RARE_CARD_MASK = PAID_RARE_MASK
 
 function idsIn(mask: bigint): number[] {
   const out: number[] = []
-  for (let id = 1; id <= 26; id++) if ((mask & (1n << BigInt(id - 1))) !== 0n) out.push(id)
+  for (let id = 1; id <= PAID_CARD_COUNT; id++) if ((mask & (1n << BigInt(id - 1))) !== 0n) out.push(id)
   return out
 }
 

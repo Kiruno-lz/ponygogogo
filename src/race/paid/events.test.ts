@@ -33,8 +33,8 @@ test('out-of-range event fields are rejected rather than truncated', () => {
 
 test('event code table is dense and unique', () => {
   const codes = Object.keys(PAID_EVENT_NAMES).map(Number)
-  expect(codes).toEqual(Array.from({ length: 28 }, (_, i) => i + 1))
-  expect(new Set(Object.values(PAID_EVENT_NAMES)).size).toBe(28)
+  expect(codes).toEqual(Array.from({ length: 34 }, (_, i) => i + 1))
+  expect(new Set(Object.values(PAID_EVENT_NAMES)).size).toBe(34)
   expect(PAID_EVENT_NAMES[EV_CHOICE_INVALID]).toBe('CHOICE_INVALID')
 })
 

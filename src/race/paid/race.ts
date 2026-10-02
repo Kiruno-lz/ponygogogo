@@ -13,7 +13,7 @@ export type PaidRaceInput = {
   stakeTier: PaidTier
   playerHorseId: number
   choices: PaidChoiceSlots
-  /** Player card-pool eligibility (default: all 26 cards). */
+  /** Player card-pool eligibility (default: the full canonical pool). */
   cardMask?: bigint
 }
 

@@ -524,13 +524,3 @@ export const CARD_POOL: CardDef[] = [
 export const CARD_BY_ID: Record<string, CardDef> = Object.fromEntries(
   CARD_POOL.map((c) => [c.cardId, c]),
 )
-
-/** 强效果子集 === rare 品质的卡集合 */
-export const RARE_POOL = CARD_POOL.filter((c) => c.quality === 'rare')
-export const CPU_POOL = CARD_POOL.filter((c) => c.cpuUsable)
-
-/** 【版本答案】的构件 */
-export const COMBO_PARTS = {
-  all: ['C-19', 'C-21'],
-  anyOf: [['C-17'], ['C-18']],
-}

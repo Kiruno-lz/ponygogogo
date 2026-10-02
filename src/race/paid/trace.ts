@@ -18,14 +18,15 @@ export type PaidKeyframe = {
 }
 
 /** bonus = C-04 +2000 bps attached to a later card (cardId = that card). */
-export type PaidInstanceKind = 'buff' | 'bonus' | 'equip' | 'ability' | 'respawn'
-export type PaidInstanceEnd = 'expired' | 'replaced' | 'stolen' | 'finished'
+export type PaidInstanceKind = 'buff' | 'bonus' | 'equip' | 'ability' | 'respawn' | 'watch' | 'fixed'
+export type PaidInstanceEnd = 'expired' | 'replaced' | 'stolen' | 'finished' | 'recycled' | 'consumed' | 'death'
 
 export type PaidTraceInstance = {
   id: number
   horse: number
   cardId: number
   kind: PaidInstanceKind
+  initialP: bigint
   slot: number
   startTau: bigint
   /** Scheduled expiry (null = permanent); endTau is when it actually ended. */
@@ -58,6 +59,7 @@ export type PaidTrace = {
   cards: PaidTraceCard[]
   segments: PaidTimeSegment[]
   events: PaidLoggedEvent[]
+  renewals: { instanceId: number; tau: bigint; end: bigint }[]
 }
 
 export type PaidHorseSample = {
@@ -132,7 +134,7 @@ export function sampleStatus(trace: PaidTrace, horse: number, tau: bigint): Paid
   let respawning = false
   for (const inst of trace.instances) {
     if (inst.horse !== horse || !activeAt(inst, tau)) continue
-    const effect = inst.cardId > 0 ? paidCardRule(inst.cardId).effect : 'none'
+    const effect = inst.cardId > 0 ? paidCardRule(inst.cardId).effect : null
     if ((inst.kind === 'buff' && effect === 'airborneSpeed') || (inst.kind === 'equip' && effect === 'wheel')) airborne = true
     if (inst.kind === 'buff' && effect === 'wired') wired = true
     if (inst.kind === 'respawn') respawning = true

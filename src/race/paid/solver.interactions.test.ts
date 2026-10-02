@@ -19,7 +19,7 @@ function deckWith(...front: number[]): number[] {
 }
 
 describe('death, respawn and bombs', () => {
-  const twoBombs = solvePaidCore(fixtureInput({ cpu: { 0: [6, 25, 26], 2: [6, 25, 26] } }))
+  const twoBombs = solvePaidCore(fixtureInput({ cpu: { 0: [6, 20, 5], 2: [6, 20, 5] } }))
 
   test('a second bomb within 5 s of a death is consumed without killing (respawn immunity)', () => {
     const h3 = twoBombs.events.filter((e) => e.horse === 3 && [EV_BOMB_EXPLODE, EV_DEATH, EV_DEATH_IMMUNE, EV_RESPAWN_END].includes(e.code))
@@ -53,7 +53,7 @@ describe('death, respawn and bombs', () => {
   test('an airborne horse passes over a bomb and the bomb stays', () => {
     const profiles = fixtureProfiles()
     profiles[3] = { base: 1_000n, acceleration: 10n, cap: 1_500n }
-    const r = solvePaidCore(fixtureInput({ profiles, cpu: { 4: [24, 6, 25], 3: [1, 25, 26] } }))
+    const r = solvePaidCore(fixtureInput({ profiles, cpu: { 4: [19, 6, 20], 3: [1, 20, 5] } }))
     const laneThree = r.trace!.bombs.find((b) => b.lane === 3)!
     expect(r.events.some((e) => e.code === EV_BOMB_EXPLODE && e.horse === 3)).toBe(false)
     expect(laneThree.goneTau).toBeNull()
@@ -63,15 +63,15 @@ describe('death, respawn and bombs', () => {
   })
 
   test('【目中无人】 ignores bombs placed by other horses', () => {
-    const plain = solvePaidCore(fixtureInput({ cpu: { 4: [24, 6, 25] } }))
+    const plain = solvePaidCore(fixtureInput({ cpu: { 4: [19, 6, 20] } }))
     expect(plain.events.some((e) => e.code === EV_BOMB_EXPLODE && e.horse === 1)).toBe(true)
-    const pro = solvePaidCore(pickAt(fixtureInput({ playerDeck: deckWith(21), cpu: { 4: [24, 6, 25] } }), 1, 21))
+    const pro = solvePaidCore(pickAt(fixtureInput({ playerDeck: deckWith(21), cpu: { 4: [19, 6, 20] } }), 1, 21))
     expect(pro.events.some((e) => e.code === EV_BOMB_EXPLODE && e.horse === 1)).toBe(false)
     expect(pro.trace!.bombs.find((b) => b.lane === 1)!.goneTau).toBeNull()
   })
 
   test('death clears the accumulated K', () => {
-    const r = solvePaidCore(fixtureInput({ cpu: { 0: [2, 17, 25] } }))
+    const r = solvePaidCore(fixtureInput({ cpu: { 0: [2, 17, 20] } }))
     const death = r.events.find((e) => e.code === EV_DEATH && e.horse === 0)!
     const frames = r.trace!.keyframes[0]!
     expect(frames.find((f) => f.tau1 === death.tau)!.motion.fixed).toBe(10n)
@@ -81,7 +81,7 @@ describe('death, respawn and bombs', () => {
 
 describe('C-09 swaps', () => {
   test('a finished target still consumes the attempt index', () => {
-    const r = solvePaidCore(fixtureInput({ cpu: { 3: [24, 25, 9] } }))
+    const r = solvePaidCore(fixtureInput({ cpu: { 3: [19, 20, 9] } }))
     const blocked = r.events.find((e) => e.code === EV_SWAP_BLOCKED)!
     const target = Number(blocked.arg % 8n)
     expect(r.finishTime[target]).toBeLessThan(blocked.tau)
@@ -93,10 +93,10 @@ describe('C-09 swaps', () => {
   })
 
   test('an owner or target holding 【目中无人】 blocks the swap', () => {
-    const owner = solvePaidCore(fixtureInput({ cpu: { 0: [21, 9, 25] } }))
+    const owner = solvePaidCore(fixtureInput({ cpu: { 0: [21, 9, 20] } }))
     expect(owner.events.filter((e) => e.horse === 0 && e.code === EV_SWAP).length).toBe(0)
     expect(owner.events.filter((e) => e.horse === 0 && e.code === EV_SWAP_BLOCKED).length).toBeGreaterThan(10)
-    const target = solvePaidCore(pickAt(fixtureInput({ playerDeck: deckWith(21), cpu: { 3: [9, 25, 26] } }), 1, 21))
+    const target = solvePaidCore(pickAt(fixtureInput({ playerDeck: deckWith(21), cpu: { 3: [9, 20, 5] } }), 1, 21))
     const hitsPlayer = target.events.filter((e) => e.horse === 3 && (e.code === EV_SWAP || e.code === EV_SWAP_BLOCKED)
       && e.arg % 8n === 1n && e.tau > 19_121n)
     expect(hitsPlayer.length).toBeGreaterThan(0)
@@ -136,7 +136,7 @@ describe('C-09 swaps', () => {
 
 describe('C-11 bursts, C-13 steal, C-12 wind', () => {
   test('stealing a wheel truncates the victim\'s bursts; the thief restarts a full 30 s life', () => {
-    const r = solvePaidCore(fixtureInput({ cpu: { 0: [11, 25, 26], 2: [24, 13, 25] } }))
+    const r = solvePaidCore(fixtureInput({ cpu: { 0: [11, 20, 5], 2: [19, 13, 20] } }))
     const steal = r.events.find((e) => e.code === EV_STEAL)!
     expect(steal.horse).toBe(2)
     const victimBursts = r.events.filter((e) => e.code === EV_WHEEL_BURST && e.horse === 0)
@@ -152,7 +152,7 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
   })
 
   test('steal candidates are ordered by (holder, torso < tail < hooves) and indexed by entropy % n', () => {
-    const cpu = { 0: [7, 25, 26], 2: [8, 25, 26], 3: [11, 25, 26] }
+    const cpu = { 0: [7, 20, 5], 2: [8, 20, 5], 3: [11, 20, 5] }
     const input = pickAt(pickAt(fixtureInput({ playerDeck: [22, 23, 24, 13, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10], cpu }), 1, 0), 2, 13,
       { anchor: fixtureAnchor(0x52) })
     const r = solvePaidCore(input)
@@ -168,7 +168,7 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
   })
 
   test('same-slot equipment replaces the old instance without settling it', () => {
-    const r = solvePaidCore(fixtureInput({ cpu: { 0: [7, 10, 25] } }))
+    const r = solvePaidCore(fixtureInput({ cpu: { 0: [7, 10, 20] } }))
     const rocket = r.trace!.instances.find((i) => i.cardId === 7)!
     const well = r.trace!.instances.find((i) => i.cardId === 10)!
     expect(rocket).toMatchObject({ endTau: well.startTau, endReason: 'replaced' })
@@ -176,7 +176,7 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
   })
 
   test('wind only moves airborne horses and a new wind replaces the old one', () => {
-    const r = solvePaidCore(fixtureInput({ cpu: { 4: [12, 25, 26], 0: [1, 25, 26], 3: [24, 12, 25] } }))
+    const r = solvePaidCore(fixtureInput({ cpu: { 4: [12, 20, 5], 0: [1, 20, 5], 3: [19, 12, 20] } }))
     const winds = r.events.filter((e) => e.code === EV_WIND)
     expect(winds.map((e) => [e.horse, e.arg])).toEqual([[4, 1_000n], [3, -1_000n]])
     const [first, second] = winds
@@ -190,7 +190,7 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
 
   test('another horse\'s wind does not reach a 【目中无人】 holder, its own wind does', () => {
     const deck = [21, 22, 23, 11, 24, 25, 12, 26, 20, 19, 1, 2, 6, 7]
-    let input = pickAt(fixtureInput({ playerDeck: deck, cpu: { 4: [12, 25, 26] } }), 1, 21)
+    let input = pickAt(fixtureInput({ playerDeck: deck, cpu: { 4: [12, 20, 5] } }), 1, 21)
     input = pickAt(pickAt(input, 2, 11), 3, 12, { anchor: fixtureAnchor(0x53) })
     const r = solvePaidCore(input)
     const own = r.events.find((e) => e.code === EV_WIND && e.horse === 1)!
