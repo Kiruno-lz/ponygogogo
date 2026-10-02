@@ -26,10 +26,8 @@ export interface CardView {
 /** Identity and artwork only; gameplay fields are derived from the canonical rule table. */
 export type CardMetadata = Pick<CardView, 'cardId' | 'name' | 'meme' | 'art'>
 
-/** Legacy tick-engine declaration, isolated from event-solver card faces. */
+/** Declarative effect state per card; the event solver never reads it. */
 export interface CardDef extends CardView {
   effects: EffectDecl[]
   stack?: StackPolicy
-  /** 该卡依赖的模块 id，用于构建期静态检查缺模块 */
-  modules: string[]
 }
