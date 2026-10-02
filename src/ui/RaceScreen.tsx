@@ -43,8 +43,6 @@ const SFX: Partial<Record<RaceEvent['type'], string>> = {
 /** 有奖比赛的附加信息；免费试玩不传 */
 export interface PaidRaceProps {
   overlay: () => PaidOverlay
-  /** 下注额文案，如 0.3 */
-  stakeLabel: string
   /** 离开比赛页：链上会话保持开放，之后可在首页恢复 */
   onLeave: () => void
 }
@@ -215,12 +213,6 @@ export function RaceScreen(p: RaceScreenProps) {
     : choice.status === 'rejected' ? t(p.lang, 'paid.choice.retry', { reason: paidReasonText(p.lang, choice.reason ?? '') })
       : null
   const countNum = Math.ceil(p.driver.countdownLeft / 1000)
-  const abilityLabel =
-    st.abilityBinding?.abilityId === 'clapSwap'
-      ? 'CLAP'
-      : st.abilityBinding?.abilityId === 'wheelHold'
-        ? 'HOLD'
-        : null
 
   return (
     <div className="screen" data-testid="screen-race" style={{ background: "url('/assets/art/track/scene.webp') center / 100% 100% no-repeat" }}>
@@ -233,10 +225,8 @@ export function RaceScreen(p: RaceScreenProps) {
         state={st}
         lang={p.lang}
         reducedMotion={p.reducedMotion}
-        gogoSub={p.paid ? t(p.lang, 'race.paidSub', { stake: p.paid.stakeLabel }) : t(p.lang, 'race.practice')}
         gogoPunchKey={punch}
         hideGogo={counting || st.pending !== null || st.playerFinished}
-        abilityLabel={abilityLabel}
         onGogoDown={() => p.driver.input({ kind: 'gogoDown' })}
         onGogoUp={() => p.driver.input({ kind: 'gogoUp' })}
       />

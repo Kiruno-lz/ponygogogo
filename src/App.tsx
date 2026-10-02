@@ -615,7 +615,6 @@ export default function App() {
             driver={driver}
             paid={paidDriver && paidDriver === driver ? {
               overlay: () => paidDriver.overlay,
-              stakeLabel: PAID_STAKE_LABELS[paidDriver.sessionFacts?.stakeTier ?? 0] ?? '',
               onLeave: leavePaidRace,
             } : undefined}
             lang={lang}

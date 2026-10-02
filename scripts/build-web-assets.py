@@ -93,7 +93,8 @@ UI_KEEP = re.compile(
     | /bg-title\.png$
     | /(flag|leaderboard-avatar)-\d\.png$
     | /(star|avatar|stamina)-reference(-blank|-empty)?\.png$
-    | /(avatar|star-(race|gogo))-source\.png$
+    | /(avatar|star-race)-source\.png$
+    | /star-gogo-face\.png$
     """,
     re.VERBOSE,
 )

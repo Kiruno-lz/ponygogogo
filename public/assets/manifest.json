@@ -580,13 +580,6 @@
     "sha256": "83518a09649b78a8",
     "tier": "race"
   },
-  "art.ui.star-gogo-source": {
-    "kind": "image",
-    "path": "assets/art/ui/star-gogo-source.webp",
-    "bytes": 34670,
-    "sha256": "151eae9165332f19",
-    "tier": "race"
-  },
   "art.ui.star-race-source": {
     "kind": "image",
     "path": "assets/art/ui/star-race-source.webp",
@@ -994,6 +987,13 @@
     "path": "assets/placeholder/ui/panel_parchment.webp",
     "bytes": 98236,
     "sha256": "e4bfcdedb729db0f",
+    "tier": "race"
+  },
+  "art.ui.star-gogo-face": {
+    "kind": "image",
+    "path": "assets/art/ui/star-gogo-face.webp",
+    "bytes": 96562,
+    "sha256": "67d39b5dcf571bc3",
     "tier": "race"
   }
 }

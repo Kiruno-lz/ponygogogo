@@ -137,13 +137,10 @@ export interface HudProps {
   state: RaceState
   lang: Lang
   reducedMotion: boolean
-  /** gogo 按钮下方的副标题：免费试玩标明不计奖金，不写任何可赢金额 */
-  gogoSub: string
   gogoPunchKey: number
   onGogoDown: () => void
   onGogoUp: () => void
   hideGogo: boolean
-  abilityLabel: string | null
 }
 
 export function Hud(p: HudProps) {
@@ -229,8 +226,6 @@ export function Hud(p: HudProps) {
       {!p.hideGogo && (
         <div style={{ position: 'absolute', left: 1190, top: 565, pointerEvents: 'auto' }}>
           <GogoButton
-            label={p.abilityLabel ?? t(p.lang, 'race.gogo')}
-            sub={p.gogoSub}
             punchKey={p.gogoPunchKey}
             reduced={p.reducedMotion}
             disabled={exhausted}
@@ -281,16 +276,12 @@ export function HorseAvatar({ horseId, size }: { horseId: number; size: number }
 }
 
 function GogoButton({
-  label,
-  sub,
   punchKey,
   reduced,
   disabled,
   onDown,
   onUp,
 }: {
-  label: string
-  sub: string
   punchKey: number
   reduced: boolean
   disabled: boolean
@@ -305,12 +296,12 @@ function GogoButton({
     const id = requestAnimationFrame(() => setAnim(true))
     return () => cancelAnimationFrame(id)
   }, [punchKey, reduced])
-  // gogo 在通用按下缩放之上叠加一次完整旋转（docs/plan/demo.md §5.1.2）
+  // gogo 在通用按下缩放之上叠加一次完整旋转。
   return (
     <button
       type="button"
       data-testid="gogo"
-      className={`btn btn-star gogo${label === 'GOGOGO' ? ' source-gogo' : ''}${anim ? ' punch' : ''}${pressed ? ' pressed' : ''}`}
+      className={`btn btn-star gogo${anim ? ' punch' : ''}${pressed ? ' pressed' : ''}`}
       disabled={disabled}
       onPointerDown={(e) => {
         e.preventDefault()
@@ -327,8 +318,7 @@ function GogoButton({
       }}
       style={{ width: 429, height: 390 }}
     >
-      <span className="big h-title" style={label.length > 8 ? { fontSize: 48 } : undefined}>{label}</span>
-      <span className="sub">{sub}</span>
+      <span className="big h-title">GOGOGO</span>
     </button>
   )
 }
