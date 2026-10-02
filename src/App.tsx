@@ -441,7 +441,6 @@ export default function App() {
     paid.finish()
     go('result')
     audio?.stopBgm()
-    audio?.play(r.rank <= 2 ? 'audio.jingle_win' : 'audio.jingle_lose', 0.8)
     audio?.play('audio.sfx_result_open', 0.6)
   }, [audio, go, lang, paid])
 
@@ -458,7 +457,6 @@ export default function App() {
     // 结算页的素材是后台预取的，极端情况下要等一下；等的时候比赛画面留在原地，不闪白
     go('result')
     audio?.stopBgm()
-    audio?.play(r.rank <= 2 ? 'audio.jingle_win' : 'audio.jingle_lose', 0.8)
     audio?.play('audio.sfx_result_open', 0.6)
   }, [driver, paidDriver, showPaidResult, audio, go])
 

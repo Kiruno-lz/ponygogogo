@@ -17,7 +17,6 @@ import { HORSE_PROFILES } from '../game/horses.ts'
 import { preparePonyImages } from '../game/pony.ts'
 import { prepareSceneImages } from '../game/sceneArt.ts'
 import { paidCardDef } from '../race/cards/paidCards.ts'
-import type { RaceEvent } from '../race/core/types.ts'
 import type { PaidOverlay } from '../race/paidDriver.ts'
 import type { RaceScreenDriver } from '../race/raceView.ts'
 import { explorerTxUrl } from '../chain/network.ts'
@@ -25,20 +24,7 @@ import { WoodButton, Chip } from './Button.tsx'
 import { Hud } from './Hud.tsx'
 import { t, type Lang } from './i18n.ts'
 import { paidChoiceText, paidReasonText } from './paidText.ts'
-
-const SFX: Partial<Record<RaceEvent['type'], string>> = {
-  explosion: 'audio.sfx_explosion',
-  death: 'audio.sfx_exhaust_enter',
-  swap: 'audio.sfx_swap',
-  equipOn: 'audio.sfx_equip',
-  checkpoint: 'audio.sfx_checkpoint',
-  exhaustEnter: 'audio.sfx_exhaust_enter',
-  exhaustExit: 'audio.sfx_exhaust_exit',
-  finish: 'audio.sfx_finish',
-  cardPicked: 'audio.sfx_card_pick',
-  steal: 'audio.sfx_equip',
-  wind: 'audio.sfx_card_refresh',
-}
+import { finishJingle, raceEventSounds } from './raceEventAudio.ts'
 
 /** 有奖比赛的附加信息；免费试玩不传 */
 export interface PaidRaceProps {
@@ -132,11 +118,9 @@ export function RaceScreen(p: RaceScreenProps) {
           if (ev.type === 'gogo') {
             p.audio.play(`audio.sfx_gogo_${ev.quality}`, 0.7)
             setPunch((k) => k + 1)
-          } else {
-            const key = SFX[ev.type]
-            if (key) p.audio.play(key, ev.type === 'explosion' ? 0.85 : 0.6)
           }
         }
+        for (const key of raceEventSounds(events)) p.audio.play(key, key === 'audio.sfx_explosion' ? 0.85 : 0.6)
       }
       p.audio.setSlowmo(p.driver.slowmo)
       // 倒计时滴答，最后一声换成起跑枪
@@ -159,6 +143,8 @@ export function RaceScreen(p: RaceScreenProps) {
       // 尾场不阻塞结果页的查看与再来一局。
       if (p.driver.state.playerFinished && !doneRef.current) {
         doneRef.current = true
+        p.audio.stopBgm()
+        p.audio.play(finishJingle(p.driver.state.forcedRank?.rank ?? p.driver.state.horses[p.driver.state.playerHorseId]!.rank), 0.8)
         finishAt.current = now + (p.reducedMotion ? 300 : 1200)
       }
       if (finishAt.current > 0 && now >= finishAt.current) {
