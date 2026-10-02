@@ -87,7 +87,8 @@ test('gogo 每次按下同时有旋转和缩放', async ({ page }) => {
 })
 
 test('状态首次新增播放一次徽章动效；普通计时 tick 不重复播放', async ({ page }) => {
-  await open(page, 'mockDelay=0&raceSpeed=6')
+  // 第一候选固定为 C-17，避免随机抽到没有持续状态的占位卡。
+  await open(page, 'mockDelay=0&raceSpeed=6&seed=0x00989685')
   await enterHome(page)
   await startRace(page, 0, 0)
   await expect(page.getByTestId('countdown')).toBeHidden({ timeout: 20_000 })
@@ -99,7 +100,10 @@ test('状态首次新增播放一次徽章动效；普通计时 tick 不重复�
     }, 500)
   })
   await expect(page.getByTestId('card-panel')).toBeVisible({ timeout: 60_000 })
-  await page.getByTestId('card-choice-0').locator('.card-root').click()
+  const choice = page.getByTestId('card-choice-0')
+  await expect(choice).toHaveCSS('opacity', '1')
+  await expect(choice.locator('.card-root')).toHaveAttribute('data-card', 'C-17')
+  await choice.locator('.card-root').click()
   const seen = await sampleAnimations(page, '[data-testid^="buff-"]', 900)
   expect(seen).toContain('badge-pop')
 

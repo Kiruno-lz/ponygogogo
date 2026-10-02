@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 import { E2E_ENV } from './isolatedEnv.ts'
 
-const PORT = 5177
+const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 5177)
 export const BASE_URL = `http://localhost:${PORT}`
 
 export default defineConfig({

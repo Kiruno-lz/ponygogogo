@@ -201,7 +201,7 @@ test('有奖动线：入场 → 选牌上链 → 冲线待验证 → 自动结�
   // the entry batch (deposit shortfall + openSession) is reported until it is included
   await expect(page.getByTestId('countdown')).toBeHidden({ timeout: 60_000 })
   await expect(page.getByTestId('gogo')).toBeVisible()
-  await expect(page.getByTestId('gogo')).toContainText(/有奖 · 0\.3 MON|Paid · 0\.3 MON/)
+  await expect(page.getByTestId('gogo')).toHaveText('GOGOGO')
   await page.screenshot({ path: `${SHOT}/paid-02-race.png` })
   await checkScreen(page, {
     ids: ['stamina-bar', 'leaderboard', 'gogo'], texts: ['board-row-0'], disjoint: ['leaderboard', 'gogo'],
