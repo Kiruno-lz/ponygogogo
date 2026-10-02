@@ -109,6 +109,7 @@ FONT_EXT = {".ttf", ".otf"}
 
 # 缩小这些图不是画质取舍，而是功能回归。逐条写明后果与出处。
 NO_DOWNSCALE: list[tuple[str, str]] = [
+    ("art/effects/", "装备和风的分镜尺寸由 game/effects.ts 固定，缩放整张图会破坏帧网格"),
     ("art/track/far.png", "RaceScene.ts:75 tileSprite + setTileScale(1)，贴图宽度就是滚动循环周期，缩小会让远景重复频率翻倍"),
     ("art/track/track.png", "RaceScene.ts:86 同上，且五条白线的间距按原画像素注册"),
     ("art/track/front.png", "RaceScene.ts:119 同上"),
