@@ -21,7 +21,7 @@ export const PAID_RACE_FEATURE: boolean = true
 export const PAID_RACE_DEV_OVERRIDE: boolean =
   import.meta.env?.DEV === true && import.meta.env?.VITE_PAID_RACE_DEV === '1'
 
-/** 免费本地试玩：跑本地 50Hz 内核，不建立链上会话、不碰任何余额，结果不构成奖金 */
+/** 免费本地试玩：经 src/race/driver.ts 在本地跑与有奖相同的事件求时器，不建立链上会话、不碰任何余额，结果不构成奖金 */
 export const PRACTICE_TIER = 0
 
 export type PaidRaceConfig = { vault: Address | null; game: Address | null; feature: boolean }

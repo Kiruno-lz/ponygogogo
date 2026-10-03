@@ -148,35 +148,8 @@ contract PaidRaceMotionTest {
             PaidRaceMotion.H_FIELD,
             PaidRaceMotion.H_DELTA
         ];
-        uint256[27] memory expected = [
-            uint256(1),
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-            1,
-            12,
-            13,
-            14,
-            16,
-            17,
-            18,
-            19,
-            20,
-            21,
-            22,
-            23,
-            24,
-            25,
-            26,
-            27,
-            28
-        ];
+        uint256[27] memory expected =
+            [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28];
         for (uint256 i; i < 27; ++i) {
             require(_word(h, offsets[i]) == expected[i], "horse offset");
         }

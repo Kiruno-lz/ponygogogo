@@ -1,5 +1,5 @@
 /**
- * Cross-language vectors for paid ruleset v4 (docs/plan/onchain-services.md 「有奖规则 v3」).
+ * Cross-language vectors for paid ruleset v4 (docs/plan/onchain-services.md 「有奖规则 v4」).
  * The Solidity solver must reproduce every field of tests/vectors/paid-race-v4.json bit for bit.
  *
  *   bun scripts/gen-paid-vectors.ts          # (re)write the file

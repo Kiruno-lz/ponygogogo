@@ -151,7 +151,8 @@ const checks: Record<number, (ctx: Ctx) => void> = {
 
 const NO_EFFECT = [19, 20]
 
-describe('every card on the player and on a CPU', () => {
+// C-22..C-40 are covered in newCards.test.ts.
+describe('C-01..C-21 on the player and on a CPU', () => {
   for (let cardId = 1; cardId <= 21; cardId++) {
     for (const who of ['player', 'cpu'] as const) {
       test(`C-${String(cardId).padStart(2, '0')} on ${who}`, () => {

@@ -41,24 +41,38 @@ contract PaidRaceNewCardsTest {
 
     function testPercentageAndFixedPoolsGive44UnitsPerSecond() public pure {
         PaidRaceMotion.Horse memory horse;
-        horse.b = 20_000; horse.capMilli = 20_000; horse.pStatic = 7000; horse.fixedMilli = 10_000;
-        horse.s = 1_000_000_000; horse.crossPos = type(uint256).max; horse.cpDist = type(uint256).max;
-        PaidRaceMotion.Stretch memory sx; sx.runCount = 1;
+        horse.b = 20_000;
+        horse.capMilli = 20_000;
+        horse.pStatic = 7000;
+        horse.fixedMilli = 10_000;
+        horse.s = 1_000_000_000;
+        horse.crossPos = type(uint256).max;
+        horse.cpDist = type(uint256).max;
+        PaidRaceMotion.Stretch memory sx;
+        sx.runCount = 1;
         assembly ("memory-safe") { mstore(add(sx, 0x20), horse) }
         PaidRaceMotion.advance(sx, 0, 1000);
         require(horse.pos == 44_000_000, "percent/fixed pools differ from TS v=44 vector");
     }
 
     function testEquipmentTieAndRefreshAllThreeSlotsUseSnapshotPlan() public pure {
-        uint256[5] memory horses; uint256[3] memory equipment;
+        uint256[5] memory horses;
+        uint256[3] memory equipment;
         equipment[0] = 5 | (uint256(7) << 8) | (uint256(10000) << 16);
         equipment[1] = 2 | (uint256(8) << 8) | (uint256(10000) << 16);
         equipment[2] = 8 | (uint256(11) << 8) | (uint256(10000) << 16);
         (uint256[] memory actions,) = PaidRaceCardPlan.plan(30, 0, horses, equipment);
-        require(uint8(actions[0]) == PaidRaceCardPlan.RECYCLE && uint64(actions[0] >> 48) == 2, "recycling tie instance id");
+        require(
+            uint8(actions[0]) == PaidRaceCardPlan.RECYCLE && uint64(actions[0] >> 48) == 2, "recycling tie instance id"
+        );
         (actions,) = PaidRaceCardPlan.plan(32, 0, horses, equipment);
         require(actions.length == 3, "refresh must not create fallback buff with equipment");
-        for (uint256 i; i < 3; ++i) require(uint8(actions[i]) == PaidRaceCardPlan.RENEW && uint64(actions[i] >> 48) == uint8(equipment[i]), "all equipment slots");
+        for (uint256 i; i < 3; ++i) {
+            require(
+                uint8(actions[i]) == PaidRaceCardPlan.RENEW && uint64(actions[i] >> 48) == uint8(equipment[i]),
+                "all equipment slots"
+            );
+        }
     }
 
     function testSignedMotionClipsBeforeCrossingZero() public pure {
@@ -81,32 +95,51 @@ contract PaidRaceNewCardsTest {
 
     function _lifecycleState() private returns (PaidRaceEngine.State memory st) {
         st.support = new PaidRaceSupport();
-        st.logEvents = true; st.eventMeta = new uint256[](4096); st.eventArgs = new int256[](4096);
-        st.horses[0].b = 1_200_000; st.horses[0].s = 1_000_000_000;
+        st.logEvents = true;
+        st.eventMeta = new uint256[](4096);
+        st.eventArgs = new int256[](4096);
+        st.horses[0].b = 1_200_000;
+        st.horses[0].s = 1_000_000_000;
         st.instMin = PaidRaceEngine.NEVER;
-        for (uint256 i; i < 96; ++i) st.instNext[i] = PaidRaceEngine.NEVER;
+        for (uint256 i; i < 96; ++i) {
+            st.instNext[i] = PaidRaceEngine.NEVER;
+        }
     }
 
     function testRespawnImmunityDoesNotConsumeWaitingGuard() public {
         PaidRaceEngine.State memory st = _lifecycleState();
         st.instanceCount = 2;
-        st.instances[0].active = true; st.instances[0].kind = PaidRaceEngine.KIND_WATCH;
-        st.instances[0].cardId = 37; st.instances[0].end = PaidRaceEngine.NEVER; st.instances[0].slot = PaidRaceEngine.NO_SLOT;
-        st.instances[1].active = true; st.instances[1].kind = PaidRaceEngine.KIND_RESPAWN;
-        st.instances[1].end = 4000; st.instances[1].slot = PaidRaceEngine.NO_SLOT;
+        st.instances[0].active = true;
+        st.instances[0].kind = PaidRaceEngine.KIND_WATCH;
+        st.instances[0].cardId = 37;
+        st.instances[0].end = PaidRaceEngine.NEVER;
+        st.instances[0].slot = PaidRaceEngine.NO_SLOT;
+        st.instances[1].active = true;
+        st.instances[1].kind = PaidRaceEngine.KIND_RESPAWN;
+        st.instances[1].end = 4000;
+        st.instances[1].slot = PaidRaceEngine.NO_SLOT;
         st.horses[0].aggRespawn = 1;
         PaidRaceEngine._kill(st, 0, 1000);
-        require(st.instances[0].active && st.instanceCount == 2 && st.horses[0].b == 1_200_000, "immunity consumed guard");
+        require(
+            st.instances[0].active && st.instanceCount == 2 && st.horses[0].b == 1_200_000, "immunity consumed guard"
+        );
         require(st.eventMeta[0] & 0xff == PaidRaceEngine.EV_DEATH_IMMUNE, "immunity event");
         PaidRaceEngine._expire(st, 1, 4000);
         PaidRaceEngine._kill(st, 0, 5000);
-        require(!st.instances[0].active && st.horses[0].b == 1_200_000 && st.horses[0].aggRespawn == 0, "guard did not replace death");
+        require(
+            !st.instances[0].active && st.horses[0].b == 1_200_000 && st.horses[0].aggRespawn == 0,
+            "guard did not replace death"
+        );
     }
 
     function _burstState() private returns (PaidRaceEngine.State memory st) {
-        st = _lifecycleState(); st.instanceCount = 1;
-        st.instances[0].active = true; st.instances[0].kind = PaidRaceEngine.KIND_WATCH;
-        st.instances[0].cardId = 38; st.instances[0].end = 50_000; st.instances[0].slot = PaidRaceEngine.NO_SLOT;
+        st = _lifecycleState();
+        st.instanceCount = 1;
+        st.instances[0].active = true;
+        st.instances[0].kind = PaidRaceEngine.KIND_WATCH;
+        st.instances[0].cardId = 38;
+        st.instances[0].end = 50_000;
+        st.instances[0].slot = PaidRaceEngine.NO_SLOT;
         PaidRaceEngine._kill(st, 0, 1000);
         require(st.horses[0].fixedK == 120 && !st.instances[0].active, "first death burst");
         PaidRaceEngine._expire(st, 1, 6000);
@@ -115,7 +148,10 @@ contract PaidRaceNewCardsTest {
     function testSecondDeathClearsFixedBurstWithoutLaterDoubleSubtraction() public {
         PaidRaceEngine.State memory st = _burstState();
         PaidRaceEngine._kill(st, 0, 7000);
-        require(st.horses[0].fixedK == 0 && !st.instances[2].active && st.instances[2].fixedDelta == 0, "second death retained burst");
+        require(
+            st.horses[0].fixedK == 0 && !st.instances[2].active && st.instances[2].fixedDelta == 0,
+            "second death retained burst"
+        );
         require(st.instNext[2] == PaidRaceEngine.NEVER, "expired contribution remained scheduled");
         // The original deadline is not scheduled anymore, so the solver will never expire this contribution twice.
     }

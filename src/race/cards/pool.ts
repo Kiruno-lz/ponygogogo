@@ -1,13 +1,12 @@
 /**
- * Demo 卡池：21 张（C-01 … C-21），rare 12 张。
- * 数值取自 docs/card-design.md §8.2 的原始设定，此处只做量纲落地，不做强弱判断。
- * 这里只保留各卡的声明式效果状态；事件求时器不读取本表，规则数值来自 src/race/paid/cardRules.ts。
+ * 旧版声明式效果状态：C-01 … C-21，仅供开发特效展示（EffectShowcaseScreen）使用。
+ * 正式卡池与全部规则数值来自 src/race/paid/cardRules.ts、metadata.ts 与 paidCards.ts，事件求时器不读取本表。
  */
 import { fx } from '../core/fixed.ts'
 import { paidCardRule } from '../paid/cardRules.ts'
 import type { CardDef } from './types.ts'
 
-const S = 50 // 1 秒 = 50 tick
+const S = 50 // 特效展示的 50 Hz 显示步长（HUD 按 SIM_HZ 读回），1 秒 = 50 步
 const GRAVITY_STRENGTH = paidCardRule(10).strengthBps!
 
 export const CARD_POOL: CardDef[] = [

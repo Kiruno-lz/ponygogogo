@@ -60,6 +60,7 @@ test('C-02 分镜随归属、移动、起飞和中心翻面正确绑定，并在
   page.on('pageerror', (error) => errors.push(error.message))
   await openSpinScene(page)
   const initial = await facts(page)
+  const startPos = await page.evaluate(() => (window as any).__spinScene.renderPos[0] as number)
   expect(initial[0].exists).toBe(true)
   expect(initial.map((pony: any) => pony.visible)).toEqual([true, false, false, false, false])
   expect(initial[0].frameCount).toBe(16)
@@ -84,7 +85,10 @@ test('C-02 分镜随归属、移动、起飞和中心翻面正确绑定，并在
     expect(now.facingRight).toBe(true)
   }
   expect(frames.size).toBeGreaterThan(2)
-  expect((await facts(page))[0].x).not.toBe(initial[0].x)
+  // 相机把玩家钉在舞台 1/3 处：世界坐标前进，屏幕 x 恒定
+  const endPos = await page.evaluate(() => (window as any).__spinScene.renderPos[0] as number)
+  expect(endPos).toBeGreaterThan(startPos)
+  expect((await facts(page))[0].x).toBeCloseTo(initial[0].x, 1)
   expect((await facts(page))[0].bodyScaleY).toBeLessThan(0)
 
   // Combine C-02 with airborne in the same live scene while the driver is paused.

@@ -12,7 +12,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { HORSE_PROFILES } from '../game/horses.ts'
-import { CARD_POOL } from '../race/cards/pool.ts'
+import { cardIconUrl } from '../race/cards/iconUrl.ts'
+import { PAID_CARD_POOL } from '../race/cards/paidCards.ts'
 
 const ROOT = new URL('../../', import.meta.url).pathname
 const PUBLIC = join(ROOT, 'public')
@@ -76,7 +77,7 @@ describe('动态拼接的资源族', () => {
     }
   })
 
-  // src/export/poster.ts:92——海报画的是静帧，不是分镜横排
+  // 运行时不读 -idle-0（海报用 art/share/horse-N），它只是 scripts/prepare-spin-thrust.py 的输入
   test('海报静帧：每匹马一张', () => {
     for (const p of HORSE_PROFILES) {
       expect(existsSync(join(PUBLIC, `/assets/art/ponies/${p.horseId}-idle-0.webp`)), `${p.horseId}-idle-0`).toBe(true)
@@ -85,8 +86,8 @@ describe('动态拼接的资源族', () => {
 
   // src/cards/Card.tsx:112、src/result/ResultScreen.tsx:106、src/export/poster.ts:131
   test('卡面图标：卡池里每条 art.icon', () => {
-    for (const card of CARD_POOL) {
-      expect(existsSync(join(PUBLIC, `/assets/placeholder/icons/${card.art.icon}.webp`)), `${card.cardId} → ${card.art.icon}`).toBe(true)
+    for (const card of PAID_CARD_POOL) {
+      expect(existsSync(join(PUBLIC, cardIconUrl(card.art.icon))), `${card.cardId} → ${card.art.icon}`).toBe(true)
     }
   })
 

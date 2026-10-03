@@ -48,8 +48,8 @@ function describe(rule: PaidCardRule): { zh: string; en: string } {
       return { zh: `速度固定 +${rule.fixedSpeed}，永久。`, en: `Speed +${rule.fixedSpeed}, permanent.` }
     case 'coat':
       return rule.id === 19
-        ? { zh: '头顶戴上一撮金色尖发；可触发【跑马灯】对应分支。', en: 'A tuft of golden spikes on your head; switches Coat of Many Colors.' }
-        : { zh: '头顶戴上一撮绿色尖发；可触发【跑马灯】对应分支。', en: 'A tuft of green spikes on your head; switches Coat of Many Colors.' }
+        ? { zh: '头顶戴上一撮金色尖发。酷酷的！', en: 'A tuft of golden spikes on your head. Looks cool!' }
+        : { zh: '头顶戴上一撮绿色尖发。酷酷的！', en: 'A tuft of green spikes on your head. Looks cool!' }
     case 'blindFixed':
       return { zh: `速度固定 +${rule.fixedSpeed}；【目中无人】：他马的炸弹、风与交换对你无效。`, en: `Speed +${rule.fixedSpeed}; Blinded Pro: other horses' bombs, wind and swaps skip you.` }
     case 'pay': return { zh: `支付至多 ${rule.staminaMicro! / 1e6} 体力，按支付比例获得最多 +${pct(rule.pBps!)} 速度，持续 ${sec(d)} 秒。`, en: `Spend up to ${rule.staminaMicro! / 1e6} stamina for proportional speed, up to +${pct(rule.pBps!)} for ${sec(d)}s.` }

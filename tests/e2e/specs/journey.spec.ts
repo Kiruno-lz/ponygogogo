@@ -94,11 +94,16 @@ test('完整动线：加载 → 首页 → 选马与免费档 → 比赛 → 选
   for (let i = 0; i < 3; i++) await expect(page.getByTestId(`result-choice-${i}`)).toBeVisible()
   await page.screenshot({ path: `${SHOT}/07-result.png` })
 
-  // --- 分享出图 ---
-  const download = page.waitForEvent('download', { timeout: 20_000 }).catch(() => null)
+  // --- 分享出图：浮窗盖住结果页，保存得到 PNG，关掉浮窗才点得到下面的按钮（浮窗细节见 result-share.spec.ts） ---
   await page.getByRole('button', { name: /生成分享图|Make a poster/ }).click()
-  const dl = await download
-  expect(dl === null || dl.suggestedFilename().endsWith('.png')).toBeTruthy()
+  await expect(page.getByTestId('share-dialog')).toBeVisible()
+  // 海报是异步画出来的
+  await expect(page.getByTestId('share-poster')).toBeVisible({ timeout: 30_000 })
+  const download = page.waitForEvent('download', { timeout: 20_000 })
+  await page.getByTestId('share-save').click()
+  expect((await download).suggestedFilename()).toMatch(/\.png$/)
+  await page.getByTestId('share-close').click()
+  await expect(page.getByTestId('share-dialog')).toBeHidden()
 
   // --- 再来一局：状态干净 ---
   await page.getByRole('button', { name: /回到首页|Home/ }).click()

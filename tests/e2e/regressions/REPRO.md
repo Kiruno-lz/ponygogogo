@@ -1,6 +1,8 @@
 # 回归复现记录
 
-本目录每个脚本对应下面一节，`bunx playwright test --config tests/e2e/playwright.config.ts regressions/` 全量跑。
+第一至四节对应本目录的 `countdown-overlay`、`wallet-busy`、`collection-locked-slots`、`modal-strictmode-close` 四个脚本，第五节的复现脚本在 `tests/e2e/specs/paid-race.spec.ts`，`bunx playwright test --config tests/e2e/playwright.config.ts regressions/` 全量跑本目录。
+
+//TODO - 为 `anonymous-card-webkit`、`cosmetics-wind`、`equipment-card-selection`、`gogo-button-layout`、`gogo-camera`、`horse-selection`、`practice-rules-audio` 七个回归脚本补写缺陷现象、根因假设与关联 L1/L2 模块；判据是 `regressions/*.spec.ts` 每个文件在本文都有对应小节。
 
 ---
 
@@ -28,7 +30,7 @@ Timeout: 20000ms   Error: element(s) not found
 
 即：**测试自己把要断言的那段时间压掉了 16 倍，再去断言它**。产品行为正确——倒计时确实渲染过，只是没人在窗口内看。
 
-同一份 journey 在 `b38b35d`（接入钱包之前）上以完全相同的方式失败，可排除钱包改动的嫌疑。
+同一份 journey 在接入钱包之前的提交上以完全相同的方式失败（该提交已不在仓库内），可排除钱包改动的嫌疑。
 
 ### 复现说明
 
@@ -43,7 +45,7 @@ bunx playwright test --config tests/e2e/playwright.config.ts regressions/countdo
 
 ### 关联模块
 
-- L1：`src/race/driver.ts` 的倒计时相位与 `raceSpeed` 时钟缩放——逻辑本身有 L1 覆盖，未改动。
+- L1：`src/race/driver.ts` 的倒计时相位与 `raceSpeed` 时钟缩放目前没有直接的 L1 覆盖（`driver.test.ts` 以 `countdownMs: 0` 运行），由本脚本守护。
 - L2：不涉及，倒计时不跨任何契约。
 - L3：`tests/e2e/specs/journey.spec.ts` 的「起跑倒计时」与紧随其后的 HUD 节点已按正确写法改写——两组等待都在点下 RACE 之前并发挂好。
 
@@ -111,8 +113,8 @@ bunx playwright test --config tests/e2e/playwright.config.ts regressions/wallet-
 **测试契约过期，缺陷在测试而不在产品。** 证据：
 
 1. `tests/art/card-layout.js` 用 `.card-root` 选卡，而 `.card-root` 只由 `src/cards/Card.tsx` 的卡面组件输出；
-2. `src/ui/CollectionScreen.tsx` 对访客未拥有的稀有卡只渲染带 `data-card` 的锁定占位，不渲染卡面——这是 `docs/plan/card-collection-unlock.md` §2 规定的「稀有卡显示锁定占位，不显示详情」；
-3. 数字严格对上：`PAID_CARD_POOL` 共 26 格，其中稀有卡 12 张，`26 − 12 = 14`；
+2. `src/ui/CollectionScreen.tsx` 对访客未拥有的稀有卡只渲染带 `data-card` 的锁定占位，不渲染卡面——这是 `docs/plan/card-collection-unlock.md` 所述稀有卡收藏尚未成为比赛输入的体现；
+3. 数字严格对上：当时 `PAID_CARD_POOL` 共 26 格，其中稀有卡 12 张，`26 − 12 = 14`（现为 40 格、稀有 23、普通 17）；
 4. `tests/e2e/specs/journey.spec.ts` 早已以 `[data-card]` 作为图鉴格子的计数契约（26 格），只有排版检查还停在「每格都是卡面」的旧假设上。
 
 即：**检查器把「卡面」当成了「格子」**，锁定格按设计没有卡面，于是整格不计数也不做任何排版断言。
@@ -123,7 +125,7 @@ bunx playwright test --config tests/e2e/playwright.config.ts regressions/wallet-
 bunx playwright test --config tests/e2e/playwright.config.ts regressions/collection-locked-slots.spec.ts
 ```
 
-`FACES_ONLY` 把缺陷机制钉住：`[data-card]` 26 格、`.card-root` 14 张、`[data-card]:not(.card-root)` 恰为稀有卡数，说明漏掉的正是锁定格，且锁定格确实不带卡面。`EVERY_SLOT` 断言修正后的检查器按格子覆盖全部 26 格，并分别报告卡面数与锁定格数。
+`FACES_ONLY` 把缺陷机制钉住：`[data-card]` 恰为 `PAID_CARD_POOL.length`（当前 40），`.card-root` 为其减去稀有卡数（当前 17），`[data-card]:not(.card-root)` 恰为稀有卡数（当前 23），说明漏掉的正是锁定格，且锁定格确实不带卡面。`EVERY_SLOT` 断言修正后的检查器按格子覆盖全部格子，并分别报告卡面数与锁定格数。
 
 修法是检查器改为遍历 `[data-card]`：`.card-root` 卡面照旧断言描述留在缎带上方的羊皮纸区内；锁定格断言提示文字非空且留在边框内侧。**不给锁定占位补 `.card-root`**：该类名在 `helpers.ts` 的选牌点击、`theme.css` 的卡名字体里都表示「卡面组件」，检查器还会深入它的画面区与描述段落；占位补上类名只会被数进去，再因找不到描述段落被跳过，得到 26 格「全绿」而其中 12 格什么都没查。产品侧一行未动。
 
@@ -166,11 +168,11 @@ npx playwright test --config tests/e2e/playwright.config.ts regressions/modal-st
 
 `STALE_CLOSE` 点「注册」后等过排队任务的派发时机，再一次性断言窗口仍在、仍是 `:modal`。缺陷版本里窗口已从 DOM 中消失。
 
-修法在底层 `openModal`：`close` 事件到达时若 `dialog.open` 已为真，说明窗口已经重新打开，事件过期，直接忽略。L1 `src/ui/StageDialog.test.tsx` 用会翻转 `open` 的假 dialog 复刻了 mount → cleanup → mount 的顺序，修复前两条用例失败、修复后通过。
+修法在底层 `src/ui/modalHost.ts` 的 `openModal`：`close` 事件到达时若 `dialog.open` 已为真，说明窗口已经重新打开，事件过期，直接忽略。L1 `src/ui/StageDialog.test.tsx` 用会翻转 `open` 的假 dialog 复刻了 mount → cleanup → mount 的顺序，修复前两条用例失败、修复后通过。
 
 ### 关联模块
 
-- L1：`src/ui/StageDialog.test.tsx` 的 `openModal` 用例——「过期的 close 事件被忽略」「StrictMode 重挂后排队的 close 不关窗」。
+- L1：`src/ui/StageDialog.test.tsx` 的 `openModal` 用例——「a close event that arrives after the dialog is open again is stale and ignored」「StrictMode remount: the close queued by the first cleanup does not dismiss the reopened dialog」。
 - L2：不涉及，窗口开关不跨任何契约。
 - L3：`tests/e2e/specs/keyboard.spec.ts`（Escape、焦点回位、Tab 困在窗口内、点遮罩）、`tests/e2e/specs/wallet.spec.ts`（Escape 关钱包面板）。
 
