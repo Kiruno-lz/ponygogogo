@@ -343,7 +343,7 @@ contract PonyGameTest is PonyGameBase {
         _choose(ALICE, sessionId, 1, 0, _noRefresh());
     }
 
-    /// @notice The only checks chooseCard makes: checkpoint 1..3 strictly increasing, cardId <= 26, at most three
+    /// @notice The only checks chooseCard makes: checkpoint 1..3 strictly increasing, cardId <= 40, at most three
     /// refreshes, each slot <= 2. Checkpoints may be skipped.
     function testChooseCardShapeChecks() public {
         bytes32 sessionId = _open(ALICE, 0, TIER1);

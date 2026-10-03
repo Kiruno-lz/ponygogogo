@@ -20,8 +20,8 @@ contract PaidCardRulesTest {
         require(gravity.overlapBps == 3_000, "browser overlap branch");
         PaidCardRules.Rule memory wheel = PaidCardRules.get(11);
         require(wheel.periodMs == 7_000 && wheel.count == 4 && wheel.fixedSpeed == 10, "wheel schedule");
-        PaidCardRules.Rule memory placeholder = PaidCardRules.get(26);
-        require(placeholder.effect == PaidCardRules.EFFECT_RAGE && placeholder.rare && placeholder.cpu, "rage");
+        PaidCardRules.Rule memory rage = PaidCardRules.get(26);
+        require(rage.effect == PaidCardRules.EFFECT_RAGE && rage.rare && rage.cpu, "rage");
     }
 
     /// @dev The packed get() decodes to exactly the TS table (the generator hashes the same ABI encoding with viem).
@@ -36,10 +36,10 @@ contract PaidCardRulesTest {
 
     function testUnknownCardReverts() public {
         (bool ok0, bytes memory r0) = address(this).call(abi.encodeCall(this.ruleOf, (0)));
-        (bool ok27, bytes memory r27) = address(this).call(abi.encodeCall(this.ruleOf, (41)));
-        require(!ok0 && !ok27, "unknown card accepted");
+        (bool ok41, bytes memory r41) = address(this).call(abi.encodeCall(this.ruleOf, (41)));
+        require(!ok0 && !ok41, "unknown card accepted");
         require(
-            bytes4(r0) == PaidCardRules.InvalidCard.selector && bytes4(r27) == PaidCardRules.InvalidCard.selector,
+            bytes4(r0) == PaidCardRules.InvalidCard.selector && bytes4(r41) == PaidCardRules.InvalidCard.selector,
             "error"
         );
     }

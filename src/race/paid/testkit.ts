@@ -14,8 +14,8 @@ export function fixtureAnchor(n: number): Hex {
   return `0x${n.toString(16).padStart(2, '0').repeat(32)}` as Hex
 }
 
-/** No choice is submitted by default; offered cards do not apply on timeout or forfeit. */
-export const QUIET_DECK: readonly number[] = [22, 23, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10, 12]
+/** No choice is submitted by default; offered cards do not apply on timeout or forfeit. Other than coats, these cards have real effects. */
+export const QUIET_DECK: readonly number[] = [17, 18, 21, 14, 19, 15, 20, 1, 2, 6, 7, 8, 10, 12]
 export const QUIET_CPU_DECK: readonly number[] = [19, 20, 5]
 
 export function fixtureProfiles(playerHorseId = 1): PaidCoreProfile[] {

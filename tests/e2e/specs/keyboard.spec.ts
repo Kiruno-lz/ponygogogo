@@ -3,9 +3,12 @@
  * Tab 困在窗口里；点遮罩关、在输入框里拖选到遮罩上松手不关；窗口在顶层渲染仍贴合舞台；音量滑块有名字。
  */
 import { expect, test, type Page } from '@playwright/test'
+import { BASE_URL } from '../playwright.config.ts'
 import { checkScreen, enterHome, noConsoleErrors, open, playUntilResult, startRace } from '../helpers.ts'
 
 const SHOT = 'tests/e2e/screenshots'
+// 端口来自 PLAYWRIGHT_PORT，URL 校验跟着配置走
+const URL_PATTERN = new RegExp(new URL(BASE_URL).host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
 
 /** 按 Tab 直到焦点落在匹配 selector 的元素上（至多 limit 次），到不了就失败 */
 async function tabUntil(page: Page, selector: string, limit = 24): Promise<void> {
@@ -54,7 +57,7 @@ test('键盘选牌：Tab 到第二张牌、Enter 选中，只选一次，结算�
     ids: ['card-panel', 'choice-timer', 'card-choice-0', 'card-choice-1', 'card-choice-2', 'card-skip'],
     texts: ['card-skip'],
     disjoint: ['card-choice-0', 'card-choice-1', 'card-choice-2'],
-    url: /localhost:5177/,
+    url: URL_PATTERN,
     title: /Ponygogogo/,
   })
 
@@ -90,7 +93,7 @@ test('模态窗口：Escape 关闭且焦点回到入口、Tab 困在窗口里、
     ids: ['register-modal', 'register-name', 'register-cancel'],
     texts: ['register-cancel'],
     disjoint: ['register-name', 'register-cancel'],
-    url: /localhost:5177/,
+    url: URL_PATTERN,
     title: /Ponygogogo/,
   })
 

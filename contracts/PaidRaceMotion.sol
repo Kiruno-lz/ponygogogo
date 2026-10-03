@@ -188,8 +188,7 @@ library PaidRaceMotion {
     /// @notice findDue's horse classes in one pass: the first horse (by id) with a base-speed cap or stamina
     /// threshold due (class 1, key horse·2 + sub), at the finish (class 2) or past its next checkpoint (class 5);
     /// NONE where no horse is due. Stamina rates come from the instance totals, like the reference's `mods`.
-    function horseDues(Horse[5] memory horses) internal pure returns (uint256 cls1, uint256 cls2, uint256 cls5)
-    {
+    function horseDues(Horse[5] memory horses) internal pure returns (uint256 cls1, uint256 cls2, uint256 cls5) {
         uint256 minCost = MIN_COST;
         assembly ("memory-safe") {
             cls1 := NONE

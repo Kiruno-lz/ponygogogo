@@ -8,12 +8,12 @@ art-src/renders/     作者出的整屏渲染图（参考稿，永不上线）
 art-src/art/         作者定稿素材与切片
 art-src/placeholder/ 占位素材（图标、木牌、音频）
         ↓  scripts/build-web-assets.py
-public/assets/       部署产物：WebP + Opus + woff2 + manifest.json
+public/assets/       部署产物：WebP + Opus + woff2 + SVG + manifest.json
 ```
 
 **`art-src/` 是唯一真源，`public/assets/` 全部由脚本生成，不要手改。** 产物已提交进仓库，
 日常开发不需要重跑管线（一次约五分钟）；改了母版或改了版位之后手动跑
-`python3 scripts/build-web-assets.py`。
+`python3 scripts/build-web-assets.py`。唯一的例外是 `public/assets/cards/*.svg`：它们的真源是 `scripts/gen-paid-card-icons.ts`，不经过 `art-src/`。
 
 本文 Product 1–6 描述前一段（怎么从渲染图切出母版），第 7 节描述后一段（母版怎么变成产物）。
 前一段的脚本是幂等的，要求 Python 3、Pillow ≥ 11、NumPy。
@@ -220,7 +220,7 @@ python3 scripts/prepare-art.py
 
 ## 7. Web 产物管线（`scripts/build-web-assets.py`）
 
-母版约 195 MB，其中大半是参考图、抠图蒙版、逐帧拆分和废弃版本。产物只取被代码引用的那一部分，
+母版约 285 MB，其中大半是参考图、抠图蒙版、逐帧拆分、生成源图和废弃版本。产物只取被代码引用的那一部分，
 并按实测显示尺寸重采样。三条规则各自有必须成立的理由，改动前先读脚本里对应常量旁的注释。
 
 ### 7.1 出片清单
@@ -231,9 +231,21 @@ python3 scripts/prepare-art.py
 `running-v3/`（未采用的跑步循环重做版）、以及三张被 `-reference` 版本取代的切片。
 `INTERMEDIATE` 挡掉制作期资料：AI 生成提示词、抠图蒙版、拼版留档、逐帧拆分。
 
-逐帧拆分里只有 `-idle-0` 上线——`src/export/poster.ts` 画海报用的是静帧，不是八帧横排。
+逐帧拆分里只有 `-idle-0` 上线，运行时不读取它，只作 `scripts/prepare-spin-thrust.py` 的输入和 `src/assets/shipped-assets.test.ts` 的存在性检查；选马页头像用八帧 `-idle` 分镜，海报用 `art/share/horse-N`。
 注意 `ships()` 里 `INTERMEDIATE` 必须先判、`FRAME_SPLIT` 后判：`fidelity/` 下也有 `-idle-0`，
 顺序反过来会让十张保真度对照图跟着上线。
+
+后加的三类素材里，`art/effects/` 与 `art/cosmetics/` 在 `ships()` 里有专门的白名单，`art/share/` 走通用规则（`_archive/` 被下划线规则排除，提示词被 `INTERMEDIATE` 排除）；其余文件（生成源图、参考图、`_review/`、`_previous/`、提示词与元数据）一律不出片：
+
+| 母版目录 | 出片 | 说明 |
+|---|---|---|
+| `art/effects/` | 只出 `*-sheet.png`（火箭、彩虹拖尾、黑洞、风火轮、风、旋转突进六张 4×4 分镜） | 帧尺寸由 `src/game/effects.ts` 固定，进 `NO_DOWNSCALE`，分级 `race` |
+| `art/cosmetics/` | 只出 `blonde-hair.png`、`green-hair.png` | C-19、C-20 的头顶尖发，分级 `race` |
+| `art/share/` | 背景、标题（获胜与完赛）、奖项组、五匹马立绘与 `qr.png` | 分享海报素材，分级 `result`；`qr.png` 不转 WebP，原样拷贝以保持二维码像素 |
+
+`build-web-assets.py` 开头先跑 `scripts/prepare-share-qr.ts`：把 `art-src/QR code.png` 的白底去成 alpha，只出 `art/share/qr.png`，输入母版自身列入 `DEAD`。结尾再跑 `scripts/gen-paid-card-icons.ts`：C-22 至 C-40 的 19 张卡面是代码生成的 SVG，直接写入 `public/assets/cards/` 并登记 manifest（键 `cards.card-NN`），不经过 `art-src/`。`public/_headers` 与 `scripts/deploy.sh` 的缓存覆盖核验都认 `cards/` 目录。
+
+只想重出某一类时不必重跑整条管线：`scripts/prepare-share-art.py`（海报素材与二维码）、`scripts/prepare-head-cosmetics.py`（头饰）、`scripts/prepare-spin-thrust.py`（C-02 旋转突进分镜；帧由 `scripts/render-spin-thrust.ts` 用螺旋几何烘焙，几何定义在 `scripts/spin-thrust-motion.ts`）都复用 `build-web-assets.py` 的编码函数，只更新各自的产物与 manifest 项。
 
 ### 7.2 目标分辨率
 
@@ -260,6 +272,7 @@ python3 scripts/prepare-art.py
 |------|------------|
 | `art/track/{far,track,front}.png` | `tileSprite` 按 1:1 平铺，贴图宽度就是滚动循环周期，缩一半等于景物重复频率翻倍 |
 | `*-idle.png` / `*-running.png` | 八帧横排分镜，`src/game/pony.ts` 硬编码 `FRAME_W=256`/`FRAME_H=192`，改尺寸即错帧 |
+| `art/effects/*-sheet.png` | 4×4 特效分镜，`src/game/effects.ts` 按帧尺寸切片，整图降采样会串帧 |
 | `placeholder/ui/btn_wood_*.png`、`panel_parchment.png` | `border-image` 的切片数值按源图像素计（`theme.css` 里的 `92 185 71 196` 一类），缩放源图必须同步改切片；这几张当前采样率本就在 1.8–2.4× |
 
 ### 7.3 编码
@@ -288,12 +301,12 @@ python3 scripts/prepare-art.py
 
 | | 母版 | 产物 |
 |---|---|---|
-| 磁盘占用（部署上传量） | 193 MB | **8.70 MB** |
-| 玩家实际下载（全部四级） | — | 6.71 MB |
+| 磁盘占用（部署上传量） | 285 MB | **12.20 MB** |
+| 玩家实际下载（全部四级） | — | 10.22 MB |
 | 其中进首页要等（`boot` + `home`） | — | **1.83 MB** |
-| 其中后台预取（`race` + `result`） | — | 4.88 MB |
+| 其中后台预取（`race` + `result`） | — | 8.39 MB |
 
-磁盘 8.70 MB 与下载 6.71 MB 的差额是音频的 `.mp3` 备用编码：每条音频同时带 `.ogg` 与 `.mp3`，
+磁盘 12.20 MB 与下载 10.22 MB 的差额是音频的 `.mp3` 备用编码：每条音频同时带 `.ogg` 与 `.mp3`，
 运行时按 `canPlayType` 只取其一（`src/assets/source.ts`），两份都要上传但从不同时下载。
 
 改动之前这里是 175 MB 部署产物、83.4 MB 首屏一次性预载。
@@ -307,6 +320,6 @@ manifest 每一项都要指向真实文件、字节数一致、分级合法，�
 
 | 路径 | 尺寸 | 说明 |
 |------|------|------|
-| `art-src/art/cards/icon-C-01.png` … `icon-C-21.png` | 128×128，透明 PNG（母版；产物自动转成 WebP） | 结算页三个卡槽现在复用 `art-src/placeholder/icons/icon_01.png` … `icon_19.png`（19 张服务 21 张卡；`icon_01`、`icon_19` 各复用了一次，见 `src/race/cards/pool.ts` 里每条卡定义的 `art.icon`）。补齐后把对应卡的 `art.icon` 改指到新路径。 |
+| `art-src/art/cards/icon-C-01.png` … `icon-C-21.png` | 128×128，透明 PNG（母版；产物自动转成 WebP） | 结算页三个卡槽现在复用 `art-src/placeholder/icons/icon_01.png` … `icon_19.png`（19 张服务 21 张卡；`icon_01`、`icon_19` 各复用了一次，见 `src/race/cards/metadata.ts` 里每条卡的 `art.icon`）。补齐后把对应卡的 `art.icon` 改指到新路径，并在 `src/race/cards/iconUrl.ts` 增加对应的路径解析（非 `card-` 前缀的 icon 一律解析到 `/assets/placeholder/icons/`）。 |
 
-卡面图标之外没有别的缺口：五档奖章、名牌、标题木牌、首页六块木牌与两张整屏背景都已定稿。
+C-22 至 C-40 的卡面图标是代码生成的 SVG，不在这个缺口里。卡面图标之外没有别的缺口：五档奖章、名牌、标题木牌、首页六块木牌与两张整屏背景都已定稿。

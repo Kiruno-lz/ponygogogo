@@ -1,6 +1,6 @@
 /**
  * L3-R：访客的图鉴里稀有卡是锁定占位，只有 `data-card`、没有 `.card-root` 卡面，
- * 按卡面计数的排版检查因此只数到 14 张而不是 26 格。缺陷说明见同目录 REPRO.md。
+ * 按卡面计数的排版检查因此漏掉了锁定格（当时卡池 26 格、14 张卡面）。缺陷说明见同目录 REPRO.md。
  */
 import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'

@@ -150,7 +150,7 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     console.log('P3 anvil gas', Object.fromEntries(Object.entries(gas).map(([k, v]) => [k, v.toString()])))
   })
 
-  test('DeployPony deployed the real PaidRaceSolver with the v3 ruleset and bound it to the Game', async () => {
+  test('DeployPony deployed the real PaidRaceSolver with the v4 ruleset and bound it to the Game', async () => {
     const { pub } = clients()
     expect(await pub.readContract({ address: solver, abi: solverAbi(), functionName: 'rulesetHash' })).toBe(PAID_RULESET_HASH)
     expect(await pub.readContract({ address: game, abi: gameAbi(), functionName: 'solver' })).toBe(solver)

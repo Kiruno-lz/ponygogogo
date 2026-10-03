@@ -4,7 +4,7 @@ import { activeEquipmentVisuals, isSpinVisualActive } from './effects.ts'
 import { EFFECT_SHOWCASE_SCENARIOS, EffectShowcaseDriver } from './effectShowcase.ts'
 
 describe('开发特效展示驱动器', () => {
-  test('展示入口枚举与当前完整可玩卡池完全一致', () => {
+  test('展示入口枚举与旧版 21 张卡池（C-01..C-21）完全一致', () => {
     expect(EFFECT_SHOWCASE_SCENARIOS).toEqual(CARD_POOL.map((card) => card.cardId))
   })
 

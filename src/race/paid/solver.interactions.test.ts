@@ -153,7 +153,7 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
 
   test('steal candidates are ordered by (holder, torso < tail < hooves) and indexed by entropy % n', () => {
     const cpu = { 0: [7, 20, 5], 2: [8, 20, 5], 3: [11, 20, 5] }
-    const input = pickAt(pickAt(fixtureInput({ playerDeck: [22, 23, 24, 13, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10], cpu }), 1, 0), 2, 13,
+    const input = pickAt(pickAt(fixtureInput({ playerDeck: [17, 18, 21, 13, 14, 15, 20, 19, 1, 2, 6, 7, 8, 10], cpu }), 1, 0), 2, 13,
       { anchor: fixtureAnchor(0x52) })
     const r = solvePaidCore(input)
     const stealTau = r.events.find((e) => e.code === EV_STEAL)!.tau
@@ -189,7 +189,7 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
   })
 
   test('another horse\'s wind does not reach a 【目中无人】 holder, its own wind does', () => {
-    const deck = [21, 22, 23, 11, 24, 25, 12, 26, 20, 19, 1, 2, 6, 7]
+    const deck = [21, 17, 18, 11, 14, 15, 12, 16, 20, 19, 1, 2, 6, 7]
     let input = pickAt(fixtureInput({ playerDeck: deck, cpu: { 4: [12, 20, 5] } }), 1, 21)
     input = pickAt(pickAt(input, 2, 11), 3, 12, { anchor: fixtureAnchor(0x53) })
     const r = solvePaidCore(input)

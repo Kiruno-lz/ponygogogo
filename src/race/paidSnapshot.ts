@@ -101,11 +101,11 @@ function effectFrom(inst: PaidTraceInstance, trace: PaidTrace, tau: bigint): Eff
     const count = trace.events.filter(e => e.code === EV_TRIGGER && e.horse === inst.horse && e.tau <= tau && e.arg / 256n === BigInt(inst.cardId)).at(-1)?.arg ?? 0n
     return [{ ...base, sourceCardId: key, primitive: 'Modifier', moduleId: 'paid', tags: ['buff'], payload: { stacks: Number(count % 256n), waiting: true } }]
   }
-  const statusId = effect === 'airborneSpeed' ? 'airborne' : effect === 'wired' ? 'wired' : undefined
+  const statusId = effect === 'speedDeath' ? 'luckE' : effect === 'airborneSpeed' ? 'airborne' : effect === 'wired' ? 'wired' : undefined
   return [{
     ...base, sourceCardId: key, primitive: statusId ? 'Status' : 'Modifier', moduleId: 'paid',
     tags: effect === 'speedDeath' ? ['buff', 'debuff'] : inst.initialP < 0 ? ['debuff'] : ['buff'],
-    payload: statusId ? { statusId } : {},
+    payload: effect === 'speedDeath' ? { statusId: 'luckE', spin: true } : statusId ? { statusId } : {},
   }]
 }
 

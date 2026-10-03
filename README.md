@@ -34,9 +34,9 @@ bun run test:e2e
 | --- | --- |
 | [项目决策](docs/decision.md) | 当前有效的产品、玩法、经济、账户、规则与部署决策 |
 | [玩法设计](docs/game-design.md) | 比赛流程、五马规则、检查点、求时与结算展示 |
-| [卡牌设计](docs/card-design.md) | 卡牌规则、效果模块、发牌与素材需求 |
+| [卡牌设计](docs/card-design.md) | 卡牌规则、效果机制、发牌与素材需求 |
 | [链上架构](docs/architecture/onchain.md) | 账户边界、MON Vault、随机输入、链上结算与 Envio |
-| [效果系统架构](docs/architecture/effect-system.md) | 规则骨架、模块边界与写权限 |
+| [效果系统架构](docs/architecture/effect-system.md) | 事件求时器、效果实例、写入边界与表现层 |
 | [链上与经济](docs/chain-and-economy.md) | 会话、赔率、Vault 偿付与交易状态 |
 | [部署](docs/plan/deploy.md) | Cloudflare Worker、D1、静态资源构建与部署 |
 | [链上服务交付](docs/plan/onchain-services.md) | 测试网状态、验收证据与剩余上线门槛 |

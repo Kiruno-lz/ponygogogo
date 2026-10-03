@@ -419,6 +419,8 @@ html, body, #root {
 [data-testid='screen-settings'] input[type='range'] { height: 9px; }
 .chip { border: 0; border-radius: 0; background: url('/assets/art/ui/bet-chip-trimmed.webp') center / 100% 100% no-repeat; padding: 12px 22px; }
 .chip.on { border: 0; background: url('/assets/art/ui/bet-chip-selected-trimmed.webp') center / 100% 100% no-repeat; box-shadow: 0 0 7px #ffd45d55; }
+.chip.card-refresh { background-image: url('/assets/art/ui/bet-chip-selected-trimmed.webp'); }
+.chip.card-refresh:disabled { cursor: default; filter: grayscale(1) opacity(.65); }
 .wallet-logout { right: 8px; top: 278px; width: 96px; height: 170px; color: transparent; font-size: 0; background: transparent; transform: none; }
 .pony-running { animation-duration: .667s; }
 /* 五档：首行 0（试玩）与 0.3，难度标签夹在中间；次行 1 / 5 / 10 三档有奖。未开放的有奖档灰掉 */

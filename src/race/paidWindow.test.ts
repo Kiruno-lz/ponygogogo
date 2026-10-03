@@ -61,21 +61,21 @@ describe('choice window and margin', () => {
 })
 
 describe('refresh preview', () => {
-  const deck = [22, 23, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10, 12]
+  const deck = [17, 18, 21, 14, 19, 15, 20, 1, 2, 6, 7, 8, 10, 12]
 
   test('matches applyPaidChoice: each refresh takes deck[--tailCursor] into that slot', () => {
     const draw = { ...initialPaidDrawState(), refreshCredits: 2 }
     const none = refreshPreview(deck, draw, [])
-    expect(none.candidates).toEqual([22, 23, 24])
+    expect(none.candidates).toEqual([17, 18, 21])
     expect(none.creditsLeft).toBe(2)
     expect(none.canRefresh).toEqual([true, true, true])
     const two = refreshPreview(deck, draw, [2, 0])
-    expect(two.candidates).toEqual([10, 23, 12])
+    expect(two.candidates).toEqual([10, 18, 12])
     expect(two.creditsLeft).toBe(0)
     expect(two.canRefresh).toEqual([false, false, false])
     // the rule engine accepts exactly this offer and rejects a card that was refreshed away
     expect(() => applyPaidChoice(deck, draw, [2, 0], 10)).not.toThrow()
-    expect(() => applyPaidChoice(deck, draw, [2, 0], 22)).toThrow('CARD_NOT_OFFERED')
+    expect(() => applyPaidChoice(deck, draw, [2, 0], 17)).toThrow('CARD_NOT_OFFERED')
   })
 
   test('a slot refreshes once per checkpoint; no credits, auto or cut disables refresh', () => {

@@ -87,7 +87,7 @@ test('gogo 每次按下同时有旋转和缩放', async ({ page }) => {
 })
 
 test('状态首次新增播放一次徽章动效；普通计时 tick 不重复播放', async ({ page }) => {
-  // 第一候选固定为 C-17，避免随机抽到没有持续状态的占位卡。
+  // 第一候选固定为 C-17，避免随机抽到没有持续状态的瞬发卡。
   await open(page, 'mockDelay=0&raceSpeed=6&seed=0x0098969f')
   await enterHome(page)
   await startRace(page, 0, 0)

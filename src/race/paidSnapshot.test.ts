@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { activeEquipmentVisuals, activeWindDirection } from '../game/effects.ts'
+import { activeEquipmentVisuals, activeWindDirection, isSpinVisualActive } from '../game/effects.ts'
 import { STAMINA_MAX, TRACK_LEN } from './core/constants.ts'
 import { FP } from './core/fixed.ts'
 import { EV_BOMB_PLACE, EV_CHECKPOINT, EV_FINISH, EV_SWAP, EV_WIND, type PaidLoggedEvent } from './paid/events.ts'
@@ -13,8 +13,8 @@ import {
 
 // Same busy fixture as src/race/paid/trace.test.ts: swaps, wheel, bombs, wind, rocket, rainbow, gravity.
 const busy = pickAt(pickAt(fixtureInput({
-  playerDeck: [9, 22, 23, 11, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8],
-  cpu: { 0: [7, 6, 12], 2: [1, 13, 25], 3: [10, 24, 25], 4: [8, 16, 15] },
+  playerDeck: [9, 17, 18, 11, 21, 14, 15, 20, 19, 1, 2, 6, 7, 8],
+  cpu: { 0: [7, 6, 12], 2: [1, 13, 19], 3: [10, 19, 20], 4: [8, 16, 15] },
 }), 1, 9), 2, 11)
 const full = solvePaidCore(busy)
 const trace = full.trace as PaidTrace
@@ -43,6 +43,54 @@ describe('unit mapping', () => {
 
 describe('snapshot', () => {
   const tau = trace.instances.find((i) => i.cardId === 7)!.startTau + 10n
+
+  test('acquired C-02 spins only its owner for the solver’s 30-second window', () => {
+    const input = pickAt(fixtureInput({ playerDeck: [2, ...busy.playerDeck.filter((id) => id !== 2)] }), 1, 2)
+    const result = solvePaidCore(input)
+    const spinTrace = result.trace!
+    const instance = spinTrace.instances.find((i) => i.cardId === 2 && i.horse === input.playerHorseId)!
+    expect(instance).toBeDefined()
+    expect(instance.endTau).toBe(instance.startTau + 30_000n)
+    const snapshotAt = (tau: bigint) => buildPaidSnapshot({
+      trace: spinTrace, tau, playerHorseId: input.playerHorseId, stakeTier: 0, seed: input.seed,
+      panel: null, draw: null, playerDeck: input.playerDeck, finishTime: result.finishTime, raceOver: false,
+    })
+    expect(isSpinVisualActive(snapshotAt(instance.startTau - 1n).effects, input.playerHorseId)).toBe(false)
+    for (const offset of [0n, 15_000n, 29_999n]) {
+      const { effects } = snapshotAt(instance.startTau + offset)
+      const cardEffects = effects.filter((e) => e.sourceCardId === 'C-02' && e.ownerHorseId === input.playerHorseId)
+      expect(cardEffects).toHaveLength(1)
+      expect(cardEffects[0]).toMatchObject({
+        instanceId: instance.id, primitive: 'Status', tags: ['buff', 'debuff'], durationTicks: 1500,
+        payload: { statusId: 'luckE', spin: true },
+      })
+      expect(isSpinVisualActive(effects, input.playerHorseId)).toBe(true)
+      expect(isSpinVisualActive(effects, 0)).toBe(false)
+    }
+    for (const offset of [30_000n, 30_001n]) {
+      expect(isSpinVisualActive(snapshotAt(instance.startTau + offset).effects, input.playerHorseId)).toBe(false)
+    }
+    const events = spinTrace.events.map((e) => toRaceEvent(e, spinTrace, input.playerHorseId, result.finishTime))
+    expect(events.filter((e) => e?.type === 'cardPicked' && e.cardId === 'C-02')).toHaveLength(1)
+    expect(events.some((e) => e?.type === 'statusAdd' || e?.type === 'statusStack')).toBe(false)
+  })
+
+  test('other acquired cards never activate the spin visual', () => {
+    for (let cardId = 1; cardId <= 40; cardId++) {
+      if (cardId === 2) continue
+      const playerDeck = [cardId, ...Array.from({ length: 40 }, (_, i) => i + 1)
+        .filter((id) => id !== cardId && id !== 2)].slice(0, 14)
+      const input = pickAt(fixtureInput({ playerDeck }), 1, cardId)
+      const result = solvePaidCore(input)
+      const otherTrace = result.trace!
+      const card = otherTrace.cards.find((c) => c.cardId === cardId && c.horse === input.playerHorseId)!
+      expect(card).toBeDefined()
+      for (const offset of [0n, 1_000n, 30_000n]) {
+        const { effects } = effectsAt(otherTrace, card.tau + offset, [false, false, false, false, false])
+        expect(isSpinVisualActive(effects, input.playerHorseId)).toBe(false)
+      }
+    }
+  })
 
   test('horses carry the exact solver sample at τ, converted', () => {
     const st = buildPaidSnapshot({

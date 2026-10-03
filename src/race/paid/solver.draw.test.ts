@@ -5,7 +5,7 @@ import { fixtureInput, ignoredChoice, pickAt } from './testkit.ts'
 import { wallAtTau } from './trace.ts'
 
 test('C-03 cuts later checkpoints: no panel, no slow motion, cursor stays put', () => {
-  const deck = [3, 22, 23, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10]
+  const deck = [3, 17, 18, 21, 14, 15, 20, 19, 1, 2, 6, 7, 8, 10]
   const input = pickAt(fixtureInput({ playerDeck: deck }), 1, 3)
   const r = solvePaidCore(input)
   const [, two, three] = r.checkpoints
@@ -26,7 +26,7 @@ test('C-03 cuts later checkpoints: no panel, no slow motion, cursor stays put', 
 })
 
 test('C-03 taken at the last checkpoint has no cost (nothing left to cut)', () => {
-  const deck = [22, 23, 24, 25, 26, 20, 3, 19, 1, 2, 6, 7, 8, 10]
+  const deck = [17, 18, 21, 14, 15, 20, 3, 19, 1, 2, 6, 7, 8, 10]
   const r = solvePaidCore(pickAt(fixtureInput({ playerDeck: deck }), 3, 3))
   expect(r.checkpoints.map((c) => c.reason)).toEqual(['timeout', 'timeout', 'picked'])
   expect(r.acquired).toEqual([3])
@@ -50,21 +50,21 @@ test('C-04 bonus follows the card: finite duration, permanent, 20 s default, ste
 })
 
 test('C-05 refresh replaces one offered card from the tail and consumes the credit', () => {
-  const deck = [5, 22, 23, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8, 18]
+  const deck = [5, 17, 21, 14, 15, 16, 20, 19, 1, 2, 6, 7, 8, 18]
   const input = pickAt(fixtureInput({ playerDeck: deck }), 1, 5)
   const stop = solvePaidCore(input, { stopAtPanel: 2 })
-  expect(stop.panel).toMatchObject({ candidates: [24, 25, 26], drawState: { refreshCredits: 1, tailCursor: 14 } })
+  expect(stop.panel).toMatchObject({ candidates: [14, 15, 16], drawState: { refreshCredits: 1, tailCursor: 14 } })
   const refreshed = pickAt(input, 2, 18, { refreshSlots: [1] })
   const r = solvePaidCore(refreshed)
-  expect(r.checkpoints[1]).toMatchObject({ reason: 'picked', cardId: 18, candidates: [24, 18, 26] })
+  expect(r.checkpoints[1]).toMatchObject({ reason: 'picked', cardId: 18, candidates: [14, 18, 16] })
   expect(r.acquired).toEqual([5, 18])
   expect(solvePaidCore(refreshed, { stopAtPanel: 3 }).panel).toMatchObject({
     candidates: [20, 19, 1], drawState: { cursor: 6, tailCursor: 13, refreshCredits: 0 },
   })
   expect(ignoredChoice(pickAt(input, 2, 18, { refreshSlots: [0, 1] }), 2)).toEqual({ reason: INVALID_NO_CREDIT, equivalent: true })
   expect(ignoredChoice(pickAt(input, 2, 18, { refreshSlots: [1, 1] }), 2)).toEqual({ reason: INVALID_NO_CREDIT, equivalent: true })
-  expect(ignoredChoice(pickAt(input, 2, 25, { refreshSlots: [1] }), 2)).toEqual({ reason: INVALID_NOT_OFFERED, equivalent: true })
-  expect(ignoredChoice(pickAt(input, 2, 25, { refreshSlots: [3] }), 2)).toEqual({ reason: INVALID_BAD_SLOT, equivalent: true })
+  expect(ignoredChoice(pickAt(input, 2, 15, { refreshSlots: [1] }), 2)).toEqual({ reason: INVALID_NOT_OFFERED, equivalent: true })
+  expect(ignoredChoice(pickAt(input, 2, 15, { refreshSlots: [3] }), 2)).toEqual({ reason: INVALID_BAD_SLOT, equivalent: true })
   // Without a credit any refresh is rejected first, however malformed.
   expect(ignoredChoice(pickAt(fixtureInput(), 1, 0, { refreshSlots: [7] }), 1)).toEqual({ reason: INVALID_NO_CREDIT, equivalent: true })
   // A refresh may accompany an active forfeit; the tail card is still spent.
@@ -73,7 +73,7 @@ test('C-05 refresh replaces one offered card from the tail and consumes the cred
 })
 
 test('C-04 removes refresh rights even with unused credits', () => {
-  const deck = [5, 22, 23, 4, 25, 26, 20, 19, 1, 2, 6, 7, 8, 18]
+  const deck = [5, 17, 21, 4, 14, 15, 20, 19, 1, 2, 6, 7, 8, 18]
   const input = pickAt(pickAt(fixtureInput({ playerDeck: deck }), 1, 5), 2, 4)
   const r = solvePaidCore(input)
   expect(r.checkpoints[2]!.mode).toBe('auto')

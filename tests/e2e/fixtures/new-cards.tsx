@@ -13,12 +13,13 @@ const race = solvePaidCore(playNewCards([11,32], { profiles: Array.from({length:
 const renewal = race.trace!.renewals[0]!
 function Fixture() {
  const [lang,setLang] = useState<'zh'|'en'>('zh'), [mode,setMode] = useState('faces'), [picked,setPicked] = useState('')
+ const [refreshCredits,setRefreshCredits] = useState(0)
  const tau = renewal.tau
  const snapshot = buildPaidSnapshot({trace:race.trace!,tau,playerHorseId:1,stakeTier:2,seed:'fixture',panel:null,draw:null,playerDeck:[],finishTime:race.finishTime,raceOver:false})
  return <>
-  <nav style={{position:'relative',zIndex:100,padding:12,display:'flex',gap:16}}><button onClick={()=>setLang(lang==='zh'?'en':'zh')}>{lang}</button><button onClick={()=>setMode('faces')}>faces</button><button onClick={()=>setMode('choice')}>choice</button><button onClick={()=>setMode('hud')}>hud</button><output data-testid="picked">{picked}</output></nav>
+  <nav style={{position:'relative',zIndex:100,padding:12,display:'flex',gap:16}}><button onClick={()=>setLang(lang==='zh'?'en':'zh')}>{lang}</button><button onClick={()=>setMode('faces')}>faces</button><button onClick={()=>setMode('choice')}>choice</button><button onClick={()=>setMode('hud')}>hud</button><button onClick={()=>setRefreshCredits(1)}>grant refresh</button><output data-testid="picked">{picked}</output></nav>
   {mode==='faces' && <div style={{display:'flex',flexWrap:'wrap',gap:16,padding:20}}>{Array.from({length:19},(_,k)=><Card key={k} def={paidCardDef(`C-${k+22}`)!} lang={lang} size="gallery"/>)}</div>}
-  {mode==='choice' && <CardChoicePanel candidates={['C-22','C-31','C-40']} checkpoint={0} refreshCredits={0} auto={false} timeLeftMs={17000} lang={lang} reducedMotion={true} onArmed={()=>{}} onPick={setPicked} onSkip={()=>setPicked('skip')} onRefresh={()=>{}} lookup={paidCardDef}/>}
+  {mode==='choice' && <CardChoicePanel candidates={['C-22','C-31','C-40']} checkpoint={0} refreshCredits={refreshCredits} auto={false} timeLeftMs={17000} lang={lang} reducedMotion={true} onArmed={()=>{}} onPick={setPicked} onSkip={()=>setPicked('skip')} onRefresh={(slot)=>{setRefreshCredits((n)=>n-1);setPicked(`refresh-${slot}`)}} lookup={paidCardDef}/>}
   {mode==='hud' && <Hud state={snapshot} lang={lang} reducedMotion={true} gogoPunchKey={0} onGogoDown={()=>{}} onGogoUp={()=>{}} hideGogo={true}/>}
  </>
 }

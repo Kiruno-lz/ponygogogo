@@ -63,7 +63,7 @@ describe('time mapping', () => {
   })
 
   test('C-04 auto panel lasts 3 s and draws from the last real-choice anchor', () => {
-    const deck = [4, 22, 23, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10]
+    const deck = [4, 17, 18, 19, 14, 15, 20, 21, 1, 2, 6, 7, 8, 10]
     const input = pickAt(fixtureInput({ playerDeck: deck }), 1, 4, { anchor: fixtureAnchor(0x41) })
     const r = solvePaidCore(input)
     const second = r.checkpoints[1]!
@@ -75,8 +75,7 @@ describe('time mapping', () => {
       input.seed, fixtureAnchor(0x41), 2)
     expect(second).toMatchObject({ reason: 'auto', cardId: expected.cardId })
     expect(r.checkpoints[2]!.reason).toBe('auto')
-    expect(r.acquired[0]).toBe(4)
-    expect(r.acquired.length).toBe(3)
+    expect(r.acquired).toEqual([4, 19, 20])
     expect(ignoredChoice(withSlot(input, 2, slot(second.openSec)), 2)).toEqual({ reason: INVALID_AUTO, equivalent: true })
   })
 
@@ -121,7 +120,7 @@ describe('time mapping', () => {
     expect(['timeout', 'finished']).toContain(two!.reason)
     expect(three!.reason).toBe('finished')
     // Picking C-03 at panel 1 cuts both deferred checkpoints at that same close.
-    const cut = solvePaidCore(pickAt(fixtureInput({ profiles, playerDeck: [3, 22, 23, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10] }), 1, 3,
+    const cut = solvePaidCore(pickAt(fixtureInput({ profiles, playerDeck: [3, 17, 18, 21, 14, 15, 20, 19, 1, 2, 6, 7, 8, 10] }), 1, 3,
       { delaySec: 19n }))
     expect(cut.checkpoints.map((c) => c.reason)).toEqual(['picked', 'cut', 'cut'])
     expect(cut.checkpoints[1]!.openTau).toBe(cut.checkpoints[0]!.closeTau)
@@ -143,7 +142,7 @@ describe('time mapping', () => {
 })
 
 describe('partial solves', () => {
-  const chosen = pickAt(pickAt(fixtureInput({ playerDeck: [7, 22, 23, 1, 24, 25, 11, 26, 20, 19, 2, 6, 8, 10] }), 1, 7), 2, 1)
+  const chosen = pickAt(pickAt(fixtureInput({ playerDeck: [7, 17, 18, 1, 21, 14, 11, 15, 20, 19, 2, 6, 8, 10] }), 1, 7), 2, 1)
 
   test('stopAtPanel reports exactly what the full solve records for that panel', () => {
     const full = solvePaidCore(chosen)
@@ -158,7 +157,7 @@ describe('partial solves', () => {
       expect(stop.tauEnd).toBe(rec.openTau)
       expect(full.events.slice(0, stop.eventCount)).toEqual(stop.events)
     }
-    expect(solvePaidCore(chosen, { stopAtPanel: 2 }).panel!.candidates).toEqual([1, 24, 25])
+    expect(solvePaidCore(chosen, { stopAtPanel: 2 }).panel!.candidates).toEqual([1, 21, 14])
     expect(solvePaidCore(chosen, { stopAtPanel: 3 }).panel!.drawState.cursor).toBe(6)
   })
 
@@ -179,7 +178,7 @@ describe('partial solves', () => {
   test('a panel without a recorded choice stays open until its deadline', () => {
     const open = solvePaidCore(quiet, { untilWall: 39_999n })
     expect(open.status).toBe('wall')
-    expect(open.panel).toMatchObject({ checkpoint: 1, mode: 'manual', openSec: 20n, deadlineSec: 40n, candidates: [22, 23, 24] })
+    expect(open.panel).toMatchObject({ checkpoint: 1, mode: 'manual', openSec: 20n, deadlineSec: 40n, candidates: [17, 18, 21] })
     expect(open.checkpoints[0]!.reason).toBe('open')
     expect(open.tauEnd).toBe(19_024n + (39_999n - 19_024n) / 10n)
     const timedOut = solvePaidCore(quiet, { untilWall: 40_000n })
@@ -223,8 +222,8 @@ describe('partial solves', () => {
 describe('checkPaidChoice (pre-send check)', () => {
   test('accepts a choice inside an open manual panel and returns openSec', () => {
     expect(checkPaidChoice(withSlot(quiet, 1, slot(20n)), 1)).toBe(20n)
-    expect(checkPaidChoice(withSlot(quiet, 1, slot(39n, 23)), 1)).toBe(20n)
-    const second = withSlot(withSlot(quiet, 1, slot(25n)), 2, slot(45n, 25))
+    expect(checkPaidChoice(withSlot(quiet, 1, slot(39n, 18)), 1)).toBe(20n)
+    const second = withSlot(withSlot(quiet, 1, slot(25n)), 2, slot(45n, 19))
     expect(checkPaidChoice(second, 2)).toBe(solvePaidCore(second).checkpoints[1]!.openSec)
   })
 
@@ -234,7 +233,7 @@ describe('checkPaidChoice (pre-send check)', () => {
     expect(() => checkPaidChoice(withSlot(quiet, 1, slot(20n, 1)), 1)).toThrow('CARD_NOT_OFFERED')
     expect(() => checkPaidChoice(quiet, 1)).toThrow('CHOICE_MISSING')
     expect(() => checkPaidChoice(withSlot(withSlot(quiet, 1, slot(20n)), 2, slot(60n)), 1)).toThrow('CHOICE_ORDER')
-    const cut = pickAt(fixtureInput({ playerDeck: [3, 22, 23, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10] }), 1, 3)
+    const cut = pickAt(fixtureInput({ playerDeck: [3, 17, 18, 21, 14, 15, 20, 19, 1, 2, 6, 7, 8, 10] }), 1, 3)
     const cutOpen = solvePaidCore(cut).checkpoints[1]!.openWall / 1000n + 1n
     expect(() => checkPaidChoice(withSlot(cut, 2, slot(cutOpen)), 2)).toThrow('CHOICE_NOT_OPEN')
     const profiles = fixtureProfiles()
@@ -253,7 +252,7 @@ describe('classifyPaidChoice (post-receipt verdict)', () => {
     expect(classifyPaidChoice(withSlot(quiet, 1, slot(40n)), 1)).toMatchObject({ valid: false, reason: 'late' })
     expect(classifyPaidChoice(withSlot(quiet, 1, slot(20n, 1)), 1)).toMatchObject({ valid: false, reason: 'not-offered' })
     expect(classifyPaidChoice(withSlot(quiet, 1, slot(20n, 200)), 1)).toMatchObject({ valid: false, reason: 'not-offered' })
-    const cut = pickAt(fixtureInput({ playerDeck: [3, 22, 23, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10] }), 1, 3)
+    const cut = pickAt(fixtureInput({ playerDeck: [3, 17, 18, 21, 14, 15, 20, 19, 1, 2, 6, 7, 8, 10] }), 1, 3)
     expect(classifyPaidChoice(withSlot(cut, 2, slot(60n)), 2)).toEqual({ valid: false, openSec: 0n, reason: 'cut' })
     const profiles = fixtureProfiles()
     profiles[1] = { base: 14_000n, acceleration: 0n, cap: 14_000n }
@@ -276,7 +275,7 @@ describe('input validation', () => {
     expect(() => solvePaidCore(bad({ profiles: quiet.profiles.slice(0, 4) }))).toThrow('INVALID_PROFILES')
     expect(() => solvePaidCore(bad({ profiles: [{ base: 2n, acceleration: 0n, cap: 1n }, ...quiet.profiles.slice(1)] })))
       .toThrow('INVALID_PROFILES')
-    expect(() => solvePaidCore(bad({ playerDeck: [...quiet.playerDeck.slice(0, 13), 22] }))).toThrow('INVALID_DECK')
+    expect(() => solvePaidCore(bad({ playerDeck: [...quiet.playerDeck.slice(0, 13), quiet.playerDeck[0]!] }))).toThrow('INVALID_DECK')
     expect(() => solvePaidCore(bad({ playerDeck: [...quiet.playerDeck.slice(0, 13), 41] }))).toThrow('INVALID_DECK')
     expect(() => solvePaidCore(bad({ cpuDecks: [[1, 1, 2], ...quiet.cpuDecks.slice(1)] }))).toThrow('INVALID_CPU_DECKS')
     expect(() => solvePaidCore(bad({ cpuDecks: quiet.cpuDecks.slice(1) }))).toThrow('INVALID_CPU_DECKS')

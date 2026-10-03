@@ -1,6 +1,6 @@
 # CC0 Placeholder Audio – Ponygogogo
 
-All files under `art-src/placeholder/audio/` are CC0 (public domain). 母版在 `art-src/`；上线产物由 `scripts/build-web-assets.py` 重编码到 `public/assets/placeholder/audio/`（Opus 80k / MP3 96k）。
+All files under `art-src/placeholder/audio/` are CC0 (public domain). 母版在 `art-src/`；上线产物由 `scripts/build-web-assets.py` 写到 `public/assets/placeholder/audio/`：不小于 200 KiB 的两条 BGM 重编码（Opus 80k / MP3 96k），其余原样拷贝。
 
 Run `scripts/fetch-audio.sh` from the project root to reproduce every file.
 The script is idempotent: existing files are skipped. Raw source ZIPs are
@@ -8,7 +8,7 @@ cached in `.cache/audio/` (gitignored).
 
 ## Codec note
 
-The installed `ffmpeg` (8.1.1, Homebrew) is built without `--enable-libvorbis`.
+The Homebrew `ffmpeg` (8.1.1 and 9.0.1 alike) is built without `--enable-libvorbis`.
 The `.ogg` files therefore use the **Opus** codec (libopus, Ogg/Opus container),
 which is equally browser-compatible and superior in quality. File extensions
 remain `.ogg`; no game-engine changes are needed.
@@ -23,12 +23,14 @@ remain `.ogg`; no game-engine changes are needed.
 | Key | Pitch | Multiplier | Semitones | Meaning |
 |---|---|---|---|---|
 | sfx_gogo_good | Normal | ×1.00 | 0 | Correct timing |
-| sfx_gogo_early | Higher | ×1.26 | +4 | Player hit too early (sharp) |
-| sfx_gogo_late | Lower | ×0.79 | −4 | Player hit too late (flat) |
+| sfx_gogo_early | Higher | ×1.26 | +4 | Early timing (sharp) |
+| sfx_gogo_late | Lower | ×0.79 | −4 | Late timing (flat) |
 
 The duration of each variant changes proportionally (shorter = higher pitch,
 longer = lower pitch) because `asetrate` resamples at a different playback
 rate.
+
+Both drivers (`src/race/driver.ts`, `src/race/paidDriver.ts`) emit only `good`; `early` and `late` are shipped but never played.
 
 ---
 
@@ -101,7 +103,7 @@ rate.
 - **Generator**: ffmpeg lavfi (`anoisesrc`, `sine`, `aecho`, `concat` filters)
 - **License**: CC0 (original work, dedicated to public domain)
 - **Notes**:
-  - `sfx_race_start`: white-noise burst (0–60 ms sharp attack, 60–600 ms exponential decay) + 75 Hz sine thud
+  - `sfx_race_start`: white-noise burst (0–60 ms sharp attack, 60–600 ms linear decay) + 75 Hz sine thud
   - `sfx_explosion`: brown-noise burst (0–280 ms sharp, 280–1600 ms decay) + 55 Hz bass sine + EQ bass-boost at 100 Hz
   - `jingle_win`: four-note C major arpeggio (C4 261.63 Hz → E4 329.63 Hz → G4 392.00 Hz → C5 523.25 Hz), each with 15 ms attack / 100 ms release envelope, concatenated, then `aecho` for warmth
   - `jingle_lose`: four-note A minor descent (E5 659.25 Hz → C5 523.25 Hz → A4 440.00 Hz → E4 329.63 Hz), same envelope, concatenated, then `aecho`

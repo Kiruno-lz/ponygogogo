@@ -229,7 +229,6 @@ export function Hud(p: HudProps) {
           <GogoButton
             punchKey={p.gogoPunchKey}
             reduced={p.reducedMotion}
-            disabled={exhausted}
             onDown={p.onGogoDown}
             onUp={p.onGogoUp}
           />
@@ -279,13 +278,11 @@ export function HorseAvatar({ horseId, size }: { horseId: number; size: number }
 function GogoButton({
   punchKey,
   reduced,
-  disabled,
   onDown,
   onUp,
 }: {
   punchKey: number
   reduced: boolean
-  disabled: boolean
   onDown: () => void
   onUp: () => void
 }) {
@@ -303,7 +300,6 @@ function GogoButton({
       type="button"
       data-testid="gogo"
       className={`btn btn-star gogo${anim ? ' punch' : ''}${pressed ? ' pressed' : ''}`}
-      disabled={disabled}
       onPointerDown={(e) => {
         e.preventDefault()
         setPressed(true)

@@ -33,7 +33,7 @@ npx wrangler deploy
 | 路径 | Cache-Control | 理由 |
 | --- | --- | --- |
 | `/build/*` | `public, max-age=31536000, immutable` | Vite 自身的 JS/CSS 产物，文件名带 content hash，内容一变文件名必变 |
-| `/assets/art/*`、`/assets/placeholder/*` | `public, max-age=86400, stale-while-revalidate=604800` | 美术素材文件名**不带 hash**（CSS 里约 30 处写死 `/assets/...` 路径，加 hash 需重写全部引用）；用 SWR 换更新可见性——命中缓存立即返回旧图，后台向源站校验，下一次请求换新版本 |
+| `/assets/art/*`、`/assets/cards/*`、`/assets/placeholder/*` | `public, max-age=86400, stale-while-revalidate=604800` | 美术素材文件名**不带 hash**（CSS 里约 30 处写死 `/assets/...` 路径，加 hash 需重写全部引用）；用 SWR 换更新可见性——命中缓存立即返回旧图，后台向源站校验，下一次请求换新版本 |
 | `/assets/manifest.json` | `no-cache` | 资源清单是加载流程的前置数据，素材新旧全靠它的内容判断，必须每次校验 |
 | `/index.html`、`/` | `no-cache` | 入口文档决定加载哪一版 JS/CSS，缓存住会让用户拿旧壳配新资源 |
 
@@ -43,7 +43,7 @@ npx wrangler deploy
 
 //TODO - 加 CSP 前用 `Content-Security-Policy-Report-Only` 跑满一次完整流程（首页、比赛、结算、通行密钥注册与登录、导出助记词），Chrome/Safari 桌面与移动各一遍，确认上报为零 violation 后再切换成强制头。
 
-`_headers` 的一个实现细节：Cloudflare 对同一响应命中多条规则时按逗号拼接重复的头，不做覆盖，而 `Cache-Control` 是单值头，拼接即失效。这里不用 `! 头名` 去撤销外层规则，而是把素材规则按子目录写死成两条互不重叠的路径——产物顶层只有 `art/`、`placeholder/` 和 `manifest.json` 三样，逐个列出即可做到规则不重叠。理由是撤销语义本地无法验证，而它一旦不成立，后果是 `manifest.json` 被缓存一整天、玩家卡在一份指向已删文件的旧清单上；换成不重叠的路径就没有这个赌注。代价是管线将来新增顶层目录时会静默漏掉规则，`scripts/deploy.sh` 的覆盖核验守住这一条：`dist/assets/` 下出现不属于任何规则的文件即 `die`。
+`_headers` 的一个实现细节：Cloudflare 对同一响应命中多条规则时按逗号拼接重复的头，不做覆盖，而 `Cache-Control` 是单值头，拼接即失效。这里不用 `! 头名` 去撤销外层规则，而是把素材规则按子目录写死成互不重叠的路径——产物顶层只有 `art/`、`cards/`、`placeholder/` 和 `manifest.json` 四样，逐个列出即可做到规则不重叠。理由是撤销语义本地无法验证，而它一旦不成立，后果是 `manifest.json` 被缓存一整天、玩家卡在一份指向已删文件的旧清单上；换成不重叠的路径就没有这个赌注。代价是管线将来新增顶层目录时会静默漏掉规则，`scripts/deploy.sh` 的覆盖核验守住这一条：`dist/assets/` 下出现不属于任何规则的文件即 `die`。
 
 ## 3. 域名与通行密钥
 

@@ -6,7 +6,7 @@ import {PaidCardRules} from "./PaidCardRules.sol";
 import {PaidRaceEngine} from "./PaidRaceEngine.sol";
 import {PaidRaceSupport} from "./PaidRaceSupport.sol";
 
-/// @notice Stateless paid ruleset v4 solver (有奖规则 v3). Derives personalities and decks from the opening anchor
+/// @notice Stateless paid ruleset v4 solver. Derives personalities and decks from the opening anchor
 /// (src/race/paid/race.ts derivePaidCoreInput) and runs PaidRaceEngine, the bit-exact port of the TS reference.
 /// @dev Derivation, draw rules and settlement live in PaidRaceSupport, created here, to keep this contract under
 /// EIP-170.

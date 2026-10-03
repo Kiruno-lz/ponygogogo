@@ -84,7 +84,7 @@ INTERMEDIATE = re.compile(
     re.VERBOSE,
 )
 
-# 逐帧拆分图只有 -idle-0 要上线：src/export/poster.ts:92 直接按这个名字取静帧画海报。
+# 逐帧拆分图只有 -idle-0 要上线：运行时不读取它（海报用 art/share/horse-N），只作 scripts/prepare-spin-thrust.py 的输入。
 FRAME_SPLIT = re.compile(r"-(running|idle)-(\d+)\.png$")
 
 # art/ui/ 是切片总目录，只有下面这些命名进产物，其余是切片中间态。
@@ -117,7 +117,7 @@ NO_DOWNSCALE: list[tuple[str, str]] = [
     ("art/track/front.png", "RaceScene.ts:119 同上"),
     ("-idle.png", "八帧横排分镜，pony.ts:7 硬编码 FRAME_W=256/FRAME_H=192，改尺寸即错帧"),
     ("-running.png", "同上"),
-    ("-idle-0.png", "海报静帧，与分镜同源，保持一致"),
+    ("-idle-0.png", "旋转冲刺素材的输入静帧，与分镜同源，保持一致"),
     ("placeholder/ui/btn_wood_1.png", "border-image 切片数值按源图像素计（theme.css:85 92/185/71/196），缩放源图必须同步改切片；当前采样率已是 2.4×"),
     ("placeholder/ui/btn_wood_2.png", "同上，theme.css:89"),
     ("placeholder/ui/btn_wood_3.png", "同上，theme.css:93"),

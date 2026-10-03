@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 import { keccak256, padHex, toBytes, type Hex } from 'viem'
 import { RaceDriver } from './driver.ts'
+import { PAID_CARD_COUNT } from './paid/cardRules.ts'
 import { solvePaidRace } from './paid/race.ts'
 import { sampleHorse, tauAtWall } from './paid/trace.ts'
 import { demoPos, demoSpeed, demoStamina, paidCardKey } from './paidSnapshot.ts'
@@ -65,7 +66,7 @@ function rig(seed: Hex) {
   return { driver, until, step }
 }
 
-for (let id = 1; id <= 26; id++) test(`免费试玩 C-${String(id).padStart(2, '0')} 从实际候选选取后，完整结果与下注求时器逐字段一致`, () => {
+for (let id = 1; id <= PAID_CARD_COUNT; id++) test(`免费试玩 C-${String(id).padStart(2, '0')} 从实际候选选取后，完整结果与下注求时器逐字段一致`, () => {
   const r = rig(offering(id)), d = r.driver
   r.until(() => d.state.pending !== null)
   expect(d.state.pending!.candidates).toContain(paidCardKey(id))

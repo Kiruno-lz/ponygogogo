@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { PAID_RULESET_HASH } from './constants.ts'
-import { PAID_CHOICE_INVALID_NAMES } from './events.ts'
+import { EV_CARD, EV_EXHAUST_ENTER, EV_EXHAUST_EXIT, PAID_CHOICE_INVALID_NAMES } from './events.ts'
 import { checkPaidChoice, classifyPaidChoice, type PaidChoiceSlots } from './solver.ts'
 import { decodeInput, encodeInput, solveVectorCase, type PaidVectorCase, type PaidVectorRace } from './vectorCodec.ts'
 
@@ -27,6 +27,34 @@ describe('paid ruleset v4 cross-language vectors', () => {
     }
     // INVALID_EXHAUSTED (9) needs two refresh credits, and a 14-card deck of distinct ids holds one C-05.
     expect([...seen].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 10])
+  })
+
+  test('stamina vectors apply only the tested card and motion-neutral fillers', () => {
+    const testedCards: Record<string, number> = {
+      'stamina-exhaust-cycle': 5,
+      'stamina-rocket': 7,
+      'stamina-regen': 14,
+      'stamina-overcap': 15,
+      'stamina-adrenaline-exhausted': 15,
+      'stamina-wired-zero': 16,
+      'stamina-wired-exhausted': 16,
+    }
+    for (const [name, card] of Object.entries(testedCards)) {
+      const c = file.cases.find((c) => c.name === name)!
+      const result = c.expected as PaidVectorRace
+      const applied = result.events.filter((e) => e.code === EV_CARD && e.horse === 0).map((e) => Number(e.arg))
+      expect(applied).toContain(card)
+      expect(applied.every((id) => [card, 19, 20].includes(id))).toBe(true)
+      if (name === 'stamina-exhaust-cycle') {
+        expect(result.events.filter((e) => e.horse === 0 && e.code === EV_EXHAUST_ENTER).length).toBeGreaterThan(1)
+        expect(result.events.some((e) => e.horse === 0 && e.code === EV_EXHAUST_EXIT)).toBe(true)
+      }
+    }
+  })
+
+  test('the C-04 player vector auto-picks coats to isolate its own bonuses', () => {
+    const c = file.cases.find((c) => c.name === 'card-4-player-cp1')!
+    expect((c.expected as PaidVectorRace).acquired).toEqual([4, 19, 20])
   })
 
   for (const c of file.cases) {
