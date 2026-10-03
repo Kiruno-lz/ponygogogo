@@ -429,9 +429,7 @@ C-04 的附加 +20% 速度只在获得卡时生成一次独立实例，不因阶
 | 时长 | 30s（到期同时结算死亡） |
 | 原语 | `Modifier` + `Status` |
 | † 品质 | rare |
-| 视觉 | 设计目标（目前只在特效验收入口显示，见下方 TODO）：沿用当前赛道马匹的侧视 2D 画法，以马体图片垂直中心为轴纵向压缩并翻面；叠一条 16 帧螺旋拖尾突进分镜（`art.effects.spin-thrust-sheet`，650 ms 循环，帧由模拟时间决定），半透明，宽为马体显示宽度的 1.4 倍，中心对齐 `body_center`、朝前、画在马体之上且不随马体翻面；减少动态效果时马体保持稳定姿态、分镜停在首帧。不加体积光、屏幕扭曲或新一套角色材质 |
-
-//TODO - 正式比赛快照对 C-02 输出 `statusId: 'luckE'` 与 `spin: true`：当前只有 `src/race/cards/pool.ts` 的演示声明满足 `isSpinVisualActive`，`paidSnapshot.ts` 的 `effectFrom` 对 C-02 只给出空 payload，赛道上仅有 HUD 徽章。判据：`paidSnapshot.test.ts` 对 C-02 实例断言 `isSpinVisualActive` 为真，并用一条走实际事件求时器的 e2e 断言分镜出现。
+| 视觉 | 沿用当前赛道马匹的侧视 2D 画法，以马体图片垂直中心为轴纵向压缩并翻面；叠一条 16 帧螺旋拖尾突进分镜（`art.effects.spin-thrust-sheet`，650 ms 循环，帧由模拟时间决定），半透明，宽为马体显示宽度的 1.4 倍，中心对齐 `body_center`、朝前、画在马体之上且不随马体翻面；减少动态效果时马体保持稳定姿态、分镜停在首帧。不加体积光、屏幕扭曲或新一套角色材质 |
 
 #### C-03 最后的波纹
 
