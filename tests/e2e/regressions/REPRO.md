@@ -1,6 +1,6 @@
 # 回归复现记录
 
-第一至四节对应本目录的 `countdown-overlay`、`wallet-busy`、`collection-locked-slots`、`modal-strictmode-close` 四个脚本，第五节的复现脚本在 `tests/e2e/specs/paid-race.spec.ts`，`bunx playwright test --config tests/e2e/playwright.config.ts regressions/` 全量跑本目录。
+第一至四节对应本目录的 `countdown-overlay`、`wallet-busy`、`collection-locked-slots`、`modal-strictmode-close` 四个脚本，第五节的复现脚本在 `tests/e2e/specs/paid-race.spec.ts`，第六节对应 `gogo-exhausted`，第七节对应 `practice-spin-thrust`，`bunx playwright test --config tests/e2e/playwright.config.ts regressions/` 全量跑本目录。
 
 //TODO - 为 `anonymous-card-webkit`、`cosmetics-wind`、`equipment-card-selection`、`gogo-button-layout`、`gogo-camera`、`horse-selection`、`practice-rules-audio` 七个回归脚本补写缺陷现象、根因假设与关联 L1/L2 模块；判据是 `regressions/*.spec.ts` 每个文件在本文都有对应小节。
 
@@ -211,3 +211,55 @@ bash scripts/dev.sh stop
 ### 注意事项与补充
 
 结算页是 1620×971 的绝对坐标画板，按钮行下方的空间固定不变；往 `settle-detail` 里再加任何一行，都要重新核算高度，不能依赖自动撑高。
+
+## 六、力竭状态禁用了只控制镜头的 GOGOGO 按钮
+
+脚本：`gogo-exhausted.spec.ts`
+
+### 缺陷现象与根因
+
+玩家马力竭时，HUD 的 GOGOGO 按钮带 `disabled`，无法点击移动镜头；空格输入仍能产生镜头反馈。`Hud.tsx` 的 `disabled={exhausted}` 从最初的 UI 提交 `b8e76e8` 沿用至今，当时逐 tick 引擎会拒绝力竭时的 gogo。当前免费与有奖驱动器只产生镜头反馈，gogo 不进入体力、速度或结算输入（`docs/game-design.md` §5），该限制已失去规则依据。
+
+### 复现说明
+
+```bash
+./node_modules/.bin/playwright test --config tests/e2e/playwright.config.ts regressions/gogo-exhausted.spec.ts
+```
+
+用固定 seed `0x0000000a` 进入免费试玩，在浏览器内推进实际驱动器经过合法选牌超时，直到求时器产生玩家力竭、无选牌面板且未冲线的快照，再冻结规则时钟。断言力竭提示与体力视觉保留、按钮可用，并用实际鼠标点击验证玩家构图右移、规则快照与求解输入不变。修复前在 `toBeEnabled` 处失败；修复只移除 GogoButton 的禁用属性及传参。
+
+### 关联模块与注意事项
+
+- L1：`src/ui/Hud.test.tsx` 覆盖免费与有奖状态的力竭快照，断言 GOGO 无 `disabled` 且保留力竭提示与体力视觉；修复前失败。
+- L2：不涉及端口契约。
+- L3-R：本脚本使用生产 HUD、输入与 Phaser 镜头，冻结规则时钟以隔离点击效果；不手工注入力竭状态。
+
+倒计时、选牌面板和玩家冲线时仍按 `RaceScreen` 的挂载条件隐藏 GOGO。
+
+---
+
+## 七、真实比赛取得 C-02 后马体不翻面、螺旋分镜不显示
+
+脚本：`practice-spin-thrust.spec.ts`
+
+### 缺陷现象与根因
+
+免费试玩取得 C-02 后，HUD 有卡牌徽章，但玩家马体不翻面、`spinThrust.visible` 为假；开发「特效验收」入口却显示正常。`RaceDriver` 与 `PaidRaceDriver` 共享的 `paidSnapshot.ts` 把 `speedDeath` 映射成空 payload 的 `Modifier`，未满足 `isSpinVisualActive` 所需的 `Status`、`luckE` 与 `spin: true`；演示卡池有这些字段，因而验收入口无法发现真实比赛的缺陷。
+
+### 复现说明
+
+```bash
+./node_modules/.bin/playwright test --config tests/e2e/playwright.config.ts regressions/practice-spin-thrust.spec.ts
+```
+
+使用 `seed=0x00000033`、玩家马 0，真实练习赛派生的第一候选为 C-02。通过选牌 UI 取得它，读取正在运行的 `RaceScene`，断言玩家分镜可见、16 帧、帧号变化、马体曾翻面、原实例与 HUD 徽章各一个；保存截图，跳过后续选牌，断言期限结束后分镜与徽章消失。脚本不注入效果、不改比赛时钟。修复前在分镜可见性断言处失败。
+
+修法仅把原 `speedDeath` 实例映射成 `Status` 与 `{ statusId: 'luckE', spin: true }`，保留原实例 ID、期限与 `['buff', 'debuff']`，不新增实例或事件。
+
+### 关联模块与注意事项
+
+- L1：`src/race/paidSnapshot.test.ts` 用真实求时器轨迹检查取得前、30 秒内、到期及到期后，验证归属、单实例、单次 `cardPicked` 和其余 39 张卡不激活旋转。
+- L2：不涉及端口契约，修改只发生在轨迹到表现层快照的转换。
+- L3-R：本脚本覆盖真实免费试玩；`tests/e2e/specs/spin-thrust.spec.ts` 覆盖验收入口的挂点、起飞、减弱动效与到期。
+
+HUD 按来源卡去重，沿用原期限与 debuff 标签；飘字和音频消费比赛事件，视觉 payload 不产生事件。有奖比赛复用同一快照转换，本脚本不进行付费交易。
