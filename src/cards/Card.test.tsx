@@ -116,7 +116,20 @@ describe('CardChoicePanel structure', () => {
       const html = renderToStaticMarkup(<CardChoicePanel {...base} {...props} />)
       expect(html).not.toContain('role="button"')
       expect(html).not.toContain('tabindex=')
-      expect(html).not.toContain('card-refresh-')
+      for (let i = 0; i < 3; i++) {
+        expect(openTag(html, `data-testid="card-refresh-${i}"`)).toContain('disabled=""')
+      }
+    }
+  })
+
+  test('refresh controls stay present without credits and enable when credits are available', () => {
+    for (const refreshCredits of [0, 1]) {
+      const html = renderToStaticMarkup(<CardChoicePanel {...base} refreshCredits={refreshCredits} />)
+      for (let i = 0; i < 3; i++) {
+        const button = openTag(html, `data-testid="card-refresh-${i}"`)
+        expect(button).toStartWith('<button')
+        expect(button.includes('disabled=""')).toBe(refreshCredits === 0)
+      }
     }
   })
 })

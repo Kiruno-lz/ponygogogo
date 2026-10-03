@@ -178,20 +178,19 @@ export function CardChoicePanel(p: CardChoicePanelProps) {
                 // 自动面板与已截止的面板不接受选牌：卡面退回纯展示，不进 Tab 序列
                 onClick={pickable ? () => pick(i) : undefined}
               />
-              {p.refreshCredits > 0 && pickable && chosen === null && (
-                <button
-                  type="button"
-                  className="chip"
-                  data-testid={`card-refresh-${i}`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    p.onRefresh(i)
-                  }}
-                  style={{ fontSize: 18, padding: '6px 16px' }}
-                >
-                  ⟳ {t(p.lang, 'card.refresh')}
-                </button>
-              )}
+              <button
+                type="button"
+                className="chip card-refresh"
+                data-testid={`card-refresh-${i}`}
+                disabled={p.refreshCredits <= 0 || !pickable || chosen !== null}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  p.onRefresh(i)
+                }}
+                style={{ fontSize: 18, padding: '6px 16px' }}
+              >
+                ⟳ {t(p.lang, 'card.refresh')}
+              </button>
             </div>
           )
         })}
