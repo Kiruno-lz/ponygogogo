@@ -18,7 +18,7 @@ test('a horse that never reaches the line gets 600001 and the race stops at τ =
   expect(r.status).toBe('complete')
 })
 
-const VERSION_DECK = [17, 22, 23, 19, 24, 25, 21, 26, 20, 1, 2, 6, 7, 8]
+const VERSION_DECK = [17, 18, 14, 19, 15, 16, 21, 5, 20, 1, 2, 6, 7, 8]
 
 test('version answer: 薄肌 + 黄毛 + 理解孙学 puts the player first in settlement only', () => {
   const input = pickAt(pickAt(pickAt(fixtureInput({ playerDeck: VERSION_DECK }), 1, 17), 2, 19), 3, 21)
@@ -61,7 +61,7 @@ test('a card acquired at an event ms can trigger in the same ms (C-09 attempt 0 
 test('caps stay unreachable: five bomb/death/swap-heavy decks remain far below 64 instances and 4096 events', () => {
   const heavy = [6, 2, 9]
   const input = pickAt(pickAt(fixtureInput({
-    playerDeck: [6, 22, 23, 2, 24, 25, 9, 26, 20, 19, 1, 7, 8, 10],
+    playerDeck: [6, 17, 18, 2, 21, 14, 9, 15, 20, 19, 1, 7, 8, 10],
     cpu: { 0: heavy, 2: [6, 9, 2], 3: [2, 6, 9], 4: [9, 2, 6] },
   }), 1, 6), 2, 2)
   const r = solvePaidCore(input)

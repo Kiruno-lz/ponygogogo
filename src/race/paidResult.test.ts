@@ -8,7 +8,7 @@ import { solvePaidRace } from './paid/race.ts'
 
 describe('paid result mapping', () => {
   // C-03 at checkpoint 1 cuts the next two checkpoints
-  const cut = solvePaidCore(pickAt(fixtureInput({ playerDeck: [3, 22, 23, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8, 10] }), 1, 3))
+  const cut = solvePaidCore(pickAt(fixtureInput({ playerDeck: [3, 17, 18, 21, 14, 15, 20, 19, 1, 2, 6, 7, 8, 10] }), 1, 3))
 
   test('preview RaceResult: settlement rank, sim finish tick, one entry per checkpoint', () => {
     const r = paidRaceResult('0xabc', '0xseed', 1, cut)

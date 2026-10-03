@@ -1,15 +1,21 @@
 import { expect, test } from 'bun:test'
 import { motionDelta } from './motion.ts'
+import { EV_CARD } from './events.ts'
 import { solvePaidCore } from './solver.ts'
 import { fixtureInput, pickAt } from './testkit.ts'
 import { bombsAt, sampleHorse, sampleStatus, tauAtWall, wallAtTau, windAt, type PaidTrace } from './trace.ts'
 
 const busy = pickAt(pickAt(fixtureInput({
-  playerDeck: [9, 22, 23, 11, 24, 25, 26, 20, 19, 1, 2, 6, 7, 8],
-  cpu: { 0: [7, 6, 12], 2: [1, 13, 25], 3: [10, 24, 25], 4: [8, 16, 15] },
+  playerDeck: [9, 17, 18, 11, 21, 14, 15, 20, 19, 1, 2, 6, 7, 8],
+  cpu: { 0: [7, 6, 12], 2: [1, 13, 19], 3: [10, 19, 20], 4: [8, 16, 15] },
 }), 1, 9), 2, 11)
 const full = solvePaidCore(busy)
 const trace = full.trace as PaidTrace
+
+test('the busy trace applies only its intended legacy effects and coats', () => {
+  expect(full.events.filter((e) => e.code === EV_CARD).map((e) => Number(e.arg))
+    .some((id) => id >= 22 && id <= 26)).toBe(false)
+})
 
 test('keyframes tile [0, tauEnd] per horse and dist is continuous across every boundary', () => {
   for (let h = 0; h < 5; h++) {
