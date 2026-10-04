@@ -1,11 +1,11 @@
 /** 共用比赛美术，不读取或更新规则状态。 */
-import { HORSE_PROFILES } from '../game/horses.ts'
+import { ponyById } from '../game/ponyCatalog.ts'
 
 export function PlayerPlaque({ horseId }: { horseId: number }) {
   return <div className="player-plaque">
     <img src={horseId === 0 ? '/assets/art/ui/avatar-source.webp' : '/assets/art/ui/avatar-reference-blank.webp'} alt="" draggable={false}/>
     {horseId !== 0 && <img className="plaque-pony" src={`/assets/art/ponies/${horseId}-portrait.webp`} alt="" draggable={false}/>}
-    <span className={horseId === 0 ? 'source-name' : undefined}>{HORSE_PROFILES[horseId]!.name}</span>
+    <span className={horseId === 0 ? 'source-name' : undefined}>{ponyById(horseId).name}</span>
   </div>
 }
 
