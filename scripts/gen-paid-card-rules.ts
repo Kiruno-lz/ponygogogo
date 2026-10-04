@@ -31,7 +31,7 @@ if (PAID_CARD_RULES.filter((card) => card.rare).length < 2 || PAID_CARD_RULES.fi
 
 /**
  * get(id) decodes a packed record instead of building struct literals, which keeps the table about 3 KB smaller
- * in every contract that reads it (PaidRaceSolver must stay under EIP-170). Record = the tuple fields big-endian at
+ * in every contract that reads it. Record = the tuple fields big-endian at
  * the byte widths below: the first 13 fields (id..radiusMicro) fill word `hi`, the remaining fields fill word `lo`;
  * signed fields are two's complement at their width.
  */

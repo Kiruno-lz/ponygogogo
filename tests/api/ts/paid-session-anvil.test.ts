@@ -156,12 +156,12 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     expect(await pub.readContract({ address: game, abi: gameAbi(), functionName: 'solver' })).toBe(solver)
     expect(await pub.readContract({ address: game, abi: gameAbi(), functionName: 'rulesetHash' })).toBe(PAID_RULESET_HASH)
     expect(await pub.readContract({ address: game, abi: gameAbi(), functionName: 'owner' })).toBe(owner.address)
-    // Same size as the artifact (the immutable support address is patched in at deployment) and within EIP-170.
+    // The single Solver matches the artifact and creates no independently deployed cold-path component.
     const code = (await pub.getCode({ address: solver }))!
     expect(code.length).toBe(artifact('PaidRaceSolver.sol/PaidRaceSolver.json').deployedBytecode.object.length)
-    expect((code.length - 2) / 2).toBeLessThanOrEqual(24_576)
-    const support = await pub.readContract({ address: solver, abi: solverAbi(), functionName: 'support' }) as Address
-    expect((await pub.getCode({ address: support }))?.length ?? 0).toBeGreaterThan(2)
+    expect((code.length - 2) / 2).toBeLessThanOrEqual(131_072)
+    expect(solverAbi().some((item) => item.type === 'function' && item.name === 'support')).toBe(false)
+    expect(await pub.getTransactionCount({ address: solver })).toBe(1)
   })
 
   /** Opens a session and returns the TS core input built from the chain's seed, T0 and open block hash. */

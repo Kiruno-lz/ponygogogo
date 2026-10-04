@@ -8,7 +8,6 @@ import {PaidDeck} from "../../contracts/libraries/PaidDeck.sol";
 import {PaidProfiles} from "../../contracts/libraries/PaidProfiles.sol";
 import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 import {PaidRaceSolver} from "../../contracts/PaidRaceSolver.sol";
-import {PaidRaceSupport} from "../../contracts/PaidRaceSupport.sol";
 import {FieldStretchProbe} from "./PaidRaceMotion.t.sol";
 import {PaidRaceVectorBase} from "./PaidRaceVectorBase.sol";
 
@@ -25,14 +24,8 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorBase {
     /// settlement's solve must stay at or below 23.5M.
     uint256 internal constant SOLVE_GAS_CAP = 23_500_000;
 
-    PaidRaceSupport internal support;
-
-    function setUp() public {
-        support = new PaidRaceSupport();
-    }
-
     function _opts(uint8 stopAt, bool logEvents) internal view returns (PaidRaceEngine.Options memory) {
-        return PaidRaceEngine.Options(stopAt, false, 0, logEvents, support);
+        return PaidRaceEngine.Options(stopAt, false, 0, logEvents);
     }
 
     // ------------------------------------------------------------ harness entry points (self-calls: fresh memory)
