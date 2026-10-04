@@ -1,3 +1,4 @@
+import { normalizeRoster } from './core/roster.ts'
 /**
  * 共享求时器轨迹 → 表现层快照。RaceScreen / RaceScene / Hud 使用 `RaceState` 与 `RaceEvent`，
  * 这里把 P2 求时器的渲染轨迹（µu、mu/s、µ体力、模拟毫秒）按固定比例换成同一套字段，表现层一行不改。
@@ -14,10 +15,11 @@ import type { PaidDrawState } from './core/paidDrawRules.ts'
 import { STAMINA_MAX } from './core/constants.ts'
 import { FP } from './core/fixed.ts'
 import type { EffectInstance, EquipSlot, HorseState, PendingChoice, RaceEvent, RaceState } from './core/types.ts'
-import { PAID_RULESET_HASH, PAID_CARD_COUNT, paidCardRule } from './paid/cardRules.ts'
+import { PAID_RULESET_HASH, LEGACY_PAID_RULESET_HASH, PAID_CARD_COUNT, paidCardRule } from './paid/cardRules.ts'
+import { ponyRule } from './paid/ponyRules.ts'
 import {
   EV_EQUIP_REFRESH, EV_GUARD, EV_RESOURCE, EV_TRIGGER, EV_FIXED, EV_TARGET, EV_BOMB_EXPLODE, EV_BOMB_PLACE, EV_CARD, EV_CHECKPOINT, EV_DEATH, EV_EQUIP_OFF, EV_EQUIP_ON, EV_EXHAUST_ENTER,
-  EV_EXHAUST_EXIT, EV_FINISH, EV_RESPAWN_END, EV_STEAL, EV_SWAP, EV_WIND, type PaidLoggedEvent,
+  EV_EXHAUST_EXIT, EV_FINISH, EV_RESPAWN_END, EV_STEAL, EV_SWAP, EV_WIND, EV_PONY, type PaidLoggedEvent,
 } from './paid/events.ts'
 import { bombsAt, sampleHorse, windAt, type PaidTrace, type PaidTraceInstance } from './paid/trace.ts'
 
@@ -79,6 +81,8 @@ function effectFrom(inst: PaidTraceInstance, trace: PaidTrace, tau: bigint): Eff
       payload: { statusId: 'respawning' },
     }]
   }
+  if (inst.ponyId !== undefined) return [{ ...base, sourceCardId: `pony:${inst.ponyId}:${inst.id}`, primitive: 'Modifier',
+    moduleId: 'paid', tags: ['buff'], payload: { ponyId: inst.ponyId, percentBps: Number(inst.initialP) } }]
   if (inst.cardId <= 0) return []
   const key = paidCardKey(inst.cardId)
   const effect = paidCardRule(inst.cardId).effect
@@ -168,6 +172,7 @@ export type PaidPanelView = {
 }
 
 export type SnapshotInput = {
+  roster?: readonly number[]
   trace: PaidTrace
   tau: bigint
   playerHorseId: number
@@ -233,7 +238,8 @@ export function buildPaidSnapshot(input: SnapshotInput): RaceState {
   const draw = input.draw
   return {
     seed: input.seed,
-    rulesVersion: PAID_RULESET_HASH,
+    ...(input.roster ? { roster: normalizeRoster(input.roster) } : {}),
+    rulesVersion: input.roster ? PAID_RULESET_HASH : LEGACY_PAID_RULESET_HASH,
     tick: tickOf(tau),
     stakeTier: input.stakeTier,
     playerHorseId,
@@ -304,6 +310,10 @@ export function toRaceEvent(e: PaidLoggedEvent, trace: PaidTrace, playerHorseId:
     case EV_EXHAUST_ENTER: return { type: 'exhaustEnter', horseId: e.horse, tick }
     case EV_EXHAUST_EXIT: return { type: 'exhaustExit', horseId: e.horse, tick }
     case EV_TRIGGER: return { type: 'cardEffect', horseId: e.horse, cardId: paidCardKey(Number(e.arg / 256n)), kind: 'trigger', value: Number(e.arg % 256n), tick }
+    case EV_PONY: {
+      const ponyId = Number(e.arg / 65536n)
+      return { type: 'cardEffect', horseId: e.horse, ponyId, kind: 'pony', value: (ponyRule(ponyId).bonusBps ?? 0) / 100, tick }
+    }
     case EV_RESOURCE: return { type: 'cardEffect', horseId: e.horse, kind: 'resource', value: Number(e.arg) / 1e6, tick }
     case EV_FIXED: return { type: 'cardEffect', horseId: e.horse, kind: 'fixed', value: Number(e.arg), tick }
     case EV_TARGET: return { type: 'cardEffect', horseId: e.horse, cardId: 'C-34', kind: 'target', value: Number(e.arg), tick }
@@ -338,14 +348,15 @@ export function eventsUpTo(
 }
 
 /** 开场交易入块之前的画面：五匹马在起跑线上，赛道站位 = horseId。 */
-export function idlePaidState(playerHorseId: number, stakeTier: number): RaceState {
+export function idlePaidState(playerHorseId: number, stakeTier: number, roster?: readonly number[]): RaceState {
   const horses: HorseState[] = [0, 1, 2, 3, 4].map((h) => ({
     horseId: h, laneIndex: h, isPlayer: h === playerHorseId, pos: 0, dist: 0, v: 0, stamina: STAMINA_MAX,
     marksConsumed: 0, finished: false, finishTick: 0, finishOvershoot: 0, rank: 0, deathRecover: false, fieldMul: 0,
     cpu: null, cpuTarget: 0, bandLow: 0, bandHigh: 0,
   }))
   return {
-    seed: '', rulesVersion: PAID_RULESET_HASH, tick: 0, stakeTier, playerHorseId, horses, effects: [], nextInstanceId: 0,
+    seed: '', rulesVersion: roster ? PAID_RULESET_HASH : LEGACY_PAID_RULESET_HASH, tick: 0, stakeTier, playerHorseId, horses, effects: [], nextInstanceId: 0,
+    ...(roster ? { roster: normalizeRoster(roster) } : {}),
     env: null, hazards: [], nextHazardId: 0, deck: [], cursor: 0, refreshCredits: 0, drawMode: 'manual', drawBonusPct: 0,
     pending: null, choices: [], gogoClicks: [], abilityBinding: null, abilityHeld: false, cpuDecks: {}, cpuDeckCursor: {},
     finishedOrder: [], forcedRank: null, endReason: null, playerFinished: false, raceOver: false, lastClickTick: 0,

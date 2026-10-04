@@ -17,7 +17,7 @@ function shade(c: number, k: number): number {
   return (r << 16) | (g << 8) | b
 }
 
-function make(
+export function makeHorseProfile(
   horseId: number,
   name: string,
   nameEn: string,
@@ -37,11 +37,11 @@ function make(
 }
 
 export const HORSE_PROFILES: HorseProfile[] = [
-  make(0, 'Kiruno', 'Kiruno', 0xf5ede0, 0x6b3f22),
-  make(1, 'Shadow', 'Shadow', 0x343842, 0x4a79c4),
-  make(2, 'Berry', 'Berry', 0xf6c2d0, 0xe8799f),
-  make(3, 'Cloud', 'Cloud', 0xf2f5f8, 0x9bc7e8),
-  make(4, 'Thunder', 'Thunder', 0x2e2a24, 0xe8b93c),
+  makeHorseProfile(0, 'Kiruno', 'Kiruno', 0xf5ede0, 0x6b3f22),
+  makeHorseProfile(1, 'Shadow', 'Shadow', 0x343842, 0x4a79c4),
+  makeHorseProfile(2, 'Berry', 'Berry', 0xf6c2d0, 0xe8799f),
+  makeHorseProfile(3, 'Cloud', 'Cloud', 0xf2f5f8, 0x9bc7e8),
+  makeHorseProfile(4, 'Thunder', 'Thunder', 0x2e2a24, 0xe8b93c),
 ]
 
 export function hexCss(c: number): string {

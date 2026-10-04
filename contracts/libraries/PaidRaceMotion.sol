@@ -2,6 +2,8 @@
 pragma solidity ^0.8.28;
 
 import {PaidCardRules} from "./PaidCardRules.sol";
+import {PonyRules} from "./PonyRules.sol";
+import {PaidProfiles} from "./PaidProfiles.sol";
 
 /// @notice Hot path of the paid-race solver (有奖规则 v2 「运动区间」「重力井数值积分」): the per-horse motion state, the
 /// caches that only change at events, and the loop that advances all running horses from one event to the next.
@@ -98,6 +100,8 @@ library PaidRaceMotion {
     uint256 internal constant H_AT_CAP = 0x180;
     uint256 internal constant H_FINISHED = 0x1a0;
     uint256 internal constant H_BLINDED = 0x1c0;
+    uint256 internal constant H_FINISH_TIME = 0x220;
+    uint256 internal constant H_FINISH_WALL = 0x240;
     uint256 internal constant H_EQUIP = 0x260;
     uint256 internal constant H_AGG_P = 0x2c0;
     uint256 internal constant H_AGG_REGEN = 0x2e0;
@@ -184,6 +188,62 @@ library PaidRaceMotion {
     }
 
     // ------------------------------------------------------------ dues and caches
+
+    /// @dev Profile members are uint32 and role additions are uint16; all scaled values fit uint256.
+    function initHorses(
+        Horse[5] memory horses,
+        PaidProfiles.Profile[5] memory profiles,
+        uint256[5] memory words,
+        uint256 unfinishedTau
+    ) internal pure {
+        assembly ("memory-safe") {
+            for { let i := 0 } lt(i, 5) { i := add(i, 1) } {
+                let offset := shl(5, i)
+                let h := mload(add(horses, offset))
+                let p := mload(add(profiles, offset))
+                let word := mload(add(words, offset))
+                mstore(add(h, H_ACCEL), mload(add(p, 0x20)))
+                mstore(add(h, H_CAP), mul(add(mload(add(p, 0x40)), and(shr(48, word), 0xffff)), 1000))
+                mstore(add(h, H_AGG_COST), and(shr(32, word), 0xffff))
+                mstore(add(h, H_B), mul(mload(p), 1000))
+                mstore(add(h, H_S), STAMINA_CAPACITY)
+                mstore(add(h, H_LANE), i)
+                // finishTime and finishWall follow bonus at words 17 and 18.
+                mstore(add(h, H_FINISH_TIME), unfinishedTau)
+                mstore(add(h, H_FINISH_WALL), NEVER)
+            }
+        }
+    }
+
+    /// @dev Only gated role percentages are cached here. Counts and slot IDs remain authoritative in Horse.
+    /// The sum is bounded by the 96 canonical effect instances; signed arithmetic cannot approach 2^255.
+    function syncPonyPassives(Horse[5] memory horses, uint256[5] memory words, int256[5] memory previous)
+        internal
+        pure
+    {
+        uint256 light = PonyRules.LIGHT;
+        uint256 airborne = PonyRules.AIRBORNE;
+        assembly ("memory-safe") {
+            for { let i := 0 } lt(i, 5) { i := add(i, 1) } {
+                let offset := shl(5, i)
+                let h := mload(add(horses, offset))
+                mstore(add(h, H_NEXT_DIST), 0)
+                let word := mload(add(words, offset))
+                let ability := and(shr(128, word), 0xff)
+                let equipped :=
+                    or(mload(add(h, H_EQUIP)), or(mload(add(h, add(H_EQUIP, 0x20))), mload(add(h, add(H_EQUIP, 0x40)))))
+                let active :=
+                    or(
+                        and(eq(ability, light), iszero(equipped)),
+                        and(eq(ability, airborne), iszero(iszero(mload(add(h, H_AGG_AIR)))))
+                    )
+                let p := mul(active, and(shr(112, word), 0xffff))
+                let cached := add(previous, offset)
+                mstore(add(h, H_AGG_P), add(sub(mload(add(h, H_AGG_P)), mload(cached)), p))
+                mstore(cached, p)
+            }
+        }
+    }
 
     /// @notice findDue's horse classes in one pass: the first horse (by id) with a base-speed cap or stamina
     /// threshold due (class 1, key horse·2 + sub), at the finish (class 2) or past its next checkpoint (class 5);

@@ -8,6 +8,7 @@ Monad 上的 `PonyGame` 以固定规则版本、入场 seed、选择卡牌和随
 ```text
 Mera 通行密钥 → 根 EOA → Alchemy sma-b → Monad / PonyGame
        │              │                         ├─ PaidRaceSolver（内部 Engine/Motion/Cold）
+       │              │                         ├─ PonyRewards（持久获得账本）
        │              └─ owner / recovery       └─ PonyVault → 玩家 sma-b (原生 MON)
        └─ 独立 PRF 命名空间 → 图鉴密钥
 
@@ -22,11 +23,11 @@ Envio：合约事件的可回滚历史与统计
 
 项目只使用 Monad 原生 MON，不部署或依赖 ERC-20/WMON。Game 通过 payable 开场接收下注并同笔转入 Vault；Vault 按 wei 管理下注与赔付预留，结算时直接付款；用户钱包余额与 Vault 偿付余额均读取原生币余额。图鉴解密仍用独立 PRF salt；图鉴密钥不签交易。Agent Session Key 只获 PonyGame 指定入口权限、有效期和链上累计下注上限，禁止任意转账、提款和 owner 修改。临时 Action Key 不作为结果权威。
 
-入场只发送 `PonyGame.openSession{value: stake}(horseId, stake)`，完整下注来自玩家智能账户的原生 MON。Game 校验 `msg.value == stake`，在同笔交易中调用 `Vault.lockStake{value: stake}`；任一检查失败，资金与会话一起回退。Vault 不提供玩家充值、提款或可用余额账户。奖金由 Game 在结算时发起，Vault 直接向该会话玩家智能账户转账，无需额外领取交易。浏览器只显示智能账户原生余额，状态不确定时先读链上会话状态再决定是否重试。免费本地试玩不能领取链上奖金。
+入场只发送 `PonyGame.openSession{value: stake}(horseId, stake, roster)`，完整下注来自玩家智能账户的原生 MON。Game 校验 `msg.value == stake`，在同笔交易中调用 `Vault.lockStake{value: stake}`；任一检查失败，资金与会话一起回退。Vault 不提供玩家充值、提款或可用余额账户。奖金由 Game 在结算时发起，Vault 直接向该会话玩家智能账户转账，无需额外领取交易。浏览器只显示智能账户原生余额，状态不确定时先读链上会话状态再决定是否重试。免费本地试玩不能领取链上奖金。
 
 ## 3. 合约与资金不变量
 
-部署三个具体合约：`PonyGame`、`PonyVault`、`PaidRaceSolver`。Solver 内联热核心与冷路径内部库，独立完成无状态事件求时，不创建辅助计算合约。Vault 固定资产与唯一 Game 地址；Game 固定 Vault 地址。管理员可暂停新入场、管理庄家流动性，但不得修改已开场规则、占用已锁定下注或赔付预留。求时器与 `rulesetHash` 在 `PonyGame` 构造时固定；换规则即部署新求时器、新 `PonyGame` 与新 `PonyVault`，已有会话由旧 Game 按其求时器结算或判负。**Vault 不设退款。**
+部署四个具体合约：`PonyGame`、`PonyVault`、`PaidRaceSolver`、`PonyRewards`。`PonyRewards` 是跨 Game 版本复用的获得账本，由 owner 用 `setGame` 登记可记录获得物的 Game；它不求时、不持有下注，也不决定返奖。Solver 内联热核心与冷路径内部库，独立完成无状态事件求时，不创建辅助计算合约。Vault 固定资产与唯一 Game 地址；Game 固定 Vault 地址。管理员可暂停新入场、管理庄家流动性，但不得修改已开场规则、占用已锁定下注或赔付预留。求时器与 `rulesetHash` 在 `PonyGame` 构造时固定；换规则即部署新求时器、新 `PonyGame` 与新 `PonyVault`，已有会话由旧 Game 按其求时器结算或判负。**Vault 不设退款。**
 
 定义 `L` 为未结算下注总和、`H` 为庄家自有流动性、`R` 为最大庄家净赔付预留总和：
 
@@ -43,6 +44,7 @@ R(session) = max(maxPayout - stake, 0)
 | 文件 | 类型 | 职责 |
 | --- | --- | --- |
 | `contracts/PonyGame.sol` | 部署合约 | 持久保存会话与选择事实、封存随机锚；接收并转入下注；调用求时器并发起结算 |
+| `contracts/PonyRewards.sol` | 部署合约 | 持久保存玩家获得位图与 session 去重记录，授权已登记 Game 写入 |
 | `contracts/PonyVault.sol` | 部署合约 | Game 专用下注托管、庄家流动性与赔付预留、直接奖金付款 |
 | `contracts/PaidRaceSolver.sol` | 部署合约 | 求时器入口，派生输入并执行事件引擎，返回完整规则结果 |
 | `contracts/libraries/PaidRaceCold.sol` | 内部库 | 编入 Solver，提供属性与牌堆派生、规则表、发牌合法性与转移、卡牌快照决策与排序 |
@@ -54,6 +56,7 @@ R(session) = max(maxPayout - stake, 0)
 | `contracts/libraries/PaidRaceCardPlan.sol`、`PaidCardRules.sol` | 内部库 | 快照动作决策与生成的规则参数；动作由 Engine 应用 |
 | `contracts/libraries/PaidProfiles.sol`、`PaidDeck.sol`、`PaidCpuDeck.sol` | 内部库 | 五马属性、玩家牌堆和 CPU 牌堆派生 |
 | `contracts/libraries/PaidDrawRules.sol`、`PaidSettlement.sol` | 内部库 | 发牌合法性与状态转移、物理排序与结算排序 |
+| `contracts/libraries/PonyRules.sol`、`RewardRules.sol` | 内部库 | 由 TS 规范表生成角色能力、启用目录与独立获得抽取参数 |
 | `contracts/libraries/PaidSwap.sol`、`RaceEntropy.sol` | 内部库 | 交换快照决策与用途域分离的确定性派生 |
 
 内部库与继承模块不对应独立业务部署地址。采用[单体对照研究](../_reaserch/paid-solver-inline-support.md)验证的源码边界：Engine 唯一持有比赛状态、时间映射与事件生命周期；Motion、watch/gated 与 PaidRaceCold 全部在 Solver 的同一内存帧内执行。Cold 只提供派生、规则、快照决策、发牌与排序的纯函数，不拥有另一套比赛状态。Solver 不创建或链接外部计算合约，不使用 DELEGATECALL 或组件注册表；生产结算与诊断入口共用同一 Engine/Motion 内核。
@@ -74,7 +77,9 @@ flowchart LR
 
 ## 4. 比赛输入、真实时间与随机锚
 
-`openSession(horseId, stake)` 锁定 `sessionId`、玩家智能账户、选中马、下注档位、seed、入场交易区块 `b_0` 和该块的 `block.timestamp = T0`；`rulesetHash` 与各名次赔率是 `PonyGame` 的不可变常量，不随会话存储。seed 由合约按 `(chainId, Game, 玩家, 单调 nonce)` 确定性导出（`PaidSeed`），不接受玩家传入。入场块哈希在后续块读取并链上封存；玩家 14 张牌堆与 CPU 私有牌堆由 `H(seed, blockhash(b_0), 0, purpose, eventIndex)` 派生，牌堆固定取完整的 40 张卡池，不引入卡集合或拥有资格；四匹电脑马的基础参数按下注档位区间由同一锚派生，玩家马参数固定。
+单场仍是五名参赛者。`ponyId` 是目录身份，`raceHorseId` 是单场索引，`roster[raceHorseId]` 给出角色；开赛后名单固定，换道只改变 `laneIndex`。Game 拒绝目录外或重复角色，不校验解锁。解锁只决定客户端选马与图鉴展示；玩家和 CPU 都按名单取得初始能力。能力、卡牌主功能和启用目录纳入 v5 规则哈希，参数以 TS 规范表生成 Solidity。
+
+`openSession(horseId, stake, roster)` 锁定 `sessionId`、玩家智能账户、玩家参赛索引、五个角色的 `roster`、下注档位、seed、入场交易区块 `b_0` 和该块的 `block.timestamp = T0`；`rulesetHash` 与各名次赔率是 `PonyGame` 的不可变常量，不随会话存储。seed 由合约按 `(chainId, Game, 玩家, 单调 nonce)` 确定性导出（`PaidSeed`），不接受玩家传入。入场块哈希在后续块读取并链上封存；玩家 14 张牌堆与 CPU 私有牌堆由 `H(seed, blockhash(b_0), 0, purpose, eventIndex)` 派生，牌堆固定取完整的 40 张卡池，不引入卡集合或拥有资格；四匹电脑马的基础参数按下注档位区间由同一锚派生，玩家马参数固定。
 
 `chooseCard(sessionId, checkpoint, cardId, refreshSlots)` 记录实际交易的入块秒 `Ti = block.timestamp − T0`、区块号 `b_i` 和输入，`cardId = 0` 表示主动放弃该检查点。每个实际选择块哈希在后续区块验证并封存：`chooseCard`、`settleSession` 与公开的 `sealAnchors` 都会封存当时可读的锚，客户端不需要单独发送封存交易。锚先直读 `BLOCKHASH` 的 256 块，之后读 [EIP-2935](https://eips.ethereum.org/EIPS/eip-2935) 历史合约至 8191 块（约 47 分钟，`RandomAnchor`）；超窗仍未封存即视为丢失，任何人可 `forfeitSession`。C-09 的全部自动交换始终从获得该卡的 `b_i` 派生，用触发序号域分离。自动选牌从已锁定的上一阶段锚派生；主动放弃、超时和断卡不生成新随机锚。
 
@@ -108,7 +113,9 @@ flowchart LR
 
 ## 6. 事件与查询
 
-`PonyGame` 发 `SessionOpened`（sessionId、玩家、马、下注、seed、`openedAt`、`openedBlock`、`rulesetHash`）、`CardChosen`（检查点、`cardId`（0 为主动放弃）、刷新位置、`txSec`、区块号）、`RandomAnchorSealed`（源区块与实际哈希）、`SessionSettled`（`finishTime[5]`、`rawOrder`、`settlementOrder`、玩家结算名次、返还、`digest`、实际获得的三张牌）、`SessionForfeited`（含判负原因）；Vault 发 `StakeLocked`、`StakeSettled`（判负为返还 0）和庄家资金事件。Envio 按合约事件建立比赛历史、玩家战绩、马匹胜率与 Vault 统计。RPC/合约决定资金与会话状态；Envio 仅作可回滚的读模型，不能决定付款。链重组后按最终 canonical 事件重算统计。
+`PonyGame` 发 `SessionOpened`（sessionId、玩家、马、下注、seed、`openedAt`、`openedBlock`、`rulesetHash`、`roster[5]`）、`CardChosen`（检查点、`cardId`（0 为主动放弃）、刷新位置、`txSec`、区块号）、`RandomAnchorSealed`（源区块与实际哈希）、`SessionSettled`（`finishTime[5]`、`rawOrder`、`settlementOrder`、玩家结算名次、返还、`digest`、实际获得的三张牌）、`SessionForfeited`（含判负原因）；Vault 发 `StakeLocked`、`StakeSettled`（判负为返还 0）和庄家资金事件。Envio 按合约事件建立比赛历史、玩家战绩、马匹胜率与 Vault 统计。RPC/合约决定资金与会话状态；Envio 仅作可回滚的读模型，不能决定付款。链重组后按最终 canonical 事件重算统计。
+
+正常有奖结算在完成求时、名次校验与会话状态更新后，以结算父区块哈希独立抽取获得物，再由 Vault 直接返还。获得概率 20%，未拥有稀有卡权重 1、非默认角色权重 3；判负与试玩不抽取。奖励预留和有界账本调用防止奖励读取或记录失败阻断返奖；获得物不参与 Solver、名次或返奖。`PonyRewards.CollectibleGranted` 及 Game 的 `RewardsBound` / `CollectibleSkipped` 进入 Envio，角色统计按 `roster` 映射；账本跨 Game 复用，历史事件按原 Game 的 ABI 解码。浏览器将链上位图与解密收藏求并集，明文 v2 同时保存稀有卡与角色，沿用 v1 加密 envelope、PRF salt 与条件写入；冲突求并集，失败保留进度，退出作废旧请求。
 
 ## 7. 验收门禁
 

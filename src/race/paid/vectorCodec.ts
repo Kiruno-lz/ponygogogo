@@ -7,6 +7,7 @@ import {
 /** JSON shape of tests/vectors/paid-race-v4.json: every bigint is a decimal string, small ids stay numbers. */
 export type PaidVectorSlot = { txSec: string; cardId: number; refreshSlots: number[]; anchor: Hex }
 export type PaidVectorInput = {
+  roster?: number[]
   profiles: { base: string; acceleration: string; cap: string }[]
   playerHorseId: number
   playerDeck: number[]
@@ -63,6 +64,7 @@ export type PaidVectorPanel = {
 }
 export type PaidVectorCase = {
   name: string
+  stakeTier?: number // present only for production-derived roster vectors
   input: PaidVectorInput
   stopAtPanel?: 1 | 2 | 3
   expected: PaidVectorRace | PaidVectorPanel
@@ -73,6 +75,7 @@ const str = (v: bigint) => v.toString()
 export function encodeInput(input: PaidCoreInput): PaidVectorInput {
   return {
     profiles: input.profiles.map((p) => ({ base: str(p.base), acceleration: str(p.acceleration), cap: str(p.cap) })),
+    ...(input.roster ? { roster: [...input.roster] } : {}),
     playerHorseId: input.playerHorseId,
     playerDeck: [...input.playerDeck],
     cpuDecks: input.cpuDecks.map((d) => [...d]),
@@ -88,6 +91,7 @@ export function decodeInput(v: PaidVectorInput): PaidCoreInput {
     : { txSec: BigInt(c.txSec), cardId: c.cardId, refreshSlots: [...c.refreshSlots], anchor: c.anchor }
   return {
     profiles: v.profiles.map((p) => ({ base: BigInt(p.base), acceleration: BigInt(p.acceleration), cap: BigInt(p.cap) })),
+    ...(v.roster ? { roster: [...v.roster] } : {}),
     playerHorseId: v.playerHorseId,
     playerDeck: [...v.playerDeck],
     cpuDecks: v.cpuDecks.map((d) => [...d]),

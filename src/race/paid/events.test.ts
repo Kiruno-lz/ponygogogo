@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { encodeAbiParameters, keccak256, parseAbiParameters, type Hex } from 'viem'
 import {
-  EV_CHOICE_INVALID, foldPaidEvent, INVALID_NOT_OFFERED, PAID_CHOICE_INVALID_NAMES, PAID_EVENT_NAMES, ZERO_DIGEST,
+  EV_CHOICE_INVALID, EV_PONY, foldPaidEvent, INVALID_NOT_OFFERED, PAID_CHOICE_INVALID_NAMES, PAID_EVENT_NAMES, ZERO_DIGEST,
 } from './events.ts'
 
 const FIELDS = parseAbiParameters('bytes32 digest, uint8 code, uint32 tau, uint8 horse, int256 arg')
@@ -33,9 +33,10 @@ test('out-of-range event fields are rejected rather than truncated', () => {
 
 test('event code table is dense and unique', () => {
   const codes = Object.keys(PAID_EVENT_NAMES).map(Number)
-  expect(codes).toEqual(Array.from({ length: 34 }, (_, i) => i + 1))
-  expect(new Set(Object.values(PAID_EVENT_NAMES)).size).toBe(34)
+  expect(codes).toEqual(Array.from({ length: EV_PONY }, (_, i) => i + 1))
+  expect(new Set(Object.values(PAID_EVENT_NAMES)).size).toBe(EV_PONY)
   expect(PAID_EVENT_NAMES[EV_CHOICE_INVALID]).toBe('CHOICE_INVALID')
+  expect(PAID_EVENT_NAMES[EV_PONY]).toBe('PONY')
 })
 
 test('CHOICE_INVALID reasons are dense, unique and fit the low nibble of k·16 + reason', () => {

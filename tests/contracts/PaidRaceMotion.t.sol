@@ -124,6 +124,13 @@ contract PaidRaceMotionTest {
         h.nextDist = 45000000000;
         require(_word(h, PaidRaceMotion.H_AGG_COST) == uint256(int256(-4000)), "signed cost offset");
         require(_word(h, PaidRaceMotion.H_NEXT_DIST) == 45000000000, "mileage offset");
+        // `initHorses` writes finishTime/finishWall through these two offsets; nothing else reads them from
+        // assembly, so a Horse field reordering would silently seed the wrong members without these pins.
+        h.finishTime = 29;
+        h.finishWall = 30;
+        require(_word(h, PaidRaceMotion.H_FINISH_TIME) == 29, "finishTime offset");
+        require(_word(h, PaidRaceMotion.H_FINISH_WALL) == 30, "finishWall offset");
+        require(PaidRaceMotion.H_FINISH_TIME == 0x220 && PaidRaceMotion.H_FINISH_WALL == 0x240, "finish offsets");
         require(PaidRaceMotion.HORSE_WORDS * 32 == PaidRaceMotion.H_NEXT_DIST + 32, "raw ABI size");
         uint256[27] memory offsets = [
             PaidRaceMotion.H_POS,

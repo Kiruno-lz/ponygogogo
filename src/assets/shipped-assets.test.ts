@@ -11,7 +11,7 @@ import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
-import { HORSE_PROFILES } from '../game/horses.ts'
+import { PONY_CATALOG } from '../game/ponyCatalog.ts'
 import { cardIconUrl } from '../race/cards/iconUrl.ts'
 import { PAID_CARD_POOL } from '../race/cards/paidCards.ts'
 
@@ -65,21 +65,21 @@ describe('每条静态资源引用都有对应产物', () => {
 describe('动态拼接的资源族', () => {
   // src/game/pony.ts:21、src/ui/PonyPortrait.tsx:9
   test('八帧分镜：每匹马 × idle/running', () => {
-    for (const p of HORSE_PROFILES) for (const action of ['idle', 'running']) {
+    for (const p of PONY_CATALOG) for (const action of ['idle', 'running']) {
       expect(existsSync(join(PUBLIC, `/assets/art/ponies/${p.horseId}-${action}.webp`)), `${p.horseId}-${action}`).toBe(true)
     }
   })
 
   // src/ui/RaceArt.tsx:7
   test('名牌头像：每匹马一张', () => {
-    for (const p of HORSE_PROFILES) {
+    for (const p of PONY_CATALOG) {
       expect(existsSync(join(PUBLIC, `/assets/art/ponies/${p.horseId}-portrait.webp`)), `${p.horseId}-portrait`).toBe(true)
     }
   })
 
   // 运行时不读 -idle-0（海报用 art/share/horse-N），它只是 scripts/prepare-spin-thrust.py 的输入
   test('海报静帧：每匹马一张', () => {
-    for (const p of HORSE_PROFILES) {
+    for (const p of PONY_CATALOG) {
       expect(existsSync(join(PUBLIC, `/assets/art/ponies/${p.horseId}-idle-0.webp`)), `${p.horseId}-idle-0`).toBe(true)
     }
   })
@@ -99,8 +99,8 @@ describe('动态拼接的资源族', () => {
   })
 
   // src/result/ResultScreen.tsx——名次 1..5 各一枚奖牌，五匹马各一张结算立绘
-  test('五匹马使用独立海报立绘，结束标题使用两份透明素材', () => {
-    for (const p of HORSE_PROFILES) expect(existsSync(join(PUBLIC, `/assets/art/share/horse-${p.horseId}.webp`))).toBe(true)
+  test('九个角色使用独立海报立绘，结束标题使用两份透明素材', () => {
+    for (const p of PONY_CATALOG) expect(existsSync(join(PUBLIC, `/assets/art/share/horse-${p.horseId}.webp`))).toBe(true)
     for (const name of ['win', 'finish', 'prize-group']) expect(existsSync(join(PUBLIC, `/assets/art/share/${name}.webp`))).toBe(true)
   })
 
@@ -108,7 +108,7 @@ describe('动态拼接的资源族', () => {
     for (let rank = 1; rank <= 5; rank++) {
       expect(existsSync(join(PUBLIC, `/assets/art/result/medal-${rank}.webp`)), `medal-${rank}`).toBe(true)
     }
-    for (const p of HORSE_PROFILES) {
+    for (const p of PONY_CATALOG) {
       expect(existsSync(join(PUBLIC, `/assets/art/result/hero-${p.horseId}.webp`)), `hero-${p.horseId}`).toBe(true)
     }
   })

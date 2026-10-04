@@ -81,140 +81,160 @@
     "path": "assets/art/ponies/0-idle.webp",
     "bytes": 115408,
     "sha256": "a8d1a0afd96cf5df",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.0-idle-0": {
     "kind": "image",
     "path": "assets/art/ponies/0-idle-0.webp",
     "bytes": 14646,
     "sha256": "e5a15ff9c9cae2dc",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.0-portrait": {
     "kind": "image",
     "path": "assets/art/ponies/0-portrait.webp",
     "bytes": 16754,
     "sha256": "ea4b9a29ab075caa",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.0-running": {
     "kind": "image",
     "path": "assets/art/ponies/0-running.webp",
     "bytes": 111414,
     "sha256": "d692a09ccb4c662a",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.1-idle": {
     "kind": "image",
     "path": "assets/art/ponies/1-idle.webp",
     "bytes": 90334,
     "sha256": "f116435a345a74de",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.1-idle-0": {
     "kind": "image",
     "path": "assets/art/ponies/1-idle-0.webp",
     "bytes": 11840,
     "sha256": "5b828f42f6077137",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.1-portrait": {
     "kind": "image",
     "path": "assets/art/ponies/1-portrait.webp",
     "bytes": 14488,
     "sha256": "9fe8875a23f62b66",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.1-running": {
     "kind": "image",
     "path": "assets/art/ponies/1-running.webp",
     "bytes": 89104,
     "sha256": "b347b68061a563fb",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.2-idle": {
     "kind": "image",
     "path": "assets/art/ponies/2-idle.webp",
     "bytes": 103028,
     "sha256": "ec926dc2d2d8de07",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.2-idle-0": {
     "kind": "image",
     "path": "assets/art/ponies/2-idle-0.webp",
     "bytes": 13330,
     "sha256": "db3aa7b3a322c8d2",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.2-portrait": {
     "kind": "image",
     "path": "assets/art/ponies/2-portrait.webp",
     "bytes": 13534,
     "sha256": "5b78a709bbd5bfc6",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.2-running": {
     "kind": "image",
     "path": "assets/art/ponies/2-running.webp",
     "bytes": 97866,
     "sha256": "5d0671e863c7ca1c",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.3-idle": {
     "kind": "image",
     "path": "assets/art/ponies/3-idle.webp",
     "bytes": 82530,
     "sha256": "65c565662a15b229",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.3-idle-0": {
     "kind": "image",
     "path": "assets/art/ponies/3-idle-0.webp",
     "bytes": 10500,
     "sha256": "88609f16ed4e0e6f",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.3-portrait": {
     "kind": "image",
     "path": "assets/art/ponies/3-portrait.webp",
     "bytes": 14400,
     "sha256": "15e9c2681a85d733",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.3-running": {
     "kind": "image",
     "path": "assets/art/ponies/3-running.webp",
     "bytes": 82068,
     "sha256": "123d550d917dafcb",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.4-idle": {
     "kind": "image",
     "path": "assets/art/ponies/4-idle.webp",
     "bytes": 101864,
     "sha256": "94d9f1d96eb40ce4",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.4-idle-0": {
     "kind": "image",
     "path": "assets/art/ponies/4-idle-0.webp",
     "bytes": 12982,
     "sha256": "e9d5f62c535501f5",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.4-portrait": {
     "kind": "image",
     "path": "assets/art/ponies/4-portrait.webp",
     "bytes": 17376,
     "sha256": "252e04180fcb9dda",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.ponies.4-running": {
     "kind": "image",
     "path": "assets/art/ponies/4-running.webp",
     "bytes": 104534,
     "sha256": "1f2e3bde205857d1",
-    "tier": "race"
+    "tier": "race",
+    "deferred": true
   },
   "art.result.background": {
     "kind": "image",
@@ -256,35 +276,40 @@
     "path": "assets/art/result/hero-0.webp",
     "bytes": 41758,
     "sha256": "8ee1af3ef246c57b",
-    "tier": "result"
+    "tier": "result",
+    "deferred": true
   },
   "art.result.hero-1": {
     "kind": "image",
     "path": "assets/art/result/hero-1.webp",
     "bytes": 94976,
     "sha256": "febffa8ae7f9a2ce",
-    "tier": "result"
+    "tier": "result",
+    "deferred": true
   },
   "art.result.hero-2": {
     "kind": "image",
     "path": "assets/art/result/hero-2.webp",
     "bytes": 98004,
     "sha256": "14f0bcd60d73ec54",
-    "tier": "result"
+    "tier": "result",
+    "deferred": true
   },
   "art.result.hero-3": {
     "kind": "image",
     "path": "assets/art/result/hero-3.webp",
     "bytes": 99336,
     "sha256": "76e0893f406a8418",
-    "tier": "result"
+    "tier": "result",
+    "deferred": true
   },
   "art.result.hero-4": {
     "kind": "image",
     "path": "assets/art/result/hero-4.webp",
     "bytes": 97820,
     "sha256": "fc5d6171be9f0ae2",
-    "tier": "result"
+    "tier": "result",
+    "deferred": true
   },
   "art.result.medal-1": {
     "kind": "image",
@@ -1155,35 +1180,40 @@
     "path": "assets/art/share/horse-0.webp",
     "bytes": 143866,
     "sha256": "f022e5373bc156f5",
-    "tier": "result"
+    "tier": "result",
+    "deferred": true
   },
   "art.share.horse-1": {
     "kind": "image",
     "path": "assets/art/share/horse-1.webp",
     "bytes": 171684,
     "sha256": "92a5faad843d9fa7",
-    "tier": "result"
+    "tier": "result",
+    "deferred": true
   },
   "art.share.horse-2": {
     "kind": "image",
     "path": "assets/art/share/horse-2.webp",
     "bytes": 114756,
     "sha256": "f4b5a10e699c2cb3",
-    "tier": "result"
+    "tier": "result",
+    "deferred": true
   },
   "art.share.horse-3": {
     "kind": "image",
     "path": "assets/art/share/horse-3.webp",
     "bytes": 128542,
     "sha256": "0081a2ca0b893d72",
-    "tier": "result"
+    "tier": "result",
+    "deferred": true
   },
   "art.share.horse-4": {
     "kind": "image",
     "path": "assets/art/share/horse-4.webp",
     "bytes": 171600,
     "sha256": "2dbed8ab6cff7052",
-    "tier": "result"
+    "tier": "result",
+    "deferred": true
   },
   "art.share.qr": {
     "kind": "image",
@@ -1198,5 +1228,197 @@
     "bytes": 50484,
     "sha256": "cc236db63267cfa8",
     "tier": "result"
+  },
+  "art.ponies.8-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/8-idle-0.webp",
+    "bytes": 8494,
+    "sha256": "0af8d850ad8e6751",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.8-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/8-idle.webp",
+    "bytes": 65916,
+    "sha256": "d6dbdfd678ebc57f",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.8-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/8-portrait.webp",
+    "bytes": 19054,
+    "sha256": "58d28f85d3dacb39",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.8-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/8-running.webp",
+    "bytes": 64834,
+    "sha256": "be1a17045a2d1c24",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.result.hero-8": {
+    "kind": "image",
+    "path": "assets/art/result/hero-8.webp",
+    "bytes": 20796,
+    "sha256": "680b00cc380ae143",
+    "tier": "result",
+    "deferred": true
+  },
+  "art.share.horse-8": {
+    "kind": "image",
+    "path": "assets/art/share/horse-8.webp",
+    "bytes": 34112,
+    "sha256": "9ba6c76a2de6ec19",
+    "tier": "result",
+    "deferred": true
+  },
+  "art.ponies.5-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/5-idle-0.webp",
+    "bytes": 10498,
+    "sha256": "67660ac886aebc6b",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.5-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/5-idle.webp",
+    "bytes": 80582,
+    "sha256": "75cd4058bdab95c9",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.5-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/5-portrait.webp",
+    "bytes": 20632,
+    "sha256": "9fbb4e6c38281e7b",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.5-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/5-running.webp",
+    "bytes": 73366,
+    "sha256": "1fb86fd258d0951d",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.result.hero-5": {
+    "kind": "image",
+    "path": "assets/art/result/hero-5.webp",
+    "bytes": 27682,
+    "sha256": "8c1522e124b9c551",
+    "tier": "result",
+    "deferred": true
+  },
+  "art.share.horse-5": {
+    "kind": "image",
+    "path": "assets/art/share/horse-5.webp",
+    "bytes": 44016,
+    "sha256": "0d62fe5927adb462",
+    "tier": "result",
+    "deferred": true
+  },
+  "art.ponies.6-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/6-idle-0.webp",
+    "bytes": 9898,
+    "sha256": "e63f09d101f8f49d",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.6-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/6-idle.webp",
+    "bytes": 77140,
+    "sha256": "4b37577bf1488ce3",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.6-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/6-portrait.webp",
+    "bytes": 13270,
+    "sha256": "c3ea4f18557fb001",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.6-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/6-running.webp",
+    "bytes": 76750,
+    "sha256": "dbc85ac78fd896e3",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.result.hero-6": {
+    "kind": "image",
+    "path": "assets/art/result/hero-6.webp",
+    "bytes": 19296,
+    "sha256": "f9acd208bf64ff99",
+    "tier": "result",
+    "deferred": true
+  },
+  "art.share.horse-6": {
+    "kind": "image",
+    "path": "assets/art/share/horse-6.webp",
+    "bytes": 31716,
+    "sha256": "c5833f1e4774eca6",
+    "tier": "result",
+    "deferred": true
+  },
+  "art.ponies.7-idle-0": {
+    "kind": "image",
+    "path": "assets/art/ponies/7-idle-0.webp",
+    "bytes": 9340,
+    "sha256": "cb67b8bb1c804bcc",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.7-idle": {
+    "kind": "image",
+    "path": "assets/art/ponies/7-idle.webp",
+    "bytes": 73832,
+    "sha256": "2e741b52ed85d047",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.7-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/7-portrait.webp",
+    "bytes": 15500,
+    "sha256": "c697abf01cc88d89",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.7-running": {
+    "kind": "image",
+    "path": "assets/art/ponies/7-running.webp",
+    "bytes": 56726,
+    "sha256": "c9de53f3f3ae5f0e",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.result.hero-7": {
+    "kind": "image",
+    "path": "assets/art/result/hero-7.webp",
+    "bytes": 23152,
+    "sha256": "2c59ef908c471bb3",
+    "tier": "result",
+    "deferred": true
+  },
+  "art.share.horse-7": {
+    "kind": "image",
+    "path": "assets/art/share/horse-7.webp",
+    "bytes": 38038,
+    "sha256": "e63abb5ffcf99437",
+    "tier": "result",
+    "deferred": true
   }
 }

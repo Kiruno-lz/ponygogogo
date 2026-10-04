@@ -5,6 +5,15 @@ type Dict = Record<string, string>
 const zh: Dict = {
   'app.title': 'Ponygogogo',
   'app.tagline': 'Run · Collect · Play',
+  'grant.title': '获得新收藏',
+  'grant.rareCard': '稀有卡',
+  'grant.pony': '小马',
+  'grant.collected': '已加入图鉴',
+  'grant.close': '关闭获得物窗口',
+  'grant.syncing': '正在同步收藏…',
+  'grant.retrySync': '重试同步',
+  'grant.readFailed': '返奖已确认，奖励信息尚未读取。',
+  'grant.retryRead': '重试读取奖励',
 
   'loading.title': '正在准备赛道',
   'loading.item': '正在加载',
@@ -121,6 +130,7 @@ const zh: Dict = {
   'select.free': '免费试玩',
   'select.freeWin': '免费试玩 · 不计奖金',
   'select.paidNotDeployed': '有奖合约尚未部署',
+  'select.paidRulesMismatch': '有奖赛道需要更新，请先试玩',
   'select.paidChecking': '正在确认有奖合约…',
   'select.paidLogin': '登录后可参加有奖场次',
 
@@ -247,8 +257,11 @@ const zh: Dict = {
   'paid.err.unknown': '有奖比赛出错：{detail}',
   'paid.err.house-liquidity': '庄家资金暂时不足以承接这一档，请换小一档或稍后再试',
   'paid.err.sponsor-quota': '免 Gas 赞助额度已用完，交易未发送；请稍后再试',
+  'paid.err.ruleset-mismatch': '有奖赛道需要更新，请先试玩',
 
   'resume.title': '有一场未完成的有奖比赛',
+  'resume.readFailed': '未完成场次读取失败：{reason}',
+  'resume.retry': '重新读取场次',
   'resume.body': '链上会话仍在进行：下注 {stake} MON。刷新或关页不会改变已上链的选择，可以继续观看，也可以在冲线后直接结算。',
   'resume.continue': '继续比赛',
   'resume.settle': '去结算',
@@ -276,6 +289,15 @@ const zh: Dict = {
 }
 
 const en: Dict = {
+  'grant.title': 'New collectible',
+  'grant.rareCard': 'Rare card',
+  'grant.pony': 'Pony',
+  'grant.collected': 'Added to collection',
+  'grant.close': 'Close collectible window',
+  'grant.syncing': 'Syncing collection…',
+  'grant.retrySync': 'Retry sync',
+  'grant.readFailed': 'Payout confirmed; collectible information is not yet loaded.',
+  'grant.retryRead': 'Retry collectible lookup',
   'app.title': 'Ponygogogo',
   'app.tagline': 'Run · Collect · Play',
 
@@ -393,6 +415,7 @@ const en: Dict = {
   'select.free': 'Free practice',
   'select.freeWin': 'Free practice · no prize',
   'select.paidNotDeployed': 'Paid contracts not deployed yet',
+  'select.paidRulesMismatch': 'Paid track needs an update; practice is available',
   'select.paidChecking': 'Checking paid contracts…',
   'select.paidLogin': 'Sign in to join paid races',
 
@@ -519,8 +542,11 @@ const en: Dict = {
   'paid.err.unknown': 'Paid race error: {detail}',
   'paid.err.house-liquidity': 'The house cannot cover this tier right now — pick a smaller stake or try later',
   'paid.err.sponsor-quota': 'Sponsored-gas quota used up; nothing was sent — try again later',
+  'paid.err.ruleset-mismatch': 'Paid track needs an update; practice is available',
 
   'resume.title': 'You have an unfinished paid race',
+  'resume.readFailed': 'Could not read unfinished sessions: {reason}',
+  'resume.retry': 'Read sessions again',
   'resume.body': 'The on-chain session is still open: stake {stake} MON. Reloading never changes choices already on chain — keep watching, or settle once you have crossed the line.',
   'resume.continue': 'Resume race',
   'resume.settle': 'Settle',

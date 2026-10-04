@@ -3,7 +3,7 @@
  * 与组件分开放，组件文件只导出组件（快速刷新要求）；L1 用假对象驱动同一套逻辑（StageDialog.test.tsx）。
  */
 /** openModal 用到的窗口与 window 的最小接口：L1 用假对象驱动同一套开关逻辑 */
-export type ModalHost = EventTarget & Pick<HTMLDialogElement, 'showModal' | 'close' | 'open'>
+export type ModalHost = EventTarget & Pick<HTMLDialogElement, 'showModal' | 'close' | 'open'> & Partial<Pick<HTMLDialogElement, 'querySelectorAll'>>
 export type KeySource = Pick<Window, 'addEventListener' | 'removeEventListener'>
 
 /** 同时开着的窗口按打开顺序叠放，只有最上面那个响应 Escape */
@@ -25,7 +25,20 @@ export function openModal(
   // Escape 在 window 上接：进行中按钮变成 disabled 时焦点会掉到 body，不在窗口里。
   // 拦下默认动作，浏览器就不会自己关窗；输入法组字时的 Escape 只是取消组字
   const onKey = (e: KeyboardEvent): void => {
-    if (e.key !== 'Escape' || e.isComposing || openStack.at(-1) !== dialog) return
+    if (e.isComposing || openStack.at(-1) !== dialog) return
+    // Native dialogs may move focus into browser chrome after the last control. Keep Tab within the modal.
+    if (e.key === 'Tab' && dialog.querySelectorAll) {
+      const controls = [...dialog.querySelectorAll<HTMLElement>('button, a[href], input, select, textarea, [tabindex]')]
+        .filter(el => el.tabIndex >= 0 && !el.hasAttribute('disabled') && el.getClientRects().length > 0)
+      const first = controls[0], last = controls.at(-1)
+      const focused = first?.ownerDocument.activeElement
+      if (first && last && (!controls.some(el => el === focused) || (e.shiftKey ? focused === first : focused === last))) {
+        e.preventDefault()
+        ;(e.shiftKey ? last : first).focus()
+      }
+      return
+    }
+    if (e.key !== 'Escape') return
     e.preventDefault()
     dismiss()
   }

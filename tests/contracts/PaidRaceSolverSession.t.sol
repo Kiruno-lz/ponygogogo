@@ -3,14 +3,15 @@ pragma solidity ^0.8.28;
 
 import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
 import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
-import {PaidRaceSolver} from "../../contracts/PaidRaceSolver.sol";
+import {LegacyCoreSolverProbe} from "./LegacyCoreSolverProbe.sol";
 import {PonyGame} from "../../contracts/PonyGame.sol";
 import {PonyVault} from "../../contracts/PonyVault.sol";
+import {PonyRewards} from "../../contracts/PonyRewards.sol";
 import {RacePayout} from "../../contracts/libraries/RacePayout.sol";
 import {Eip2935, PonyVm, VmLog} from "./PonyGameBase.sol";
 import {PaidRaceVectorBase} from "./PaidRaceVectorBase.sol";
 
-/// @notice End to end with the real solver: PonyGame + PonyVault replay a vector's session (open, its stored
+/// @notice Archived v4 accounting replay with the legacy core adapter: PonyGame + PonyVault replay a vector's session (open, its stored
 /// chooseCard transactions at the vector's seconds, settle) and emit exactly the vector's result, acquired cards and
 /// payout — including choices the settlement solve ignores (有奖规则 v3), which chooseCard accepted without judging.
 /// @dev The vector's seed replaces the one PonyGame derived, and the open and choice blocks get the vector's anchors
@@ -23,16 +24,19 @@ contract PaidRaceSolverSessionTest is PaidRaceVectorBase {
     uint256 internal constant SESSIONS_SLOT = 6;
     uint256 internal constant SEED_OFFSET = 2;
 
-    PaidRaceSolver internal solver;
+    LegacyCoreSolverProbe internal solver;
     PonyGame internal game;
     PonyVault internal vault;
+    PonyRewards internal rewards;
 
     function setUp() public {
         chain.roll(START_BLOCK);
         chain.warp(START_TIME);
         chain.etch(Eip2935.HISTORY, Eip2935.RUNTIME);
-        solver = new PaidRaceSolver();
-        game = new PonyGame(address(this), solver);
+        solver = new LegacyCoreSolverProbe();
+        rewards = new PonyRewards(address(this));
+        game = new PonyGame(address(this), solver, rewards);
+        rewards.setGame(address(game), true);
         vault = new PonyVault(address(game), address(this));
         game.bindVault(vault);
         chain.deal(address(this), 100 ether);
@@ -69,7 +73,7 @@ contract PaidRaceSolverSessionTest is PaidRaceVectorBase {
         uint256 stake = game.stakeForTier(tier);
 
         chain.prank(PLAYER);
-        bytes32 sessionId = game.openSession{value: stake}(core.playerHorseId, stake);
+        bytes32 sessionId = game.openSession{value: stake}(core.playerHorseId, stake, [uint8(0), 1, 2, 3, 4]);
         uint256 t0 = chain.getBlockTimestamp();
         uint256 openBlock = chain.getBlockNumber();
         _injectSeed(sessionId, core.seed);

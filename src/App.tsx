@@ -13,16 +13,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { AudioManager } from './assets/audio.ts'
 import { AssetLoader, FailingAssetSource, type LoadProgress } from './assets/loader.ts'
 import { LocalAssetSource, fetchManifest, type AssetTier } from './assets/source.ts'
-import { decryptCollection } from './chain/collectionCipher.ts'
-import { readRemoteCollection } from './chain/collectionSync.ts'
 import { DEFAULT_PASSKEY_NAME, PONY_GAME_ADDRESS, PONY_VAULT_ADDRESS } from './chain/network.ts'
 import { formatMon } from './chain/amount.ts'
 import {
-  PRACTICE_TIER, isTierPlayable, paidContractsDeployed, paidEntry, paidRaceAvailable, type PaidDeployment,
+  PRACTICE_TIER, isTierPlayable, paidContractsDeployed, paidRulesCompatible, paidEntry, paidRaceAvailable, type PaidDeployment,
 } from './chain/paidGate.ts'
 import { PAID_STAKE_LABELS } from './chain/paidStakes.ts'
 import { wallet, type GameAccount, type WalletAccount } from './chain/wallet.ts'
-import { practiceRaceId, practiceSeed } from './practice.ts'
+import { practiceForcedSeed, practiceRaceId, practiceSeed } from './practice.ts'
 import type { RaceResult } from './race/core/types.ts'
 import { RaceDriver } from './race/driver.ts'
 import type { PaidRaceDriver } from './race/paidDriver.ts'
@@ -39,6 +37,7 @@ import { PaidResumeModal } from './ui/PaidResumeModal.tsx'
 import { usePaidRace } from './ui/usePaidRace.ts'
 import { RaceScreen } from './ui/RaceScreen.tsx'
 import { SelectScreen } from './ui/SelectScreen.tsx'
+import { normalizeRoster } from './game/ponyCatalog.ts'
 import { EffectShowcaseScreen } from './ui/EffectShowcaseScreen.tsx'
 import { SettingsScreen } from './ui/SettingsScreen.tsx'
 import { TierGate } from './ui/TierGate.tsx'
@@ -46,6 +45,7 @@ import { t } from './ui/i18n.ts'
 import { registerAudio } from './ui/sfx.ts'
 import { loadSettings, saveSettings, type GameSettings } from './ui/settings.ts'
 import { useGameFunds } from './ui/useGameFunds.ts'
+import { useCollectionProgress } from './ui/useCollectionProgress.ts'
 import { useStage } from './ui/useStage.ts'
 import { DESIGN_W, DESIGN_H } from './game/layout.ts'
 
@@ -86,9 +86,7 @@ export default function App() {
   /** 游戏账户（sma-b）；解析失败时为 null，错误在 gameError */
   const [gameAccount, setGameAccount] = useState<GameAccount | null>(null)
   const [gameError, setGameError] = useState<string | null>(null)
-  const [ownedRareIds, setOwnedRareIds] = useState<string[] | null>(null)
-  const [collectionBusy, setCollectionBusy] = useState(false)
-  const [collectionError, setCollectionError] = useState<string | null>(null)
+  const collection = useCollectionProgress(settings.lang, gameAccount?.address ?? null)
   const [walletBusy, setWalletBusy] = useState<WalletBusy>(null)
   const [walletError, setWalletError] = useState<string | null>(null)
   const [walletOpen, setWalletOpen] = useState(false)
@@ -109,7 +107,7 @@ export default function App() {
    */
   const [urls, setUrls] = useState<Record<string, string>>({})
   /** 点得比后台预取快、或者预取失败了：正在等哪一级、要去哪一页 */
-  const [gate, setGate] = useState<{ tier: AssetTier; to: Page; failed: boolean } | null>(null)
+  const [gate, setGate] = useState<{ tier: AssetTier; to: Page; failed: boolean; retry?: () => void; cancel?: () => void } | null>(null)
   const [gateProgress, setGateProgress] = useState<LoadProgress>(EMPTY_PROGRESS)
   /** 清单本身取不到时重新走一遍启动流程 */
   const [bootAttempt, setBootAttempt] = useState(0)
@@ -122,6 +120,7 @@ export default function App() {
   const walletSeq = useRef(0)
   /** 本地试玩的局序号，只用于 seed 熵与本地局号 */
   const raceSeq = useRef(0)
+  const navigationSeq = useRef(0)
   const loaderRef = useRef<AssetLoader | null>(null)
   const audioRef = useRef<AudioManager | null>(null)
   const prefetched = useRef(false)
@@ -130,6 +129,15 @@ export default function App() {
   const funds = useGameFunds(lang)
   const { reset: resetFunds, refresh: refreshFunds } = funds
   const paid = usePaidRace(lang, refreshFunds)
+  const syncedGrants = useRef(new Set<string>())
+  const confirmedGrant = paid.settle?.phase === 'settled' ? paid.settle.settlement?.grant : null
+  useEffect(() => {
+    if (!confirmedGrant || gameAccount?.address.toLowerCase() !== confirmedGrant.player.toLowerCase()) return
+    const key = `${confirmedGrant.player.toLowerCase()}:${confirmedGrant.sessionId.toLowerCase()}`
+    if (syncedGrants.current.has(key)) return
+    syncedGrants.current.add(key)
+    collection.acceptGrant(confirmedGrant)
+  }, [confirmedGrant, gameAccount?.address, collection.acceptGrant])
   const { checkResume, reset: resetPaid } = paid
   /** 木牌与选马页显示的「钱包余额」就是 sma-b 的原生 MON；null = 还没读到 */
   const walletBalance = funds.funds?.wallet ?? null
@@ -138,7 +146,8 @@ export default function App() {
   useEffect(() => {
     if (page !== 'select' || !paidRaceAvailable || paidDeployment !== 'checking') return
     paidContractsDeployed(wallet.publicClient, PONY_VAULT_ADDRESS!, PONY_GAME_ADDRESS!)
-      .then((ok) => setPaidDeployment(ok ? 'deployed' : 'missing'))
+      .then(async ok => !ok ? 'missing' : await paidRulesCompatible(wallet.publicClient, PONY_GAME_ADDRESS!) ? 'deployed' : 'unsupported')
+      .then(state => setPaidDeployment(state))
       .catch(() => undefined)
   }, [page, paidDeployment])
 
@@ -227,23 +236,30 @@ export default function App() {
    */
   const go = useCallback(
     (to: Page) => {
+      const seq = ++navigationSeq.current
+      const current = () => navigationSeq.current === seq
       const tier = PAGE_TIER[to]
       const loader = loaderRef.current
       if (!tier || !loader || loader.isTierReady(tier)) {
         setPage(to)
         return
       }
-      setGate({ tier, to, failed: false })
-      void (async () => {
-        const ok = await loader.loadGroup([tier], setGateProgress)
-        syncUrls()
-        if (ok) {
-          setGate(null)
-          setPage(to)
-        } else {
-          setGate({ tier, to, failed: true })
-        }
-      })()
+      const cancel = () => { if (current()) navigationSeq.current++ }
+      const load = () => {
+        if (!current()) return
+        setGate({ tier, to, failed: false, retry: load, cancel })
+        void loader.loadGroup([tier], progress => { if (current()) setGateProgress(progress) }).then(ok => {
+          if (!current()) return
+          syncUrls()
+          if (ok) {
+            setGate(null)
+            setPage(to)
+          } else {
+            setGate({ tier, to, failed: true, retry: load, cancel })
+          }
+        })
+      }
+      load()
     },
     [syncUrls],
   )
@@ -259,8 +275,7 @@ export default function App() {
   const register = useCallback(async (userName: string) => {
     const seq = ++walletSeq.current
     const current = () => walletSeq.current === seq
-    setOwnedRareIds(null)
-    setCollectionError(null)
+    collection.reset()
     setWalletBusy('register')
     setWalletError(null)
     setGameAccount(null)
@@ -328,8 +343,7 @@ export default function App() {
   const login = useCallback(async () => {
     const seq = ++walletSeq.current
     const current = () => walletSeq.current === seq
-    setOwnedRareIds(null)
-    setCollectionError(null)
+    collection.reset()
     setWalletBusy('login')
     setWalletError(null)
     setGameAccount(null)
@@ -353,6 +367,9 @@ export default function App() {
   const logout = useCallback(() => {
     // 退出即作废所有在途的钱包操作：注册的领水轮询不能在退出之后再把余额写回来
     walletSeq.current++
+    raceSeq.current++
+    navigationSeq.current++
+    setGate(null)
     setWalletBusy(null)
     wallet.logout()
     resetPaid()
@@ -361,33 +378,9 @@ export default function App() {
     setGameAccount(null)
     setGameError(null)
     resetFunds()
-    setOwnedRareIds(null)
-    setCollectionError(null)
-    setCollectionBusy(false)
+    collection.reset()
     setWalletOpen(false)
   }, [resetFunds, resetPaid, paid])
-
-  const unlockCollection = useCallback(async () => {
-    if (!wallet.getAccount() || collectionBusy) return
-    const seq = walletSeq.current
-    setCollectionBusy(true)
-    setCollectionError(null)
-    let key: Uint8Array | null = null
-    try {
-      const identity = await wallet.openCollectionIdentity()
-      key = await wallet.deriveCollectionKey()
-      const remote = await readRemoteCollection(identity)
-      const ids = remote ? await decryptCollection(remote.envelope, key) : []
-      if (walletSeq.current === seq) setOwnedRareIds(ids)
-    } catch {
-      if (walletSeq.current === seq) {
-        setCollectionError(lang === 'zh' ? '图鉴同步失败，请重试。' : 'Collection sync failed. Please try again.')
-      }
-    } finally {
-      key?.fill(0)
-      if (walletSeq.current === seq) setCollectionBusy(false)
-    }
-  }, [collectionBusy, lang])
 
   /** 钱包面板的「刷新」：sma-b 之前没连上的话顺带重试一次解析 */
   const refreshWallet = useCallback(async () => {
@@ -399,30 +392,55 @@ export default function App() {
     await refreshFunds()
   }, [refreshFunds])
 
-  const startRace = useCallback((horseId: number, tier: number) => {
+  const startRace = useCallback((horseId: number, tier: number, roster?: readonly number[]) => {
     // 有奖场次的唯一接入点：只有 paidEntry 开放（地址、链上代码、游戏账户齐备）时才走链上会话
     if (!isTierPlayable(tier, paidGate.open)) return
-    if (tier !== PRACTICE_TIER) {
-      if (!gameAccount) return
-      const d = paid.start(horseId, tier as 1 | 2 | 3 | 4)
-      if (!d) return
-      setPaidDriver(d)
+    const loader = loaderRef.current
+    if (!loader) return
+    navigationSeq.current++
+    const selectedRoster = normalizeRoster(roster)
+    const keys = selectedRoster.flatMap(pony => ['idle','running'].map(action => `art.ponies.${pony}-${action}`))
+    const seq = ++raceSeq.current
+    const walletGeneration = walletSeq.current
+    const current = () => raceSeq.current === seq && walletSeq.current === walletGeneration
+    // Confirm the five participant images before creating a driver or sending paid entry.
+    const launch = () => {
+      if (!current()) return
+      setGate(null)
+      if (tier !== PRACTICE_TIER) {
+        if (!gameAccount) return
+        const d = paid.start(horseId, tier as 1 | 2 | 3 | 4, selectedRoster)
+        if (!d) return
+        setPaidDriver(d)
+        setPaidMeta(null)
+        setDriver(d)
+        setResult(null)
+        setPage('race')
+        return
+      }
+      setPaidDriver(null)
       setPaidMeta(null)
+      const now = Date.now()
+      const d = new RaceDriver({ seed: practiceSeed(qs('seed'), now + seq), playerHorseId: horseId, stakeTier: PRACTICE_TIER, roster: selectedRoster })
+      d.raceId = practiceRaceId(now, seq)
       setDriver(d)
       setResult(null)
       setPage('race')
-      return
     }
-    setPaidDriver(null)
-    setPaidMeta(null)
-    const seq = raceSeq.current++
-    const now = Date.now()
-    const d = new RaceDriver({ seed: practiceSeed(qs('seed'), now + seq), playerHorseId: horseId, stakeTier: PRACTICE_TIER })
-    d.raceId = practiceRaceId(now, seq)
-    setDriver(d)
-    setResult(null)
-    setPage('race')
-  }, [gameAccount, paid, paidGate.open])
+    if (keys.every(key => loader.url(key))) { launch(); return }
+    const cancel = () => { if (current()) raceSeq.current++ }
+    const load = () => {
+      if (!current()) return
+      setGate({ tier: 'race', to: 'race', failed: false, retry: load, cancel })
+      void loader.loadKeys(keys, progress => { if (current()) setGateProgress(progress) }).then(ok => {
+        if (!current()) return
+        syncUrls()
+        if (ok) launch()
+        else setGate({ tier: 'race', to: 'race', failed: true, retry: load, cancel })
+      })
+    }
+    load()
+  }, [gameAccount, paid, paidGate.open, syncUrls])
 
   /** 有奖比赛交给结算页：预览名次（待链上验证）+ 后台结算 */
   const showPaidResult = useCallback((d: PaidRaceDriver) => {
@@ -461,6 +479,7 @@ export default function App() {
   }, [driver, paidDriver, showPaidResult, audio, go])
 
   const backHome = useCallback(() => {
+    navigationSeq.current++
     setDriver(null)
     setPaidDriver(null)
     setPaidMeta(null)
@@ -478,7 +497,7 @@ export default function App() {
     if (!info || resumeBusy) return
     setResumeBusy(true)
     try {
-      const d = await paid.resumeRace(info.facts)
+      const d = await paid.resumeRace(info)
       setPaidDriver(d)
       setDriver(d)
       if (settleNow) showPaidResult(d)
@@ -521,12 +540,15 @@ export default function App() {
       txHash: s.txHash,
       detail: s.detail,
       settlement: s.settlement ? { rank: s.settlement.rank, payout: s.settlement.payout } : null,
+      grant: s.phase === 'settled' ? s.settlement?.grant ?? null : null,
+      grantError: s.settlement?.grantError ?? null,
+      onRetryGrant: paid.retryGrant,
       mismatch: s.mismatch,
       deadline: s.deadline,
       choiceNotes: paidMeta.notes,
       onRetry: paid.retry,
     }
-  }, [paidMeta, paid.settle, paid.retry])
+  }, [paidMeta, paid.settle, paid.retry, paid.retryGrant])
 
   /** 有奖结算后，名次与三次选择以 SessionSettled 为准（结算页与分享图同一份） */
   const shownResult = useMemo(() => {
@@ -597,7 +619,11 @@ export default function App() {
         )}
         {page === 'select' && (
           <SelectScreen
+            key={account?.address ?? 'guest'}
             lang={lang}
+            reducedMotion={settings.reducedMotion}
+            availablePonyIds={collection.availablePonyIds}
+            rngSeed={practiceForcedSeed(qs('seed')) ?? undefined}
             balance={walletBalance}
             paidOpen={paidGate.open}
             paidHint={paidGate.hint && t(lang, paidGate.hint)}
@@ -625,6 +651,7 @@ export default function App() {
             lang={lang}
             result={shownResult}
             paid={paidMeta ? paidView : undefined}
+            collectionSync={paidMeta ? { loading: collection.loading, error: collection.error, onRetry: collection.unlock } : undefined}
             choiceNotes={driver instanceof RaceDriver ? paidChoiceNoteKeys(driver.canonicalResult()).map((k) => k ? t(lang, k) : null) : undefined}
             onAgain={() => {
               setDriver(null)
@@ -641,10 +668,11 @@ export default function App() {
           lang={lang}
           onBack={() => setPage('home')}
           signedIn={account !== null}
-          ownedRareIds={ownedRareIds}
-          loading={collectionBusy}
-          error={collectionError}
-          onUnlock={() => { void unlockCollection() }}
+          ownedRareIds={collection.ownedRareIds}
+          ownedPonyIds={collection.progress?.unlockedPonyIds ?? null}
+          loading={collection.loading}
+          error={collection.error}
+          onUnlock={() => { void collection.unlock() }}
         />}
         {page === 'settings' && (
           <SettingsScreen
@@ -700,18 +728,20 @@ export default function App() {
             lang={lang}
             progress={gateProgress}
             waiting={!gate.failed}
-            onRetry={() => go(gate.to)}
+            onRetry={() => gate.retry ? gate.retry() : go(gate.to)}
             onCancel={() => {
               // 比赛已经跑完了，退回去只能回首页；从首页点进来的关掉就是留在首页
               setGate(null)
+              gate.cancel?.()
               if (gate.to === 'result') backHome()
             }}
           />
         )}
 
-        {notice && (
+        {(notice || (page !== 'collection' && collection.error) || (page === 'home' && paid.resumeError)) && (
           <div
             data-testid="notice"
+            role={collection.error || paid.resumeError ? 'alert' : 'status'}
             className="panel"
             style={{
               position: 'absolute',
@@ -725,7 +755,13 @@ export default function App() {
               zIndex: 200,
             }}
           >
-            {notice}
+            {notice ?? collection.error ?? t(lang, 'resume.readFailed', { reason: paid.resumeError ?? '' })}
+            {!notice && collection.error && <button type="button" className="chip" disabled={collection.loading} onClick={collection.unlock}>
+              {t(lang, 'grant.retrySync')}
+            </button>}
+            {!notice && !collection.error && paid.resumeError && <button type="button" className="chip" onClick={() => void checkResume()}>
+              {t(lang, 'resume.retry')}
+            </button>}
           </div>
         )}
       </div>

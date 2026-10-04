@@ -142,7 +142,7 @@ test('图鉴与设置可进可出', async ({ page }) => {
 })
 
 test('比赛中途退出：弃赛回到首页，状态干净', async ({ page }) => {
-  await open(page)
+  await open(page, 'raceSpeed=1')
   await enterHome(page)
   await startRace(page, 1, 0)
   await expect(page.getByTestId('screen-race')).toBeVisible()

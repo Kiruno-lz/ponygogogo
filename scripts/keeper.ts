@@ -21,6 +21,8 @@
  * KEEPER_SEND=1、DEPLOYER_PRIVATE_KEY_PATH。
  */
 import { readFileSync } from 'node:fs'
+import { legacyPonyGameAbi } from '../src/chain/paidCalls.ts'
+import { LEGACY_PAID_RULESET_HASH } from '../src/race/paid/cardRules.ts'
 import {
   BaseError,
   ContractFunctionRevertedError,
@@ -45,12 +47,14 @@ export const FORFEIT_SOLVER_FAULT = 2
 export const SOLVER_FAULT_GAS = 29_700_000n
 
 const SESSION_OPENED =
-  'event SessionOpened(bytes32 indexed sessionId, address indexed player, uint8 horseId, uint256 stake, bytes32 seed, uint64 openedAt, uint64 openedBlock, bytes32 rulesetHash)'
+  'event SessionOpened(bytes32 indexed sessionId, address indexed player, uint8 horseId, uint256 stake, bytes32 seed, uint64 openedAt, uint64 openedBlock, bytes32 rulesetHash, uint8[5] roster)'
 export const sessionOpenedEvent = parseAbiItem(SESSION_OPENED)
+export const legacySessionOpenedEvent = parseAbiItem('event SessionOpened(bytes32 indexed sessionId, address indexed player, uint8 horseId, uint256 stake, bytes32 seed, uint64 openedAt, uint64 openedBlock, bytes32 rulesetHash)')
 
 export const keeperGameAbi = parseAbi([
   'struct ChoiceView { bool present; uint32 txSec; uint64 blockNumber; uint8 cardId; uint8[] refreshSlots; bytes32 anchor; }',
-  'struct SessionView { address player; uint8 state; uint8 playerHorseId; uint8 stakeTier; uint256 stake; uint64 openedAt; uint64 openedBlock; bytes32 seed; bytes32 openAnchor; uint8 lastCheckpoint; ChoiceView[3] choices; }',
+  'struct SessionView { address player; uint8 state; uint8 playerHorseId; uint8 stakeTier; uint256 stake; uint64 openedAt; uint64 openedBlock; bytes32 seed; bytes32 openAnchor; uint8 lastCheckpoint; ChoiceView[3] choices; uint8[5] roster; }',
+  'function rulesetHash() view returns (bytes32)',
   'struct RaceResult { uint32[5] finishTime; uint32[5] finishWall; uint8[5] rawOrder; uint8[5] settlementOrder; uint8 playerRawRank; uint8 playerSettlementRank; uint8[3] acquired; uint32 eventCount; bytes32 digest; }',
   SESSION_OPENED,
   'function getSession(bytes32 sessionId) view returns (SessionView)',
@@ -202,7 +206,7 @@ export async function createKeeper(config: KeeperConfig) {
       const to = from + config.logChunk - 1n < latestBlock ? from + config.logChunk - 1n : latestBlock
       const logs = await publicClient.getLogs({
         address: game,
-        event: sessionOpenedEvent,
+        events: [sessionOpenedEvent, legacySessionOpenedEvent],
         fromBlock: from,
         toBlock: to,
       })
@@ -255,7 +259,8 @@ export async function createKeeper(config: KeeperConfig) {
     const actions: KeeperAction[] = []
     for (const sessionId of [...watched]) {
       const session = await publicClient.readContract({
-        address: game, abi: keeperGameAbi, functionName: 'getSession', args: [sessionId],
+        address: game, abi: (await publicClient.readContract({ address: game, abi: keeperGameAbi, functionName: 'rulesetHash' })).toLowerCase() === LEGACY_PAID_RULESET_HASH.toLowerCase()
+          ? legacyPonyGameAbi : keeperGameAbi, functionName: 'getSession', args: [sessionId],
       })
       if (session.state !== STATE_OPEN) {
         watched.delete(sessionId)

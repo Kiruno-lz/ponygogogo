@@ -36,6 +36,15 @@ export function parseContractAddress(raw: string | undefined | null): Address | 
 export const PONY_VAULT_ADDRESS = parseContractAddress(import.meta.env?.VITE_PONY_VAULT_ADDRESS as string | undefined)
 export const PONY_GAME_ADDRESS = parseContractAddress(import.meta.env?.VITE_PONY_GAME_ADDRESS as string | undefined)
 
+/** Trusted build configuration only; retired Games remain readable until their sessions close. */
+export function parseLegacyGames(raw: string | undefined | null): readonly Address[] {
+  if (!raw?.trim()) return []
+  const addresses = raw.split(',').map(value => parseContractAddress(value))
+  if (addresses.some(address => address === null)) throw new Error('INVALID_LEGACY_GAME_ADDRESSES')
+  return Object.freeze([...new Set(addresses as Address[])])
+}
+export const LEGACY_PONY_GAME_ADDRESSES = parseLegacyGames(import.meta.env?.VITE_LEGACY_PONY_GAME_ADDRESSES as string | undefined)
+
 /** WebAuthn 的 relying party：passkey 绑定在当前站点的 host 上，换域名即换账户。 */
 export const RP_NAME = 'Ponygogogo'
 /** 注册时用户名输入框的默认值；玩家可以改成别的，改了也只影响认证器列表里的显示。 */

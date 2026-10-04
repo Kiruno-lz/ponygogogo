@@ -35,6 +35,7 @@ export function fixtureInput(over: FixtureOverrides = {}): PaidCoreInput {
   for (let h = 0; h < 5; h++) cpuDecks.push([...(over.cpu?.[h] ?? QUIET_CPU_DECK)])
   return {
     profiles: over.profiles ?? fixtureProfiles(playerHorseId),
+    ...(over.roster ? { roster: over.roster } : {}),
     playerHorseId,
     playerDeck: over.playerDeck ?? QUIET_DECK,
     cpuDecks,

@@ -7,7 +7,7 @@ import { TRACK_LEN } from '../race/core/constants.ts'
 import { FP } from '../race/core/fixed.ts'
 import type { RaceScreenDriver } from '../race/raceView.ts'
 import type { RaceEvent } from '../race/core/types.ts'
-import { HORSE_PROFILES } from './horses.ts'
+import { normalizeRoster, ponyById } from './ponyCatalog.ts'
 import {
   BG_SCALE,
   DESIGN_H,
@@ -145,7 +145,8 @@ export class RaceScene extends Phaser.Scene {
       this.windSprites.push(gust)
     }
 
-    for (const p of HORSE_PROFILES) {
+    for (const ponyId of normalizeRoster(this.driver.state.roster)) {
+      const p = ponyById(ponyId)
       const pony = new PonySprite(this, {
         profile: p,
       })
@@ -213,7 +214,7 @@ export class RaceScene extends Phaser.Scene {
   private showCardFeedback(ev: Extract<RaceEvent, { type: 'cardEffect' }>): void {
     const pony = this.ponies[ev.horseId]
     if (!pony) return
-    const labels = { trigger: '✦', resource: `${ev.value >= 0 ? '+' : ''}${Math.round(ev.value)}`, fixed: `${ev.value >= 0 ? '+' : ''}${ev.value}`, target: '➤', guard: '◇', renew: '↻' }
+    const labels = { trigger: '✦', resource: `${ev.value >= 0 ? '+' : ''}${Math.round(ev.value)}`, fixed: `${ev.value >= 0 ? '+' : ''}${ev.value}`, target: '➤', guard: '◇', renew: '↻', pony: ev.value ? `+${ev.value}%` : '✦' }
     const color = ev.kind === 'guard' ? '#e9c36b' : ev.kind === 'resource' && ev.value < 0 ? '#ed947d' : '#b5e4bf'
     const label = this.add.text(pony.x, pony.y - 155, labels[ev.kind], { fontFamily: 'sans-serif', fontSize: '28px', color, stroke: '#4a2a14', strokeThickness: 4 })
       .setOrigin(.5).setDepth(35)

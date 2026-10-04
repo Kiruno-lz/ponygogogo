@@ -21,6 +21,7 @@ export function paidRaceResult(sessionId: string, seed: string, horseId: number,
     raceId: sessionId,
     seed,
     horseId,
+    ...(r.roster ? { roster: r.roster } : {}),
     rank: r.settlementRank as RaceResult['rank'],
     finishTick: tickOf(r.finishTime[horseId]!),
     choices: r.checkpoints.map((c, i) => ({
@@ -79,6 +80,7 @@ export function solveFromFacts(facts: PaidSessionFacts, opts: PaidSolveOptions =
     openAnchor: facts.openAnchor,
     stakeTier: facts.stakeTier,
     playerHorseId: facts.horseId,
+    ...(facts.roster ? { roster: facts.roster } : {}),
     choices: facts.choices.map((c) => (c
       ? { txSec: BigInt(c.txSec), cardId: c.cardId, refreshSlots: [...c.refreshSlots], anchor: c.anchor }
       : null)) as unknown as PaidChoiceSlots,

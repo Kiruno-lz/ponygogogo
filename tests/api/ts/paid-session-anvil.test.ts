@@ -14,6 +14,8 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
+import { Database } from 'bun:sqlite'
+import { createEd25519SigningSession } from '@category-labs/mera'
 import { resolve } from 'node:path'
 import {
   createPublicClient, createTestClient, createWalletClient, decodeEventLog, defineChain, getAddress, http, parseEther,
@@ -27,7 +29,16 @@ import {
   classifyPaidChoice, solvePaidCore, type PaidChoiceSlot, type PaidChoiceSlots, type PaidCoreInput, type PaidSolveResult,
 } from '../../../src/race/paid/solver.ts'
 import { PAID_STAKE_WEI } from '../../../src/chain/paidStakes.ts'
+import { choosePaidCard, readSessionFacts, readSettleDeadline, settlePaidSession } from '../../../src/chain/paidSession.ts'
+import { recoverPaidSessions, sessionChainDeps } from '../../../src/chain/paidRecovery.ts'
+import { compareSettlement, solveFromFacts } from '../../../src/race/paidResult.ts'
+import { collectionFromGrant, readOwnedCollection, ponyRewardsAbi } from '../../../src/chain/rewards.ts'
+import { rewardSeed, selectReward } from '../../../src/race/paid/rewardRules.ts'
+import { syncCollectionProgress, readRemoteCollection } from '../../../src/chain/collectionSync.ts'
+import { decryptCollection } from '../../../src/chain/collectionCipher.ts'
+import worker from '../../../scripts/Wrangler/worker/collection.ts'
 import { decodeInput, type PaidVectorCase } from '../../../src/race/paid/vectorCodec.ts'
+import { DEFAULT_ROSTER } from '../../../src/race/core/roster.ts'
 
 setDefaultTimeout(180_000)
 
@@ -40,10 +51,12 @@ const KEY_FILE = `keys/.p3-anvil-${process.pid}.private`
 const STAKES: Record<PaidTier, bigint> = { 1: PAID_STAKE_WEI[1], 2: PAID_STAKE_WEI[2], 3: PAID_STAKE_WEI[3], 4: PAID_STAKE_WEI[4] }
 const MULTIPLIER_BPS = [30_000n, 15_000n, 10_000n, 0n, 0n]
 
-type Artifact = { abi: Abi; deployedBytecode: { object: Hex } }
+type Artifact = { abi: Abi; bytecode: { object: Hex }; deployedBytecode: { object: Hex } }
 const artifact = (path: string): Artifact => JSON.parse(readFileSync(resolve(ROOT, 'out', path), 'utf8')) as Artifact
 const gameAbi = () => artifact('PonyGame.sol/PonyGame.json').abi
 const solverAbi = () => artifact('PaidRaceSolver.sol/PaidRaceSolver.json').abi
+/** Frozen deposit/withdraw Vault from the v4 baseline; production PonyVault no longer has `deposit`/`available`. */
+const oldVaultAbi = () => artifact('ArchivedPonyVaultV4.sol/ArchivedPonyVaultV4.json').abi
 
 type Settled = {
   sessionId: Hex; finishTime: readonly number[]; rawOrder: readonly number[]; settlementOrder: readonly number[]
@@ -129,7 +142,7 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
         cwd: ROOT, stdout: 'pipe', stderr: 'pipe',
         env: {
           PATH: process.env.PATH ?? '', HOME: homedir(), FOUNDRY_OFFLINE: 'true', ETH_RPC_URL: rpcUrl,
-          NO_PROXY: 'localhost,127.0.0.1',
+          NO_PROXY: '127.0.0.1,localhost', no_proxy: '127.0.0.1,localhost',
           DEPLOYER_PRIVATE_KEY_PATH: KEY_FILE, HOUSE_FUND_WEI: parseEther('100').toString(), UNPAUSE: '1',
         },
       })
@@ -149,7 +162,7 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     console.log('P3 anvil gas', Object.fromEntries(Object.entries(gas).map(([k, v]) => [k, v.toString()])))
   })
 
-  test('DeployPony deployed the real PaidRaceSolver with the v4 ruleset and bound it to the Game', async () => {
+  test('DeployPony deployed the real PaidRaceSolver with the v5 ruleset and bound it to the Game', async () => {
     const { pub } = clients()
     expect(await pub.readContract({ address: solver, abi: solverAbi(), functionName: 'rulesetHash' })).toBe(PAID_RULESET_HASH)
     expect(await pub.readContract({ address: game, abi: gameAbi(), functionName: 'solver' })).toBe(solver)
@@ -165,12 +178,15 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
 
   test('deployed hot core matches the display solver for single and overlapping 250ms gravity wells', async () => {
     const cases = (JSON.parse(readFileSync(resolve(ROOT, 'tests/vectors/paid-race-v4.json'), 'utf8')) as { cases: PaidVectorCase[] }).cases
+    // The deployed Solver always runs the roster path, so both sides use DEFAULT_ROSTER: this compares the
+    // production hot core against the display solver, not the archived no-roster rules (D4 keeps legacy replay
+    // rosterless, which is the LegacyCoreSolverProbe path, not this one).
     const inputs = [
-      decodeInput(cases.find((c) => c.name === 'derived-0')!.input),
+      { ...decodeInput(cases.find((c) => c.name === 'derived-0')!.input), roster: [...DEFAULT_ROSTER] },
       derivePaidCoreInput({
         seed: '0x8486a37a59c4f66a573ec56d925ee0ed39ad950970db563e1877bfbcd8205a5b',
         openAnchor: '0xee2f19d2d601b98cfc8b613200766bb21cbc4294476db78e9372d2f52a7a7f2e',
-        stakeTier: 1, playerHorseId: 1, choices: [null, null, null],
+        stakeTier: 1, playerHorseId: 1, roster: [...DEFAULT_ROSTER], choices: [null, null, null],
       }),
     ]
     for (const [index, core] of inputs.entries()) {
@@ -181,6 +197,7 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
       if (index === 1) expect(wells.some((a) => wells.some((b) => a !== b && a.startTau < b.endTau! && b.startTau < a.endTau!))).toBe(true)
       const result = await clients().pub.readContract({ address: solver, abi: solverAbi(), functionName: 'solve', args: [{
         seed: core.seed, openAnchor: core.openAnchor, stakeTier: 1, playerHorseId: core.playerHorseId,
+        roster: [...DEFAULT_ROSTER],
         choices: core.choices.map((choice) => choice === null
           ? { present: false, txSec: 0, cardId: 0, refreshSlots: [], anchor: `0x${'0'.repeat(64)}` }
           : { present: true, txSec: Number(choice.txSec), cardId: choice.cardId, refreshSlots: choice.refreshSlots, anchor: choice.anchor }),
@@ -202,7 +219,9 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
 
   /** Opens a session and returns the TS core input built from the chain's seed, T0 and open block hash. */
   async function open(tier: PaidTier, horseId: number, label: string) {
-    const receipt = await sendAt((await latest()) + 3n, game, gameAbi(), 'openSession', [horseId, STAKES[tier]], STAKES[tier])
+    const receipt = await sendAt(
+      (await latest()) + 3n, game, gameAbi(), 'openSession', [horseId, STAKES[tier], [0, 1, 2, 3, 4]], STAKES[tier],
+    )
     gas[`${label} openSession`] = receipt.gasUsed
     const opened = eventArgs(receipt, 'SessionOpened')
     const sessionId = opened.sessionId as Hex
@@ -210,7 +229,7 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     expect(opened.rulesetHash).toBe(PAID_RULESET_HASH)
     const openAnchor = (await clients().pub.getBlock({ blockNumber: receipt.blockNumber })).hash!
     const core = derivePaidCoreInput({
-      seed: opened.seed as Hex, openAnchor, stakeTier: tier, playerHorseId: horseId, choices: [null, null, null],
+      seed: opened.seed as Hex, openAnchor, stakeTier: tier, playerHorseId: horseId, roster: opened.roster as number[], choices: [null, null, null],
     })
     return { sessionId, t0, core }
   }
@@ -247,7 +266,7 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     expectSettledEqualsTs(settled, ts, tier)
     // The derivation path (solvePaidRace) and the explicit core path agree.
     expect(solvePaidRace({ seed: core.seed, openAnchor: core.openAnchor, stakeTier: tier,
-      playerHorseId: core.playerHorseId, choices: core.choices }, { trace: false }).digest).toBe(ts.digest)
+      playerHorseId: core.playerHorseId, roster: core.roster, choices: core.choices }, { trace: false }).digest).toBe(ts.digest)
   }
 
   function expectSettledEqualsTs(settled: Settled, ts: PaidSolveResult, tier: PaidTier): void {
@@ -304,6 +323,136 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     expect(ts.checkpoints.map((c) => c.invalidReason)).toEqual([2, 10, 0])
     expect(ts.acquiredByCheckpoint.slice(0, 2)).toEqual([0, 0])
     await settle('B', sessionId, t0, core, tier)
+  })
+
+  test('a real local-chain settlement grants a collectible, recovers its receipt, and synchronizes the encrypted copy', async () => {
+    const { sessionId, t0, core } = await open(1, 0, 'reward')
+    const ts = solvePaidCore(core, { trace: false })
+    const c = clients()
+    const { ledger } = await readOwnedCollection(c.pub, game, player.address)
+    const mask = await c.pub.readContract({ address: ledger, abi: ponyRewardsAbi, functionName: 'ownedMask', args: [player.address] })
+    await c.testc.setNextBlockTimestamp({ timestamp: t0 + (ts.finishWall[0]! + 999n) / 1000n })
+    await c.testc.mine({ blocks: 1 })
+    let expected: ReturnType<typeof selectReward> = null
+    // Collection-only randomness permits timing choice. Mine real blocks, without overriding block hashes.
+    for (let attempt = 0; attempt < 200 && !expected; attempt++) {
+      const parent = await c.pub.getBlock({ blockTag: 'latest' })
+      expected = selectReward(rewardSeed(parent.hash!, 31337n, game, sessionId, player.address), mask)
+      if (!expected) await c.testc.mine({ blocks: 1 })
+    }
+    expect(expected).not.toBeNull()
+    const receipt = await sendAt((await latest()) + 1n, game, gameAbi(), 'settleSession', [sessionId])
+    expectSettledEqualsTs(eventArgs(receipt, 'SessionSettled') as unknown as Settled, ts, 1)
+    const recovered = await settlePaidSession({ game, client: c.pub, account: {
+      getAddress: () => player.address,
+      send: async () => { throw new Error('settlement must not be resent') },
+      progress: async () => { throw new Error('no call to poll') },
+    } }, { sessionId, openedBlock: 0n })
+    expect(recovered.state).toBe('settled')
+    if (recovered.state !== 'settled' || !recovered.settlement.grant) throw new Error('missing confirmed grant')
+    const grant = recovered.settlement.grant
+    expect(grant.assetKind).toBe(expected!.assetKind === 0 ? 'rareCard' : 'pony')
+    expect(grant.assetId).toBe(expected!.assetId)
+    expect(recovered.settlement.hash).toBe(receipt.transactionHash)
+    const owned = (await readOwnedCollection(c.pub, game, player.address)).progress
+    const additions = collectionFromGrant(grant)
+    expect(owned.rareCardIds).toEqual(expect.arrayContaining(additions.rareCardIds))
+    expect(owned.unlockedPonyIds).toEqual(expect.arrayContaining(additions.unlockedPonyIds))
+
+    const db = new Database(':memory:')
+    db.exec(readFileSync(resolve(ROOT, 'scripts/Wrangler/migrations/0001_collection.sql'), 'utf8'))
+    db.exec(readFileSync(resolve(ROOT, 'scripts/Wrangler/migrations/0002_collection_limits.sql'), 'utf8'))
+    const origin = 'https://ponygo.kiruno.cc'
+    const env = { COLLECTION_DB: { prepare(sql: string) {
+      let values: (string | number)[] = []
+      return { bind(...args: (string | number)[]) { values = args; return this },
+        async first<T>() { return db.prepare(sql).get(...values) as T | null },
+        async run() { return { meta: { changes: db.prepare(sql).run(...values).changes } } } }
+    } }, ASSETS: { fetch: async () => new Response('asset') } }
+    const localFetch = ((url: RequestInfo | URL, init?: RequestInit) => worker.fetch(new Request(new URL(String(url), origin), init), env)) as typeof fetch
+    const identity = createEd25519SigningSession({ privateKey: crypto.getRandomValues(new Uint8Array(32)) })
+    const key = crypto.getRandomValues(new Uint8Array(32))
+    try {
+      const saved = await syncCollectionProgress(identity, key, owned, localFetch, origin)
+      expect(saved.written).toBe(true)
+      const remote = await readRemoteCollection(identity, localFetch, origin)
+      expect(await decryptCollection(remote!.envelope, key)).toEqual(owned)
+      expect((await syncCollectionProgress(identity, key, additions, localFetch, origin)).written).toBe(false)
+    } finally { key.fill(0); identity.end(); db.close() }
+  })
+
+  test('a pre-roster Game session resumes and settles at its original address after entry moves to v5', async () => {
+    const c = clients()
+    const ownerWallet = createWalletClient({ account: owner, chain: c.playerWallet.chain, transport: http(rpcUrl) })
+    async function deploy(path: string, args: readonly unknown[]): Promise<Address> {
+      const a = artifact(path)
+      const hash = await ownerWallet.deployContract({ abi: a.abi, bytecode: a.bytecode.object, args, gas: 29_000_000n } as never)
+      const receipt = await c.pub.waitForTransactionReceipt({ hash })
+      expect(receipt.status).toBe('success')
+      return getAddress(receipt.contractAddress!)
+    }
+    async function admin(address: Address, abi: Abi, functionName: string, args: readonly unknown[], value = 0n) {
+      const hash = await ownerWallet.writeContract({ address, abi, functionName, args, value, gas: 29_000_000n } as never)
+      expect((await c.pub.waitForTransactionReceipt({ hash })).status).toBe('success')
+    }
+    const legacyCore = await deploy('LegacyCoreSolverProbe.sol/LegacyCoreSolverProbe.json', [])
+    const oldSolver = await deploy('LegacyV4Solver.sol/LegacyV4Solver.json', [legacyCore])
+    const oldAbi = artifact('ArchivedPonyGameV4.sol/ArchivedPonyGameV4.json').abi
+    const oldGame = await deploy('ArchivedPonyGameV4.sol/ArchivedPonyGameV4.json', [owner.address, oldSolver])
+    const oldVault = await deploy('ArchivedPonyVaultV4.sol/ArchivedPonyVaultV4.json', [oldGame, owner.address])
+    await admin(oldGame, oldAbi, 'bindVault', [oldVault])
+    await admin(oldVault, oldVaultAbi(), 'fundHouse', [], parseEther('10'))
+    await admin(oldGame, oldAbi, 'setEntryPaused', [false])
+    await sendAt((await latest()) + 1n, oldVault, oldVaultAbi(), 'deposit', [], STAKES[1])
+    await sendAt((await latest()) + 1n, oldGame, oldAbi, 'openSession', [2, STAKES[1]])
+    // The old Game can pause entry while its existing sessions remain playable and settleable.
+    await admin(oldGame, oldAbi, 'setEntryPaused', [true])
+    const [context] = await recoverPaidSessions(c.pub, [game, oldGame], player.address)
+    expect(context?.game).toBe(oldGame)
+    // The Vault is no longer carried in the context: it is pinned by the per-session Game, which must still be
+    // the archived deposit-model Vault and never the v5 one the live Game is bound to.
+    expect(await c.pub.readContract({ address: oldGame, abi: oldAbi, functionName: 'vault' })).toBe(oldVault)
+    expect(await c.pub.readContract({ address: game, abi: gameAbi(), functionName: 'vault' })).not.toBe(oldVault)
+    expect(context?.facts.roster).toBeUndefined()
+    if (!context) throw Error('legacy session was lost')
+    const slot = solveFromFacts(context.facts, { stopAtPanel: 1, trace: false }).panel!
+    expect(slot.mode).toBe('manual')
+    const acquired = slot.candidates[0]!
+    await c.testc.setNextBlockTimestamp({ timestamp: BigInt(context.facts.openedAt) + slot.openSec + 1n })
+    let sentTo: Address | undefined
+    const account = {
+      getAddress: () => player.address,
+      send: async (calls: readonly { to: Address; data: Hex; value?: bigint }[]) => {
+        expect(calls).toHaveLength(1)
+        sentTo = calls[0]!.to
+        return await c.playerWallet.sendTransaction({ ...calls[0]!, gas: 29_000_000n })
+      },
+      progress: async (callId: string) => {
+        const receipt = await c.pub.waitForTransactionReceipt({ hash: callId as Hex })
+        return { state: receipt.status === 'success' ? 'included' as const : 'failed' as const, callId, transactionHashes: [receipt.transactionHash] }
+      },
+    }
+    const pinned = sessionChainDeps({ client: c.pub, account, game }, context)
+    const choice = await choosePaidCard(pinned, context.facts, 1, acquired, [])
+    expect(choice.state).toBe('included')
+    expect(sentTo).toBe(oldGame)
+    const facts = await readSessionFacts(c.pub, oldGame, context.facts.sessionId)
+    expect(facts.choices[0]?.cardId).toBe(acquired)
+    expect(facts.roster).toBeUndefined()
+    expect(await readSettleDeadline(c.pub, oldGame, facts.sessionId)).not.toBeNull()
+    const preview = solveFromFacts(facts)
+    expect(preview.acquiredByCheckpoint[0]).toBe(acquired)
+    await c.testc.setNextBlockTimestamp({ timestamp: BigInt(facts.openedAt) + (preview.finishWall[2]! + 999n) / 1000n })
+    const out = await settlePaidSession(pinned, facts)
+    expect(out.state).toBe('settled')
+    if (out.state !== 'settled') throw Error('legacy settlement failed')
+    expect(sentTo).toBe(oldGame)
+    expect(compareSettlement(out.settlement, preview)).toEqual({ rank: true, full: true })
+    expect(out.settlement.grant).toBeNull()
+    expect(await recoverPaidSessions(c.pub, [game,oldGame], player.address)).toEqual([])
+    expect((await c.pub.readContract({ address: oldVault, abi: oldVaultAbi(), functionName: 'stakeLocks', args: [facts.sessionId] }) as readonly unknown[])[4]).toBe(2)
+    // Settling the legacy session paid into the archived Vault's `available` ledger, not the v5 direct payout.
+    expect(await c.pub.readContract({ address: oldVault, abi: oldVaultAbi(), functionName: 'totalLocked' })).toBe(0n)
   })
 })
 

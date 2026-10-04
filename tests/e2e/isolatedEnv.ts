@@ -16,6 +16,7 @@ export const E2E_ENV: Record<string, string> = {
   VITE_ENVIO_GRAPHQL_URL: '',
   VITE_PONY_VAULT_ADDRESS: '',
   VITE_PONY_GAME_ADDRESS: '',
+  VITE_LEGACY_PONY_GAME_ADDRESSES: '',
   VITE_DEV_CHAIN: '',
   VITE_PAID_RACE_DEV: '',
 }

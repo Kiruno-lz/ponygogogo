@@ -22,7 +22,10 @@ test('重力井按共享的250ms求时轨迹展示运动与装备，到期后消
   await expect(choice.locator('.card-root')).toHaveAttribute('data-card', 'C-10')
   await expect(choice).toHaveCSS('opacity', '1')
   await choice.locator('.card-root').click()
-  await expect.poll(() => page.evaluate(() => (window as any).__gravityScene.ponies[0].blackhole.visible)).toBe(true)
+  await expect.poll(() => page.evaluate(() => {
+    const scene = (window as any).__gravityScene
+    return scene.ponies[scene.driver.state.playerHorseId].blackhole.visible
+  })).toBe(true)
 
   const facts = await page.evaluate(async () => {
     const tracePath = '/src/race/paid/trace.ts'
@@ -30,6 +33,7 @@ test('重力井按共享的250ms求时轨迹展示运动与装备，到期后消
     const { sampleHorse, tauAtWall } = await import(tracePath)
     const { demoPos, demoSpeed, demoStamina } = await import(snapshotPath)
     const scene = (window as any).__gravityScene
+    const player = scene.driver.state.playerHorseId
     const frames = new Set<string>()
     let samples = 0
     let mismatches = 0
@@ -44,15 +48,15 @@ test('重力井按共享的250ms求时轨迹展示运动与装备，到期后消
         if (actual.pos !== demoPos(expected.pos) || actual.v !== demoSpeed(expected.v)
           || actual.stamina !== demoStamina(expected.stamina)) mismatches++
       }
-      frames.add(String(scene.ponies[0].blackhole.frame.name))
+      frames.add(String(scene.ponies[player].blackhole.frame.name))
       samples++
       await new Promise(requestAnimationFrame)
     }
     const result = scene.driver.canonicalResult()
-    const well = result.trace.instances.find((i: any) => i.cardId === 10 && i.horse === 0 && i.kind === 'equip')
-    const steps = result.trace.keyframes[0].filter((f: any) => f.tau0 >= well.startTau && f.tau0 < well.endTau)
+    const well = result.trace.instances.find((i: any) => i.cardId === 10 && i.horse === player && i.kind === 'equip')
+    const steps = result.trace.keyframes[player].filter((f: any) => f.tau0 >= well.startTau && f.tau0 < well.endTau)
     return {
-      samples, mismatches, frames: [...frames], texture: scene.ponies[0].blackhole.texture.key,
+      samples, mismatches, frames: [...frames], texture: scene.ponies[player].blackhole.texture.key,
       fullSteps: steps.filter((f: any) => BigInt(f.tau1) - BigInt(f.tau0) === 250n).length,
       maxStep: Math.max(...steps.map((f: any) => Number(f.tau1 - f.tau0))), endTau: Number(well.endTau),
     }
@@ -69,7 +73,7 @@ test('重力井按共享的250ms求时轨迹展示运动与装备，到期后消
     if (await page.getByTestId('card-skip').isVisible()) await page.getByTestId('card-skip').click()
     return page.evaluate((endTau) => {
       const scene = (window as any).__gravityScene
-      return scene.driver.state.tick * 20 >= endTau && !scene.ponies[0].blackhole.visible
+      return scene.driver.state.tick * 20 >= endTau && !scene.ponies[scene.driver.state.playerHorseId].blackhole.visible
     }, facts.endTau)
   }, { timeout: 45_000 }).toBe(true)
   expect(errors).toEqual([])

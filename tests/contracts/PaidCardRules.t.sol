@@ -7,10 +7,10 @@ contract PaidCardRulesTest {
     function testGeneratedCardRulesAndMasks() public pure {
         require(PaidCardRules.RARE_MASK == 0xf6e232973e && PaidCardRules.CPU_MASK == 0xbfefe3fae3, "eligibility masks");
         require(
-            PaidCardRules.TABLE_HASH == 0x5fe93ed7989dd76dcccbc106fc2c4d0441b0c046f09e722906afd77a3b143912, "table hash"
+            PaidCardRules.TABLE_HASH == 0x632d100afd03a788e58c37b00bfc4fa84c841c2b96a7cad734b92bf0eb669bd0, "table hash"
         );
         require(
-            PaidCardRules.RULESET_HASH == 0xbb2c9df7e6a29f0c6c54510063905c4652e08e0e987b262484cc77eb46dae876,
+            PaidCardRules.RULESET_HASH == 0x4165ca878a179fe4f6a872ee937d6dd3bab34d734e723ab387ef2948e84e6eb7,
             "ruleset hash"
         );
         PaidCardRules.Rule memory gravity = PaidCardRules.get(10);
@@ -42,6 +42,14 @@ contract PaidCardRulesTest {
             bytes4(r0) == PaidCardRules.InvalidCard.selector && bytes4(r41) == PaidCardRules.InvalidCard.selector,
             "error"
         );
+    }
+
+    function testMainFunctionUsesTheSpareRgbByteWithoutChangingCoatColors() public pure {
+        require(PaidCardRules.mainFunction(7) == PaidCardRules.MAIN_EQUIPMENT, "rocket classification");
+        require(PaidCardRules.mainFunction(13) == PaidCardRules.MAIN_INTERFERENCE, "steal classification");
+        require(PaidCardRules.mainFunction(29) == PaidCardRules.MAIN_APPEARANCE, "coat gate classification");
+        require(PaidCardRules.get(19).coatRgb == 0xf4c542, "yellow changed by metadata");
+        require(PaidCardRules.get(20).coatRgb == 0x63b34a, "green changed by metadata");
     }
 
     function ruleOf(uint8 id) external pure returns (PaidCardRules.Rule memory) {

@@ -6,7 +6,7 @@ import {PaidCardRules} from "./libraries/PaidCardRules.sol";
 import {PaidRaceEngine} from "./libraries/PaidRaceEngine.sol";
 import {PaidRaceCold} from "./libraries/PaidRaceCold.sol";
 
-/// @notice Stateless paid ruleset v4 solver. Derives personalities and decks from the opening anchor
+/// @notice Stateless roster-aware solver. Derives personalities and decks from the opening anchor
 /// (src/race/paid/race.ts derivePaidCoreInput) and runs PaidRaceEngine, the bit-exact port of the TS reference.
 /// @dev Engine/Motion/watch/gated and the cold-path domain libraries are compiled into this contract.
 /// No helper contract is created or linked; scripts/check-contract-sizes.ts gates the Monad deployment limits.
@@ -28,5 +28,7 @@ contract PaidRaceSolver is IPaidRaceSolver {
         core.seed = input.seed;
         core.openAnchor = input.openAnchor;
         core.choices = input.choices;
+        core.roster = input.roster;
+        core.ponyAbilities = true;
     }
 }

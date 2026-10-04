@@ -337,11 +337,35 @@ html, body, #root {
 .stamina-fill { transition: clip-path 90ms linear; }
 .exhausted-art .stamina-fill { filter: saturate(.3) brightness(.7); }
 .over-art .stamina-fill { filter: brightness(1.3); }
-.horse-choice { position: absolute; isolation: isolate; left: 58px; width: 340px; height: 116px; border: 0; padding: 0; background: none; color: #fff; cursor: pointer; outline-offset: -3px; }
+.pony-selection-column { position: absolute; isolation: isolate; left: 58px; top: 290px; width: 340px; height: 500px; overflow: hidden; }
+.horse-choice { position: absolute; left: 0; top: 0; z-index: 1; width: 178px; height: 116px; border: 0; padding: 0; background: none; color: #fff; cursor: pointer; outline-offset: -3px; }
 .horse-choice > .pony-portrait { position: absolute; z-index: 1; filter: none; left: 109px; top: -13.15625px; }
 .lane-pennant { position: absolute; left: 0; bottom: 7px; width: 101px; height: 74px; object-fit: contain; }
-.horse-choice .horse-ground-ring { position: absolute; z-index: 0; bottom: -12px; left: 90px; width: 194px; height: 48px; opacity: 0; pointer-events: none; }
-.horse-choice.selected .horse-ground-ring { opacity: 1; }
+.select-lane-flag { left: 58px; bottom: auto; pointer-events: none; }
+.selection-ground-ring { position: absolute; left: 0; top: 0; z-index: 0; width: 194px; height: 48px; pointer-events: none; }
+.pony-queue-arrow { position: absolute; left: 232px; width: 52px; height: 36px; border: 2px solid #e6bd65; border-radius: 12px; background: #80532c; color: #fff3cf; font-size: 24px; cursor: pointer; }
+.pony-queue-arrow:disabled { opacity: .35; cursor: default; }
+.pony-queue-arrow:focus-visible { outline: 3px solid #fff3cf; outline-offset: 3px; }
+.pony-queue-arrow.queue-up { top: 258px; }
+.pony-queue-arrow.queue-down { top: 797px; }
+.select-pony-ability { position: absolute; left: 282px; top: 123px; width: 435px; padding: 12px 16px; border: 2px solid #a98550; border-radius: 10px; background: rgba(247,239,222,.94); color: #4a2a14; font-size: 16px; line-height: 1.45; pointer-events: none; }
+.select-pony-ability strong { font-size: 19px; }
+.select-pony-ability p { margin: 5px 0 0; }
+.collection-tabs { display: flex; gap: 12px; padding: 0 34px 18px; }
+.collection-tabs button { min-width: 130px; min-height: 48px; padding: 8px 20px; border: 2px solid #8b6743; border-radius: 10px; background: #dfc5a1; color: #4a2a14; font-size: 20px; font-weight: 700; cursor: pointer; }
+.collection-tabs button[aria-selected="true"] { background: #785334; color: #fff2d9; }
+.collection-tabs button:focus-visible { outline: 3px solid #d69625; outline-offset: 3px; }
+.pony-gallery { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 22px; padding: 0 34px 34px; }
+.pony-gallery-card { padding: 18px 22px; border: 3px solid #8b6743; border-radius: 14px; background: #f8e9d0; color: #4a2a14; }
+.pony-gallery-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pony-gallery-header h2 { margin: 0; font-size: 25px; }
+.pony-gallery-header span { font-size: 13px; white-space: nowrap; }
+.pony-gallery-image { display: block; width: 100%; height: 170px; object-fit: contain; }
+.pony-locked .pony-gallery-image { filter: grayscale(.75) brightness(.5); opacity: .75; }
+.pony-gallery-card h3 { margin: 8px 0; font-size: 20px; }
+.pony-gallery-card p { margin: 8px 0; font-size: 16px; line-height: 1.5; }
+.pony-gallery-card .pony-strategy { color: #855d37; }
+.pony-gallery-card small { font-size: 13px; color: #785334; }
 .horse-choice:hover > .pony-portrait { filter: brightness(1.08) drop-shadow(0 0 5px #ffde83); }
 .horse-choice:focus-visible { outline: 3px solid #ffe39b; border-radius: 10px; }
 .bet-art-panel { position: absolute; left: 1259px; top: 72px; width: 360px; height: 475px; background: url('/assets/art/ui/bet-panel-trimmed.webp') center / 100% 100% no-repeat; padding: 64px 29px 18px 40px; color: #2c2019; font-family: 'Trebuchet MS', 'PingFang SC', sans-serif; font-style: italic; }
@@ -548,6 +572,24 @@ html, body, #root {
 .result-artboard.en .result-btn-again > .lbl { font-size: 27px; top: 73px; }
 
 /* Share controls stay at viewport size, outside the exported poster. */
+.stage-dialog.collectible-dialog {
+  inset: 0; width: 100vw; height: 100dvh; transform: none; overflow: auto;
+  background: rgba(13, 9, 7, .72);
+}
+.collectible-panel {
+  position: relative; width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto;
+  padding: 24px; border: 3px solid #b78039; border-radius: 24px; background: #fff0d7;
+  color: #5b2d10; text-align: center; box-shadow: 0 16px 60px #0009;
+}
+.collectible-panel h2 { margin: 0 32px 10px; font-size: 28px; }
+.collectible-panel h3 { margin: 12px 0 6px; font-size: 26px; }
+.collectible-panel p { margin: 8px 0; }
+.collectible-kind { font-weight: 700; color: #996525; }
+.collectible-art { display: flex; align-items: center; justify-content: center; min-height: 260px; margin-top: 14px; }
+.collectible-art > img { width: 100%; height: 280px; object-fit: contain; }
+.collectible-close { position: absolute; right: 12px; top: 12px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #e7c99c; color: #5b2d10; cursor: pointer; font-size: 30px; }
+.collectible-close:focus-visible { outline: 3px solid #996525; outline-offset: 2px; }
+.collectible-sync-error { color: #8b2525; font-size: 14px; }
 .stage-dialog.share-dialog {
   inset: 0; width: 100vw; height: 100dvh; transform: none;
   background: rgba(13, 9, 7, .86); overflow: auto;

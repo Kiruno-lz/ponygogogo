@@ -74,6 +74,8 @@ export const EV_GUARD = 31
 export const EV_TARGET = 32
 export const EV_EQUIP_REFRESH = 33
 export const EV_FIXED = 34
+/** Role trigger: ponyId * 65536 + acquired cardId * 256 + 1; cardId 0 denotes active forfeit. */
+export const EV_PONY = 35
 
 export const CLOSE_PICKED = 1
 export const CLOSE_FORFEIT_TX = 2
@@ -115,7 +117,7 @@ export const PAID_EVENT_NAMES: Readonly<Record<number, string>> = {
   14: 'BOMB_EXPLODE', 15: 'DEATH', 16: 'DEATH_IMMUNE', 17: 'RESPAWN_END', 18: 'SWAP', 19: 'SWAP_BLOCKED',
   20: 'WHEEL_BURST', 21: 'WIND', 22: 'STEAL', 23: 'STEAL_NONE', 24: 'EXHAUST_ENTER', 25: 'EXHAUST_EXIT',
   26: 'OVERCAP_END', 27: 'BASE_CAP', 28: 'CHOICE_INVALID', 29: 'TRIGGER', 30: 'RESOURCE', 31: 'GUARD',
-  32: 'TARGET', 33: 'EQUIP_REFRESH', 34: 'FIXED',
+  32: 'TARGET', 33: 'EQUIP_REFRESH', 34: 'FIXED', 35: 'PONY',
 }
 
 export type PaidLoggedEvent = { code: number; tau: bigint; wall: bigint; horse: number; arg: bigint }

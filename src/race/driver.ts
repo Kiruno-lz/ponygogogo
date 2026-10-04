@@ -12,7 +12,7 @@ import type { RaceScreenDriver } from './raceView.ts'
 export interface DriverOptions { countdownMs: number; tailSpeed: number }
 export const DEFAULT_DRIVER: DriverOptions = { countdownMs: 3000, tailSpeed: 6 }
 export type DriverPhase = 'countdown' | 'racing' | 'tail' | 'done'
-export interface PracticeConfig { seed: string; playerHorseId: number; stakeTier: number }
+export interface PracticeConfig { seed: string; playerHorseId: number; stakeTier: number; roster?: readonly number[] }
 
 function urlRaceSpeed(): number {
   if (typeof window === 'undefined') return 1
@@ -47,9 +47,10 @@ export class RaceDriver implements RaceScreenDriver {
     this.core = derivePaidCoreInput({
       seed, openAnchor: keccak256(toBytes(`practice.open:${seed}`)), playerHorseId: cfg.playerHorseId,
       stakeTier: 1, choices: this.choices,
+      roster: cfg.roster,
     })
     this.solved = solvePaidCore(this.core)
-    this.snapshot = idlePaidState(cfg.playerHorseId, 0)
+    this.snapshot = idlePaidState(cfg.playerHorseId, 0, this.core.roster)
     this.countdownLeft = opts.countdownMs / this.speed
   }
 
@@ -156,6 +157,7 @@ export class RaceDriver implements RaceScreenDriver {
     }
     const raceOver = tau >= trace.tauEnd
     this.snapshot = buildPaidSnapshot({ trace, tau, playerHorseId: this.core.playerHorseId, stakeTier: 0,
+      roster: this.core.roster,
       seed: this.core.seed, panel, draw: this.info?.drawState ?? null, playerDeck: this.core.playerDeck,
       finishTime: this.solved.finishTime, raceOver, versionAnswer: this.solved.versionAnswer })
     this.phase = raceOver ? 'done' : this.snapshot.playerFinished ? 'tail' : 'racing'

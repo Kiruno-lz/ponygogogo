@@ -1,6 +1,6 @@
 # 回归复现记录
 
-第一至四节对应本目录的 `countdown-overlay`、`wallet-busy`、`collection-locked-slots`、`modal-strictmode-close` 四个脚本，第五节的复现脚本在 `tests/e2e/specs/paid-race.spec.ts`，第六节对应 `gogo-exhausted`，第七节对应 `practice-spin-thrust`，第八节对应 `practice-gravity-trace`，`bunx playwright test --config tests/e2e/playwright.config.ts regressions/` 全量跑本目录。
+第一至四节对应本目录的 `countdown-overlay`、`wallet-busy`、`collection-locked-slots`、`modal-strictmode-close` 四个脚本，第五节的复现脚本在 `tests/e2e/specs/paid-race.spec.ts`，第六节对应 `gogo-exhausted`，第七节对应 `practice-spin-thrust`，第八节对应 `practice-gravity-trace`，第九节对应 `practice-lineup-seed`，`bunx playwright test --config tests/e2e/playwright.config.ts regressions/` 全量跑本目录。
 
 //TODO - 为 `anonymous-card-webkit`、`cosmetics-wind`、`equipment-card-selection`、`gogo-button-layout`、`gogo-camera`、`horse-selection`、`practice-rules-audio` 七个回归脚本补写缺陷现象、根因假设与关联 L1/L2 模块；判据是 `regressions/*.spec.ts` 每个文件在本文都有对应小节。
 
@@ -287,3 +287,35 @@ PLAYWRIGHT_PORT=5186 bunx playwright test --config tests/e2e/playwright.config.t
 - L1：`solver.gravity.test.ts` 独立重算 RK2 中点步骤、重叠井与事件截断；`paidSnapshot.test.ts` 核对步中间与到期快照；`paidDriver.test.ts` 核对付费展示的重叠井生产输入。
 - L2：`PaidRaceMotion.t.sol` 验证 1001 ms 为四个完整步加 1 ms 尾步，修改前失败；355 场 TS/Solidity 向量逐字段、事件和 digest 对照；`paid-session-anvil.test.ts` 在本地真实 Solver 核对单井与重叠井。
 - L3-R：本脚本覆盖真实练习展示，使用两种驱动共用的快照与 Phaser 装备渲染。测试网只读 state override 探针核对 80 场生产结果；不作为部署或真实智能账户付款证据。
+
+---
+
+## 九、固定 seed 不再固定练习赛：出场名单取自未播种的 Math.random
+
+脚本：`practice-lineup-seed.spec.ts`
+
+### 缺陷现象
+
+同一条 `?seed=` 的免费试玩每次刷新给出不同结果。`practice-rules-audio` 的「第一名」一档连跑三轮分别得到名次 3、1、4（期望 1，第二轮侥幸通过），「第四名」一档三轮都是 5（期望 4）；`practice-gravity-trace` 四轮全部在 `__gravityScene.ponies[0].blackhole.visible` 处轮询超时。三者共同的前提——玩家固定在 0 号车道、五匹马能力分布固定——已不成立。
+
+### 根因假设
+
+状态管理层。`src/ui/ponySelection.ts` 的 `createPonySelection(ids, rng = Math.random)` 用未播种的 `Math.random` 洗 `orderedPonyIds`；`selectionEntry` 由此给出 `playerHorseId = 4 - 可见位次` 与 `roster = [...可见].reverse()`；`src/App.tsx:414` 把两者原样交给练习 `RaceDriver`，`derivePaidCoreInput` 再按名单套用小马能力。seed 固定时，玩家车道与五匹马的能力分布仍每次挂载重抽。`SelectScreen` 已留出 `rng?: () => number` 入参，`App` 没有传。
+
+穷举 120 种名单排列（全程跳过选牌）可量化影响：`0x1392a0…` 得第一名的名单只有 3/120，`0x4fdb69…` 得第四名的只有 24/120。而第一面板候选牌与名单无关——C-17、C-02、C-10 在 120/120 种排列下不变——所以 `motion` 的 badge-pop 与 `practice-spin-thrust` 仍稳定通过。因此这不是换种子能解决的问题：任何 seed 都钉不住名次。
+
+### 复现说明
+
+```bash
+./node_modules/.bin/playwright test --config tests/e2e/playwright.config.ts regressions/practice-lineup-seed.spec.ts
+```
+
+第一例用同一条 `?seed=0x00000003` 的 URL 连开六次选马页，读 `horse-<ponyId>` 上的 `data-lane`，要求六次名单一致，修复前即在此失败。第二例截图并按清单核对选马页，再经选马、档位、开赛按钮进入比赛，读正在运行的 `RaceScene`，断言 `driver.state.playerHorseId` 等于选马页上 `horse-0` 的车道、`replayInput.roster[playerHorseId] === 0`，证明驱动直接采用这份名单。脚本只走 UI，不注入效果、不改规则时钟。
+
+### 关联模块与证据边界
+
+- L1：`src/ui/ponySelection.test.ts` 以注入的 rng 覆盖洗牌与 `selectionEntry`，因而捕捉不到生产默认值；修复应在该层补「同一 seed 得同一名单」的断言。`src/race/driver.test.ts` 固定传入 roster，同样不覆盖来源。
+- L2：不涉及端口契约。名单只在前端产生，`openSession` 的 `uint8[5] roster` 由 `src/chain/paidCalls.test.ts` 钉住。
+- L3-R：本脚本只证明名单不稳定以及它进入驱动的路径，不替 `practice-rules-audio`、`practice-gravity-trace` 的断言背书；在底层修复前，这两个脚本不应改写断言去迁就随机名单。
+
+修法应落在生产代码：由练习 seed（或一个显式 URL 入参）派生 `SelectScreen` 的 `rng`，使 `?seed=` 同时钉住名单。修复后还需按实际 `playerHorseId` 重述 `practice-gravity-trace` 里写死的 `ponies[0]`、`i.horse === 0`，以及本文第八节「玩家马 0」的表述。

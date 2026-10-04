@@ -9,6 +9,7 @@ import type { PaidCheckpointRecord } from './paid/solver.ts'
 import { ignoredChoiceOutcome, PaidRaceDriver, type SubmitChoice } from './paidDriver.ts'
 import { solveFromFacts } from './paidResult.ts'
 import { demoPos, demoSpeed, demoStamina, paidCardKey } from './paidSnapshot.ts'
+import { solvePaidRace } from './paid/race.ts'
 
 const T0 = 1_790_000_000
 const TIMING = { latencyMs: 700, marginMs: 2000 }
@@ -75,6 +76,29 @@ function anchorOffering(card: number | null, avoid: number[] = [3, 4]): Hex {
 }
 
 const plain = anchorOffering(null)
+
+test('confirmed paid roster activates role rules and is preserved by the driver, snapshot and canonical result', () => {
+  const f = { ...facts(plain, [null,null,null], 0), roster: [5,8,7,6,0] as const }
+  const r = rig(f)
+  r.driver.open(f)
+  r.runTo(1000)
+  const expected = solvePaidRace({ seed: f.seed, openAnchor: f.openAnchor, stakeTier: f.stakeTier,
+    playerHorseId: 0, roster: f.roster, choices: [null,null,null] }, { trace: false })
+  expect(r.driver.state.roster).toEqual(f.roster)
+  expect(r.driver.canonicalResult()?.digest).toBe(expected.digest)
+  expect(solveFromFacts(f).digest).toBe(expected.digest)
+})
+
+test('entry and reconciliation cannot replace the selected roster under the same session', () => {
+  const f = { ...facts(plain, [null,null,null], 0), roster: [5,8,7,6,0] as const }
+  const driver = new PaidRaceDriver({ playerHorseId: 0, stakeTier: f.stakeTier, roster: f.roster,
+    clock: new FakeClock(), timing: TIMING, submitChoice: async () => { throw new Error('no submission') } })
+  const changed = { ...f, roster: [0,8,7,6,5] as const }
+  expect(() => driver.open(changed)).toThrow('PAID_DRIVER_MISMATCH')
+  driver.open(f)
+  expect(() => driver.reconcile(changed)).toThrow('PAID_DRIVER_MISMATCH')
+  expect(driver.sessionFacts?.roster).toEqual(f.roster)
+})
 
 describe('paid driver: canonical time and snapshots', () => {
   test('before the entry lands it shows the countdown at ≥1 s and idle horses; a failed entry releases it', () => {

@@ -31,7 +31,11 @@ abstract contract PaidRaceVectorBase {
 
     /// @dev Case JSON strings in file order.
     function _cases() internal view returns (string[] memory cases) {
-        string memory file = vm.readFile(VECTOR_FILE);
+        return _cases(VECTOR_FILE);
+    }
+
+    function _cases(string memory path) internal view returns (string[] memory cases) {
+        string memory file = vm.readFile(path);
         uint256 count = vm.parseJsonUint(file, ".meta.count");
         string[] memory lines = vm.split(file, "\n");
         require(lines.length >= FIRST_CASE_LINE + count, "vector file shape");
@@ -73,6 +77,14 @@ abstract contract PaidRaceVectorBase {
 
     /// @notice decodeInput: the explicit core input of one case.
     function _input(string memory json) internal pure returns (PaidRaceEngine.CoreInput memory input) {
+        if (vm.keyExistsJson(json, ".input.roster")) {
+            uint256[] memory ids = vm.parseJsonUintArray(json, ".input.roster");
+            require(ids.length == 5, "roster length");
+            input.ponyAbilities = true;
+            for (uint256 h; h < 5; ++h) {
+                input.roster[h] = uint8(ids[h]);
+            }
+        }
         for (uint256 h; h < 5; ++h) {
             string memory p = _key(".input.profiles", h, "");
             input.profiles[h] = PaidProfiles.Profile(

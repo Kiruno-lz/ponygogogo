@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { keccak256, toHex, type Address, type Hex } from 'viem'
 import { readSessionFacts, type SessionReader } from './paidSession.ts'
+import { LEGACY_PAID_RULESET_HASH } from '../race/paid/cardRules.ts'
 
 const GAME = '0x1111111111111111111111111111111111111111' as Address
 const PLAYER = '0x3333333333333333333333333333333333333333' as Address
@@ -16,7 +17,7 @@ const absent = { present: false, txSec: 0, blockNumber: 0n, cardId: 0, refreshSl
 /** getSession 给定视图；getBlock 交给 block() 决定何时、如何返回 */
 function reader(choices: readonly unknown[], block: (n: bigint) => Promise<{ hash: Hex | null }>): SessionReader {
   return {
-    readContract: (async () => ({
+    readContract: (async ({ functionName }: { functionName: string }) => functionName === 'rulesetHash' ? LEGACY_PAID_RULESET_HASH : ({
       player: PLAYER, state: 1, playerHorseId: 2, stakeTier: 2, stake: 10n ** 17n, openedAt: 1_790_000_000n,
       openedBlock: 100n, seed: SEALED, openAnchor: ZERO, lastCheckpoint: 3, choices,
     })) as never,

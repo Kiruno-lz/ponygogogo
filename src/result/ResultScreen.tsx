@@ -10,7 +10,9 @@ import { cardIconUrl } from '../race/cards/iconUrl.ts'
  * 1620×971 画板上的透明素材保持原始宽高比；文字与素材一起布局。
  * 分享海报使用独立空白素材，动态内容与本页共用比赛和链上结算结果。
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { CollectibleGrant } from '../chain/rewards.ts'
+import { CollectibleDialog, type CollectionSyncView } from './CollectibleDialog.tsx'
 import { SharePosterDialog } from './SharePosterDialog.tsx'
 import type { Hex } from 'viem'
 import { formatMon } from '../chain/amount.ts'
@@ -18,7 +20,7 @@ import { explorerTxUrl } from '../chain/network.ts'
 import { paidCardDef } from '../race/cards/paidCards.ts'
 import { SIM_HZ } from '../race/core/constants.ts'
 import type { RaceResult } from '../race/core/types.ts'
-import { HORSE_PROFILES } from '../game/horses.ts'
+import { ponyById, ponyIdAt } from '../game/ponyCatalog.ts'
 import { usePress } from '../ui/Button.tsx'
 import { t, type Lang } from '../ui/i18n.ts'
 import { deadlineText, type DeadlineView } from '../ui/paidText.ts'
@@ -27,14 +29,6 @@ import { useNow } from '../ui/useNow.ts'
 /** 奖台踏面与角色中轴，五匹马按各自蹄底对齐 */
 const HERO_BASELINE = 739
 const HERO_CENTER_X = 380
-/** 五匹马统一缩到 hero-0 的 515×393 画布；每匹的实体位置不同，各自记下中轴与蹄底 */
-const HERO_FRAMES = [
-  { centerX: 247, bottom: 379 },
-  { centerX: 263, bottom: 382 },
-  { centerX: 259, bottom: 376 },
-  { centerX: 262, bottom: 380 },
-  { centerX: 260, bottom: 378 },
-]
 const HERO_W = 515
 const HERO_H = 393
 const HERO_SCALE = 1.12
@@ -72,6 +66,9 @@ export interface PaidResultView {
   /** 每个检查点在没有卡时的说明（断卡、自动、冲线时关闭等） */
   choiceNotes: (string | null)[]
   onRetry: () => void
+  grant?: CollectibleGrant | null
+  grantError?: string | null
+  onRetryGrant?: () => void
 }
 
 export interface ResultScreenProps {
@@ -81,13 +78,23 @@ export interface ResultScreenProps {
   onAgain: () => void
   onHome: () => void
   choiceNotes?: (string | null)[]
+  collectionSync?: CollectionSyncView
 }
 
 export function ResultScreen(p: ResultScreenProps) {
   const [shareOpen, setShareOpen] = useState(false)
-  const prof = HORSE_PROFILES[p.result.horseId]!
+  const [shownGrant, setShownGrant] = useState<CollectibleGrant | null>(null)
+  const presented = useRef(new Set<string>())
+  const grant = p.paid?.phase === 'settled' && p.paid.settlement ? p.paid.grant : null
+  useEffect(() => {
+    if (!grant || presented.current.has(grant.sessionId.toLowerCase())) return
+    presented.current.add(grant.sessionId.toLowerCase())
+    setShownGrant(grant)
+  }, [grant])
+  const ponyId = ponyIdAt(p.result.roster, p.result.horseId)
+  const prof = ponyById(ponyId)
   const combo = p.result.endReason === 'forced-combo'
-  const hero = HERO_FRAMES[p.result.horseId] ?? HERO_FRAMES[0]!
+  const hero = prof.renderSpec.resultFooting
   const paid = p.paid ?? null
   const settled = paid?.settlement ?? null
   const forfeited = paid?.phase === 'forfeited'
@@ -98,7 +105,7 @@ export function ResultScreen(p: ResultScreenProps) {
     ? t(p.lang, 'result.chainRank', { rank: settled.rank })
     : t(p.lang, forfeited ? 'result.previewRankForfeited' : 'result.previewRank', { rank: paid.previewRank })
   /** 结算未完成（或与预览不一致）时，按钮行下方另起一行说明；名次说明并入这一行，避免两行叠在一起 */
-  const showDetail = paid !== null && (paid.phase !== 'settled' || paid.mismatch)
+  const showDetail = paid !== null && (paid.phase !== 'settled' || paid.mismatch || !!paid.grantError)
   const deadline = paid && !settled && !forfeited ? paid.deadline : null
   const now = useNow(15_000, deadline?.state === 'open')
   const deadlineLine = deadlineText(p.lang, deadline, now)
@@ -111,7 +118,7 @@ export function ResultScreen(p: ResultScreenProps) {
         <img className="result-bg" src="/assets/art/result/background.webp" alt="" draggable={false} />
         <img
           className="result-hero"
-          src={`/assets/art/result/hero-${p.result.horseId}.webp`}
+          src={`/assets/art/result/hero-${ponyId}.webp`}
           alt={prof.name}
           draggable={false}
           style={{
@@ -217,7 +224,7 @@ export function ResultScreen(p: ResultScreenProps) {
         <span className="result-name">{prof.name}</span>
         <span className="result-rank-line">
           <span className="result-rank-label">{t(p.lang, 'result.rank')}</span>
-          <span className="result-rank-total mono">/ {HORSE_PROFILES.length}</span>
+          <span className="result-rank-total mono">/ 5</span>
         </span>
         {combo && !paid && (
           <span className="result-combo" data-testid="result-combo">
@@ -251,7 +258,7 @@ export function ResultScreen(p: ResultScreenProps) {
             <div className="result-settle-line">
               <span className="result-settle-verify" data-testid="result-verify">{verifyText}</span>
               <span className="result-settle-text">
-                {paid.phase === 'failed'
+                {paid.grantError && paid.phase === 'settled' ? t(p.lang, 'grant.readFailed') : paid.phase === 'failed'
                   ? t(p.lang, 'result.settleFailed', { reason: paid.detail ?? '' })
                   : paid.phase === 'waiting'
                     ? t(p.lang, 'result.settleWaiting')
@@ -266,6 +273,9 @@ export function ResultScreen(p: ResultScreenProps) {
                   {t(p.lang, 'result.retry')}
                 </button>
               )}
+              {paid.phase === 'settled' && paid.grantError && <button type="button" className="chip" data-testid="grant-retry" onClick={paid.onRetryGrant}>
+                {t(p.lang, 'grant.retryRead')}
+              </button>}
             </div>
             {deadlineLine && (
               <span className="result-settle-deadline" data-testid="settle-deadline" data-state={deadline?.state}>{deadlineLine}</span>
@@ -274,6 +284,7 @@ export function ResultScreen(p: ResultScreenProps) {
         )}
       </div>
       {shareOpen && <SharePosterDialog lang={p.lang} result={p.result} paid={p.paid} onClose={() => setShareOpen(false)} />}
+      {shownGrant && <CollectibleDialog grant={shownGrant} lang={p.lang} sync={p.collectionSync} onClose={() => setShownGrant(null)}/>}
     </div>
   )
 }

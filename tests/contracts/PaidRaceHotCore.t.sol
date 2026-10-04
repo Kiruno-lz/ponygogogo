@@ -36,6 +36,17 @@ contract PaidRaceHotCoreTest is PaidRaceVectorBase {
         require(!ok, "obsolete support getter remains");
     }
 
+    /// @dev The deployed Solver requires a roster, so the production workload runs with `DEFAULT_ROSTER`
+    /// ([0,1,2,3,4] in `src/chain/paidCalls.ts`) and therefore with pony abilities on, like a real settlement.
+    function _productionInput(PaidRaceEngine.CoreInput memory core, uint256 index)
+        internal
+        pure
+        returns (IPaidRaceSolver.RaceInput memory input)
+    {
+        input = _derivedRaceInput(core, index);
+        input.roster = [uint8(0), 1, 2, 3, 4];
+    }
+
     /// @dev Explicit-profile adversarial fixture: diagnostic kernel gas, separate from production solve gas.
     function solveDiagnostic(PaidRaceEngine.CoreInput calldata input)
         external
@@ -68,7 +79,7 @@ contract PaidRaceHotCoreTest is PaidRaceVectorBase {
                 adversarial = true;
             }
             if (!_eq(name, string.concat("derived-", _itoa(count)))) continue;
-            IPaidRaceSolver.RaceInput memory input = _derivedRaceInput(_input(cases[i]), count);
+            IPaidRaceSolver.RaceInput memory input = _productionInput(_input(cases[i]), count);
             bytes memory data = abi.encodeCall(IPaidRaceSolver.solve, (input));
             emit log_named_bytes(string.concat("input ", name), data);
             emit log_named_bytes32(string.concat("expected ", name), keccak256(abi.encode(solver.solve(input))));
@@ -98,7 +109,7 @@ contract PaidRaceHotCoreTest is PaidRaceVectorBase {
         for (uint256 i; i < cases.length; ++i) {
             string memory name = vm.parseJsonString(cases[i], ".name");
             if (!_eq(name, string.concat("derived-", _itoa(count)))) continue;
-            (uint256 used, bytes32 hash) = this.measure(solver, _derivedRaceInput(_input(cases[i]), count));
+            (uint256 used, bytes32 hash) = this.measure(solver, _productionInput(_input(cases[i]), count));
             emit log_named_uint(string.concat("cold gas ", name), used);
             emit log_named_bytes32(string.concat("result ", name), hash);
             total += used;

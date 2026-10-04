@@ -1,6 +1,7 @@
 /** 赛道美术对象：只订阅速度、停步、飞行和外观状态，分镜帧不参与规则。 */
 import Phaser from 'phaser'
 import type { HorseProfile } from './horses.ts'
+import { ponyById } from './ponyCatalog.ts'
 import { decodeImage } from './images.ts'
 import {
   EFFECT_TEXTURES,
@@ -25,12 +26,12 @@ export function ponyTextureKeys(horseId: number): { running: string; idle: strin
 }
 export type PonyImages = Record<string, HTMLImageElement>
 
-export async function preparePonyImages(profiles: HorseProfile[]): Promise<PonyImages> {
+export async function preparePonyImages(profiles: HorseProfile[], urls: Record<string,string> = {}): Promise<PonyImages> {
   const out: PonyImages = {}
   await Promise.all(profiles.flatMap(p => {
     const keys = ponyTextureKeys(p.horseId)
     return (['running', 'idle'] as const).map(action =>
-      decodeImage(`/assets/art/ponies/${p.horseId}-${action}.webp`).then(img => { out[keys[action]] = img }))
+      decodeImage(urls[`art.ponies.${p.horseId}-${action}`] ?? `/assets/art/ponies/${p.horseId}-${action}.webp`).then(img => { out[keys[action]] = img }))
   }))
   return out
 }
@@ -61,7 +62,8 @@ export class PonySprite extends Phaser.GameObjects.Container {
 
   constructor(scene: Phaser.Scene, readonly opts: PonyOptions) {
     super(scene, 0, 0)
-    this.shadow = scene.add.ellipse(0, 0, 136, 16, 0x261608, .23)
+    const renderSpec = ponyById(opts.profile.horseId).renderSpec
+    this.shadow = scene.add.ellipse(0, 0, renderSpec.shadowWidth, 16, 0x261608, .23)
     this.add(this.shadow)
     this.root = scene.add.container(0, 0)
     this.add(this.root)
@@ -70,29 +72,30 @@ export class PonySprite extends Phaser.GameObjects.Container {
       .setOrigin(.99, .54).setDisplaySize(118, 79).setVisible(false)
     this.root.add(this.rainbowTrail)
 
-    const wheelPositions = [[-48, -12], [48, -12], [-66, -8], [68, -8]] as const
+    const wheelPositions = renderSpec.feet
+    const rearWheelCount = Math.floor(wheelPositions.length / 2)
     this.fireWheels = wheelPositions.map(([x, y], i) => scene.add
       .image(x, y, EFFECT_TEXTURES.fireWheel.textureKey, i * 4)
-      .setDisplaySize(i < 2 ? 34 : 40, i < 2 ? 34 : 40)
-      .setAlpha(i < 2 ? .76 : .96)
+      .setDisplaySize(i < rearWheelCount ? 34 : 40, i < rearWheelCount ? 34 : 40)
+      .setAlpha(i < rearWheelCount ? .76 : .96)
       .setVisible(false))
-    this.root.add([this.fireWheels[0]!, this.fireWheels[1]!])
+    this.root.add(this.fireWheels.slice(0, rearWheelCount))
 
     this.torso = scene.add.image(0, 0, ponyTextureKeys(opts.profile.horseId).idle, 0)
-      .setOrigin(.5, 180 / FRAME_H).setScale(opts.profile.horseId === 0 ? .85 : PONY_SCALE)
+      .setOrigin(.5, renderSpec.groundOrigin).setScale(renderSpec.scale)
     this.root.add(this.torso)
 
     const head = spriteAnchorOffset(this.torso.displayWidth, this.torso.displayHeight,
-      this.torso.originX, this.torso.originY, .73, .34)
+      this.torso.originX, this.torso.originY, ...renderSpec.head)
     this.headAccessory = scene.add.image(this.torso.x + head.x, this.torso.y + head.y,
       HEAD_COSMETIC_TEXTURES.blonde.textureKey).setVisible(false)
     this.root.add(this.headAccessory)
 
-    this.root.add([this.fireWheels[2]!, this.fireWheels[3]!])
+    this.root.add(this.fireWheels.slice(rearWheelCount))
     // 彩虹素材的右侧发射端贴合尾根；沿用马体根节点的升降与翻面。
     const tail = spriteAnchorOffset(
       this.torso.displayWidth, this.torso.displayHeight,
-      this.torso.originX, this.torso.originY, .30, .55,
+      this.torso.originX, this.torso.originY, ...renderSpec.tail,
     )
     this.rainbowTrail.setPosition(this.torso.x + tail.x, this.torso.y + tail.y)
     const belly = spriteAnchorOffset(
@@ -100,8 +103,7 @@ export class PonySprite extends Phaser.GameObjects.Container {
       this.torso.displayHeight,
       this.torso.originX,
       this.torso.originY,
-      .44,
-      .68,
+      ...renderSpec.belly,
     )
     this.rocket = scene.add.image(this.torso.x + belly.x, this.torso.y + belly.y, EFFECT_TEXTURES.rocket.textureKey, 0)
       .setDisplaySize(82, 55).setVisible(false)

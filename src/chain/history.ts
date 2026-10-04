@@ -10,6 +10,7 @@
  */
 import { getAddress, isAddress, type Address, type Hex } from 'viem'
 import { CHAIN } from './network.ts'
+import { normalizeRoster, type PonyRoster } from '../race/core/roster.ts'
 
 /**
  * 端点只从构建期变量读取，不接受 URL 参数。要求 https；http 只放行本机开发地址。
@@ -46,6 +47,7 @@ export type HistoryChoice = {
 
 /** 一场有奖比赛的历史记录。仅供展示，不是资金或会话状态的依据。 */
 export type HistorySession = {
+  roster?: readonly number[]
   sessionId: Hex
   horseId: number
   stake: bigint
@@ -94,7 +96,7 @@ export type HistoryDeps = {
 
 export const HISTORY_QUERY = `query RecentSessions($player: String!, $limit: Int!) {
   Session(where: { player_id: { _eq: $player } }, order_by: { openedBlock: desc }, limit: $limit) {
-    id horseId stake state openedAt openedBlock openTx
+    id horseId roster stake state openedAt openedBlock openTx
     playerSettlementRank playerRawRank payout net forfeitReason closedAt closeTx
     choices { checkpoint cardId effective }
   }
@@ -118,17 +120,22 @@ export async function fetchRecentSessions(player: string, deps: HistoryDeps = {}
   const timer = setTimeout(() => controller.abort(), deps.timeoutMs ?? 10_000)
   let body: unknown
   try {
-    const res = await doFetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: HISTORY_QUERY, variables: { player: account, limit } }),
-      signal: controller.signal,
-    })
-    if (!res.ok) {
-      const detail = (await res.text().catch(() => '')).slice(0, 200)
-      return { status: 'error', code: 'http', detail: detail || `HTTP ${res.status}` }
+    let query = HISTORY_QUERY
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = await doFetch(url, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { player: account, limit } }), signal: controller.signal,
+      })
+      if (!res.ok) {
+        const detail = (await res.text().catch(() => '')).slice(0, 200)
+        return { status: 'error', code: 'http', detail: detail || `HTTP ${res.status}` }
+      }
+      body = await res.json().catch(() => undefined)
+      const oldSchema = isRecord(body) && Array.isArray(body.errors) && body.errors.some(error => isRecord(error)
+        && typeof error.message === 'string' && /cannot query field "roster"|field ['"]roster['"] (?:was )?not found/i.test(error.message))
+      if (attempt === 0 && oldSchema) { query = HISTORY_QUERY.replace('id horseId roster stake', 'id horseId stake'); continue }
+      break
     }
-    body = await res.json().catch(() => undefined)
   } catch (err) {
     return { status: 'error', code: 'network', detail: err instanceof Error ? err.message : String(err) }
   } finally {
@@ -180,6 +187,10 @@ function parseSession(row: unknown): HistorySession | string {
   if (!state) return 'state'
   const horseId = toInt(row.horseId)
   if (horseId === null || horseId < 0 || horseId > 4) return 'horseId'
+  let roster: PonyRoster | undefined
+  if (row.roster !== undefined && row.roster !== null) {
+    try { roster = normalizeRoster(row.roster) } catch { return 'roster' }
+  }
   const stake = toBigInt(row.stake)
   if (stake === null || stake <= 0n) return 'stake'
   const openedAt = toInt(row.openedAt)
@@ -224,6 +235,7 @@ function parseSession(row: unknown): HistorySession | string {
   return {
     sessionId: sessionId as Hex,
     horseId,
+    ...(roster ? { roster } : {}),
     stake,
     state,
     openedAt,

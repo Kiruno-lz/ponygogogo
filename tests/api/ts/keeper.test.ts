@@ -122,7 +122,7 @@ describe('keeper × PonyGame on anvil', () => {
   })
   const forgeEnv = (extra: Record<string, string>) => ({
     PATH: process.env.PATH ?? '', HOME: homedir(), FOUNDRY_OFFLINE: 'true', ETH_RPC_URL: rpcUrl,
-    NO_PROXY: 'localhost,127.0.0.1',
+    NO_PROXY: '127.0.0.1,localhost', no_proxy: '127.0.0.1,localhost',
     DEPLOYER_PRIVATE_KEY_PATH: KEY_FILE, ...extra,
   })
   const readVault = async (functionName: string, args: readonly unknown[] = []) =>
@@ -155,7 +155,7 @@ describe('keeper × PonyGame on anvil', () => {
   }
 
   async function openSession(horseId: number, at: bigint): Promise<Hex> {
-    await send('player', game, gameAbi(), 'openSession', [horseId, TIER1], TIER1, at)
+    await send('player', game, gameAbi(), 'openSession', [horseId, TIER1, [0, 1, 2, 3, 4]], TIER1, at)
     return await clients().pub.readContract({
       address: game, abi: gameAbi(), functionName: 'sessionOf', args: [player.address],
     }) as Hex

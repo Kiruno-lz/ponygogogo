@@ -25,6 +25,7 @@ art-src/ 是唯一真源，public/assets/ 全部由本脚本生成，不要手�
 from __future__ import annotations
 
 import hashlib
+import argparse
 import json
 import re
 import shutil
@@ -224,6 +225,9 @@ def group_key(rel: str) -> str:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--pony', type=int, choices=range(9), nargs='+', help='Rebuild only these character assets in an existing manifest')
+    pony_ids = parser.parse_args().pony
     if not SRC.is_dir():
         print(f"找不到素材母版目录 {SRC}", file=sys.stderr)
         return 1
@@ -232,7 +236,8 @@ def main() -> int:
             print(f"缺少 {tool}：{hint}", file=sys.stderr)
             return 1
 
-    subprocess.run(["bun", str(ROOT / "scripts/prepare-share-qr.ts")], check=True)
+    if pony_ids is None:
+        subprocess.run(["bun", str(ROOT / "scripts/prepare-share-qr.ts")], check=True)
     raw = json.loads(SIZES_FILE.read_text())
     # 实测表的 key 是不带扩展名的运行时路径 /assets/art/...，换算成相对母版根的路径。
     # 不带扩展名是刻意的：测量跑在 WebP 产物上，这里查的却是 PNG 母版。
@@ -310,11 +315,23 @@ def main() -> int:
         )
         return 1
 
-    if OUT.exists():
+    manifest_path = OUT / 'manifest.json'
+    if pony_ids is not None:
+        # Incremental character work must not re-encode unrelated music/fonts or remove live assets.
+        if not manifest_path.exists():
+            raise ValueError('--pony requires an existing complete asset manifest')
+        manifest = json.loads(manifest_path.read_text())
+        wanted = {f'art/ponies/{pony}-{suffix}.webp' for pony in pony_ids for suffix in ('idle', 'running', 'idle-0', 'portrait')}
+        wanted |= {f'art/{folder}/{prefix}-{pony}.webp' for pony in pony_ids for folder, prefix in (('result','hero'),('share','horse'))}
+        items = [item for item in items if item.rel in wanted]
+        if {item.rel for item in items} != wanted:
+            raise ValueError('Incomplete character source assets: ' + ', '.join(sorted(wanted - {item.rel for item in items})))
+    elif OUT.exists():
         shutil.rmtree(OUT)
-    OUT.mkdir(parents=True)
+    OUT.mkdir(parents=True, exist_ok=True)
 
-    manifest: dict[str, dict] = {}
+    if pony_ids is None:
+        manifest: dict[str, dict] = {}
     src_bytes = out_bytes = 0
     resized = 0
     for it in items:
@@ -349,6 +366,8 @@ def main() -> int:
                 "sha256": hashlib.sha256(data).hexdigest()[:16],
                 "tier": it.tier,
             }
+            if re.fullmatch(r"art/(?:ponies/\d+-(?:idle|running|idle-0|portrait)|result/hero-\d+|share/horse-\d+)\.webp", it.rel):
+                entry['deferred'] = True
             if it.rel.endswith(".mp3"):
                 ogg_key = key
                 if ogg_key in manifest:
@@ -377,7 +396,8 @@ def main() -> int:
             print(f"  {t:<7} {human(by_tier[t])}")
     print(f"进首页需要 {human(by_tier.get('boot', 0) + by_tier.get('home', 0))}，"
           f"其余 {human(sum(v for k, v in by_tier.items() if k in ('race', 'result')))} 后台预取")
-    subprocess.run(["bun", str(ROOT / "scripts/gen-paid-card-icons.ts")], check=True)
+    if pony_ids is None:
+        subprocess.run(["bun", str(ROOT / "scripts/gen-paid-card-icons.ts")], check=True)
     return 0
 
 

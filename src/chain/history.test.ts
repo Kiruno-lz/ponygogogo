@@ -82,6 +82,26 @@ function recordingFetch(respond: Response | Error | ((init: RequestInit) => Prom
   return { calls, impl }
 }
 
+test('history preserves roster identity and rejects an invalid roster rather than displaying a partial list', () => {
+  const roster = [8,7,5,6,0]
+  const parsed = parseHistoryResponse(body([{ ...settledRow(), roster }]), CHAIN.id)
+  expect(parsed.status).toBe('ok')
+  if (parsed.status !== 'ok') throw new Error('missing history')
+  expect(parsed.sessions[0]!.roster).toEqual(roster)
+  for (const invalid of [[0,1,2,3,3], [0,1,2,3,9], [0,1,2,3]]) {
+    expect(parseHistoryResponse(body([{ ...settledRow(), roster: invalid }]), CHAIN.id)).toMatchObject({ status: 'error', code: 'malformed' })
+  }
+})
+
+test('an older indexer without the roster field remains readable through one explicit legacy query', async () => {
+  const recorder = recordingFetch(async init => {
+    const query = JSON.parse(String(init.body)).query as string
+    return query.includes('roster') ? json({ errors: [{ message: 'Cannot query field "roster" on type "Session".' }] }) : json(body([settledRow()]))
+  })
+  expect(await fetchRecentSessions(PLAYER, { url: URL_OK, fetchImpl: recorder.impl })).toMatchObject({ status: 'ok' })
+  expect(recorder.calls).toHaveLength(2)
+})
+
 const json = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } })
 

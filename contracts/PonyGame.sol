@@ -9,8 +9,11 @@ import {IPaidRaceSolver} from "./interfaces/IPaidRaceSolver.sol";
 import {PaidCardRules} from "./libraries/PaidCardRules.sol";
 import {PaidSeed} from "./libraries/PaidSeed.sol";
 import {PonyVault} from "./PonyVault.sol";
+import {PonyRules} from "./libraries/PonyRules.sol";
 import {RacePayout} from "./libraries/RacePayout.sol";
 import {RandomAnchor} from "./libraries/RandomAnchor.sol";
+import {RewardRules} from "./libraries/RewardRules.sol";
+import {PonyRewards} from "./PonyRewards.sol";
 
 /// @notice 会话协议 v2: paid sessions, choice records, random-anchor sealing, authoritative settlement and forfeits.
 /// There are no refunds: a session that can never settle is forfeited by its player (payout 0).
@@ -20,6 +23,7 @@ import {RandomAnchor} from "./libraries/RandomAnchor.sol";
 /// (有奖规则 v3), which ignores a rule-breaking choice.
 contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
     error InvalidConfiguration();
+    error InsufficientRewardGas();
     error EntryPaused();
     error InvalidEntry();
     error StakeValueMismatch();
@@ -80,6 +84,7 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
         bytes32 seed;
         bytes32 openAnchor;
         Choice[3] choices;
+        uint8[5] roster;
     }
 
     struct ChoiceView {
@@ -103,9 +108,11 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
         bytes32 openAnchor;
         uint8 lastCheckpoint;
         ChoiceView[3] choices;
+        uint8[5] roster;
     }
 
     IPaidRaceSolver public immutable solver;
+    PonyRewards public immutable rewards;
     bytes32 public immutable rulesetHash;
     PonyVault public vault;
     bool public entryPaused = true;
@@ -116,6 +123,7 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
     mapping(bytes32 => Session) internal _sessions;
 
     event VaultBound(address indexed vault);
+    event RewardsBound(address indexed rewards);
     event EntryPauseChanged(bool paused);
     event SessionOpened(
         bytes32 indexed sessionId,
@@ -125,7 +133,8 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
         bytes32 seed,
         uint64 openedAt,
         uint64 openedBlock,
-        bytes32 rulesetHash
+        bytes32 rulesetHash,
+        uint8[5] roster
     );
     event CardChosen(
         bytes32 indexed sessionId,
@@ -151,12 +160,14 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
     );
     event SessionForfeited(bytes32 indexed sessionId, address indexed player, uint256 stake, uint8 reason);
 
-    constructor(address owner_, IPaidRaceSolver solver_) Ownable(owner_) {
-        if (address(solver_).code.length == 0) revert InvalidConfiguration();
+    constructor(address owner_, IPaidRaceSolver solver_, PonyRewards rewards_) Ownable(owner_) {
+        if (address(solver_).code.length == 0 || address(rewards_).code.length == 0) revert InvalidConfiguration();
         bytes32 ruleset = solver_.rulesetHash();
         if (ruleset == bytes32(0)) revert InvalidConfiguration();
         solver = solver_;
+        rewards = rewards_;
         rulesetHash = ruleset;
+        emit RewardsBound(address(rewards_));
     }
 
     // ---------------------------------------------------------------- admin
@@ -192,14 +203,24 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
 
     // ---------------------------------------------------------------- session lifecycle
 
-    function openSession(uint8 horseId, uint256 stake) external payable nonReentrant returns (bytes32 sessionId) {
-        return _open(msg.sender, horseId, stake);
+    function openSession(uint8 horseId, uint256 stake, uint8[5] calldata roster)
+        external
+        payable
+        nonReentrant
+        returns (bytes32 sessionId)
+    {
+        return _open(msg.sender, horseId, stake, roster);
     }
 
     /// @notice The only Game function allowed in Alchemy's agent session permission.
-    function openAgentSession(uint8 horseId, uint256 stake) external payable nonReentrant returns (bytes32 sessionId) {
+    function openAgentSession(uint8 horseId, uint256 stake, uint8[5] calldata roster)
+        external
+        payable
+        nonReentrant
+        returns (bytes32 sessionId)
+    {
         _consumeAgentBudget(msg.sender, stake);
-        return _open(msg.sender, horseId, stake);
+        return _open(msg.sender, horseId, stake, roster);
     }
 
     /// @notice Records the player's transaction (cardId 0 = active forfeit) for `checkpoint` 1..3 at this block's
@@ -238,6 +259,7 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
     /// sealed or still readable. No deadline once sealed.
     function settleSession(bytes32 sessionId) external nonReentrant returns (uint256 payout) {
         Session storage session = _openSession(sessionId);
+        if (gasleft() < RewardRules.GAS_RESERVE) revert InsufficientRewardGas();
         IPaidRaceSolver.RaceInput memory input = _raceInput(session);
         _seal(sessionId, session, input);
         IPaidRaceSolver.RaceResult memory result = solver.solve(input);
@@ -252,6 +274,12 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
         address player = session.player;
         session.state = STATE_SETTLED;
         delete sessionOf[player];
+        // The grant runs before the payout: settleStake pays the player with an uncapped call, so a player
+        // contract whose receive() burns gas would otherwise decide this check and revert a valid settlement.
+        // The reserve still stops a keeper from starving the grant, and settleStake never reverts on a failed
+        // player transfer, so settlement success stays decided by the Vault alone.
+        if (gasleft() < RewardRules.GAS_RESERVE) revert InsufficientRewardGas();
+        _grantCollectible(sessionId, player);
         payout = vault.settleStake(sessionId, payout);
         emit SessionSettled(
             sessionId,
@@ -264,6 +292,27 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
             result.digest,
             result.acquired
         );
+    }
+
+    event CollectibleSkipped(bytes32 indexed sessionId);
+
+    /// @dev Collection randomness is deliberately independent of race outcomes and payouts.
+    function _grantCollectible(bytes32 sessionId, address player) private {
+        uint256 owned;
+        try rewards.ownedMask{gas: 20000}(player) returns (uint256 mask) {
+            owned = mask;
+        } catch {
+            emit CollectibleSkipped(sessionId);
+            return;
+        }
+        bytes32 seed =
+            keccak256(abi.encode(blockhash(block.number - 1), block.chainid, address(this), sessionId, player));
+        (bool granted, uint8 kind, uint8 id) = RewardRules.draw(seed, owned);
+        if (!granted) return;
+        try rewards.record{gas: RewardRules.RECORD_GAS}(sessionId, player, kind, id) {}
+        catch {
+            emit CollectibleSkipped(sessionId);
+        }
     }
 
     /// @notice Closes a session that can never settle with payout 0: the stake goes to house liquidity and the
@@ -308,6 +357,7 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
         view_.seed = session.seed;
         view_.openAnchor = session.openAnchor;
         view_.lastCheckpoint = session.lastCheckpoint;
+        view_.roster = session.roster;
         for (uint256 i; i < CHECKPOINTS; ++i) {
             Choice storage choice = session.choices[i];
             view_.choices[i] = ChoiceView(
@@ -383,13 +433,17 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
 
     // ---------------------------------------------------------------- internals
 
-    function _open(address player, uint8 horseId, uint256 stake) private returns (bytes32 sessionId) {
+    function _open(address player, uint8 horseId, uint256 stake, uint8[5] calldata roster)
+        private
+        returns (bytes32 sessionId)
+    {
         if (entryPaused) revert EntryPaused();
         if (msg.value != stake) revert StakeValueMismatch();
         PonyVault vault_ = vault;
         if (address(vault_) == address(0)) revert InvalidConfiguration();
         uint8 tier = stakeTier(stake);
         if (horseId >= 5 || tier == 0) revert InvalidEntry();
+        _validateRoster(roster);
         if (sessionOf[player] != bytes32(0)) revert ActiveSession();
 
         uint256 nonce = ++nonces[player];
@@ -403,11 +457,21 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
         session.state = STATE_OPEN;
         session.openedBlock = uint64(block.number);
         session.seed = seed;
+        session.roster = roster;
         sessionOf[player] = sessionId;
         emit SessionOpened(
-            sessionId, player, horseId, stake, seed, uint64(block.timestamp), uint64(block.number), rulesetHash
+            sessionId, player, horseId, stake, seed, uint64(block.timestamp), uint64(block.number), rulesetHash, roster
         );
         vault_.lockStake{value: msg.value}(sessionId, player, stake, RacePayout.maximum(stake, payoutMultipliers()));
+    }
+
+    function _validateRoster(uint8[5] calldata roster) private pure {
+        uint256 seen;
+        for (uint256 h; h < 5; ++h) {
+            uint256 bit = uint256(1) << roster[h];
+            if (!PonyRules.enabled(roster[h]) || seen & bit != 0) revert InvalidEntry();
+            seen |= bit;
+        }
     }
 
     /// @dev Builds the solver input from storage; every present choice carries its anchor. Reverts
@@ -416,6 +480,7 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
         input.seed = session.seed;
         input.stakeTier = session.stakeTier;
         input.playerHorseId = session.playerHorseId;
+        input.roster = session.roster;
         bytes32 openAnchor = session.openAnchor;
         input.openAnchor = openAnchor != bytes32(0) ? openAnchor : RandomAnchor.read(session.openedBlock);
         for (uint256 i; i < CHECKPOINTS; ++i) {
