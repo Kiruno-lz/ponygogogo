@@ -5,14 +5,15 @@ pragma solidity ^0.8.28;
 library PaidCardRules {
     error InvalidCard();
 
-    bytes32 internal constant TABLE_HASH = 0x97caa9441c455075b4f7ef87c655e7461536eda6ead4ec9ed9f49ca93322a57d;
-    bytes32 internal constant RULESET_HASH = 0x57f1149242930a98ef7819e90b5945887432efcc677578a290b19e355536af6e;
+    bytes32 internal constant TABLE_HASH = 0x5fe93ed7989dd76dcccbc106fc2c4d0441b0c046f09e722906afd77a3b143912;
+    bytes32 internal constant RULESET_HASH = 0xbb2c9df7e6a29f0c6c54510063905c4652e08e0e987b262484cc77eb46dae876;
     uint256 internal constant RARE_MASK = 0xf6e232973e;
     uint256 internal constant CPU_MASK = 0xbfefe3fae3;
     uint32 internal constant PERMANENT_MS = type(uint32).max;
     uint8 internal constant CARD_COUNT = 40;
     uint16 internal constant MIN_COST_FACTOR_BPS = 1000;
     uint32 internal constant BONUS_DEFAULT_MS = 20000;
+    uint256 internal constant RK_STEP_MS = 250;
     uint8 internal constant EFFECT_AIRBORNE_SPEED = 1;
     uint8 internal constant EFFECT_SPEED_DEATH = 2;
     uint8 internal constant EFFECT_DRAW_CUT = 3;

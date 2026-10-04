@@ -25,7 +25,7 @@ export const WELL_STRENGTH_BPS = BigInt(paidCardRule(10).strengthBps!)
 export const WELL_OVERLAP_BPS = BigInt(paidCardRule(10).overlapBps!)
 export const WIND_BPS = BigInt(paidCardRule(12).strengthBps!)
 export const WHEEL_DELTA_V = BigInt(paidCardRule(11).fixedSpeed!)
-export const RK_STEP_MS = 50n
+export const RK_STEP_MS = BigInt(PAID_CARD_GLOBALS.rkStepMs)
 
 export const SLOW_FACTOR = 10n
 export const CHOICE_WINDOW_SEC = 20n

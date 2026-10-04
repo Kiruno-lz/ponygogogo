@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidSeed} from "../../contracts/PaidSeed.sol";
+import {PaidSeed} from "../../contracts/libraries/PaidSeed.sol";
 
 contract PaidSeedTest {
     function testCastVectorAndNonceSeparation() public pure {

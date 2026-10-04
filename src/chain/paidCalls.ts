@@ -14,7 +14,7 @@ export const ponyGameAbi = parseAbi([
   'struct ChoiceView { bool present; uint32 txSec; uint64 blockNumber; uint8 cardId; uint8[] refreshSlots; bytes32 anchor; }',
   'struct SessionView { address player; uint8 state; uint8 playerHorseId; uint8 stakeTier; uint256 stake; uint64 openedAt; uint64 openedBlock; bytes32 seed; bytes32 openAnchor; uint8 lastCheckpoint; ChoiceView[3] choices; }',
   'struct RaceResult { uint32[5] finishTime; uint32[5] finishWall; uint8[5] rawOrder; uint8[5] settlementOrder; uint8 playerRawRank; uint8 playerSettlementRank; uint8[3] acquired; uint32 eventCount; bytes32 digest; }',
-  'function openSession(uint8 horseId, uint256 stake) returns (bytes32 sessionId)',
+  'function openSession(uint8 horseId, uint256 stake) payable returns (bytes32 sessionId)',
   'function chooseCard(bytes32 sessionId, uint8 checkpoint, uint8 cardId, uint8[] refreshSlots)',
   'function settleSession(bytes32 sessionId) returns (uint256 payout)',
   'function forfeitSession(bytes32 sessionId)',
@@ -40,6 +40,7 @@ export const ponyGameAbi = parseAbi([
   'error InvalidCard()',
   'error InvalidCheckpoint()',
   'error InvalidEntry()',
+  'error StakeValueMismatch()',
   'error InvalidRefreshSlot()',
   'error InvalidSolverResult()',
   'error NotSessionPlayer()',
@@ -47,12 +48,6 @@ export const ponyGameAbi = parseAbi([
   'error SessionNotOpen()',
   'error TooManyRefreshes()',
   'error UnknownSession()',
-])
-
-/** PonyVault 中会话流程用到的条目；资金面板的完整子集见 vault.ts。 */
-export const ponyVaultSessionAbi = parseAbi([
-  'function deposit() payable',
-  'function available(address) view returns (uint256)',
 ])
 
 /** PonyGame 的会话状态码（STATE_*）。 */
@@ -69,28 +64,14 @@ export function requireSession(sessionId: Hex): void {
   if (!/^0x[0-9a-fA-F]{64}$/.test(sessionId) || /^0x0{64}$/.test(sessionId)) throw new Error('INVALID_SESSION_ID')
 }
 
-/**
- * 开场批次：Vault 可用余额不足下注时先 `deposit{value: shortfall}`，再 `openSession`。
- * 两笔在 sma-b 里是同一个原子批次；可用余额够就只发 `openSession`，不白白把钱包里的 MON 挪进 Vault。
- */
-export function openSessionCalls(
-  vault: Address, game: Address, horseId: number, stake: bigint, shortfall: bigint,
-): ContractCall[] {
-  requireContract(vault)
+/** 一次开场调用携带完整下注；Game 在同一交易内转入绑定的 Vault。 */
+export function openSessionCall(game: Address, horseId: number, stake: bigint): ContractCall {
   requireContract(game)
-  if (isAddressEqual(vault, game) || !Number.isInteger(horseId) || horseId < 0 || horseId >= 5) {
-    throw new Error('INVALID_PAID_ENTRY')
-  }
+  if (!Number.isInteger(horseId) || horseId < 0 || horseId >= 5) throw new Error('INVALID_PAID_ENTRY')
   paidTierForStake(stake)
-  if (shortfall < 0n || shortfall > stake) throw new Error('INVALID_PAID_ENTRY')
-  const open: ContractCall = {
-    to: game, data: encodeFunctionData({ abi: ponyGameAbi, functionName: 'openSession', args: [horseId, stake] }),
+  return {
+    to: game, data: encodeFunctionData({ abi: ponyGameAbi, functionName: 'openSession', args: [horseId, stake] }), value: stake,
   }
-  if (shortfall === 0n) return [open]
-  return [
-    { to: vault, data: encodeFunctionData({ abi: ponyVaultSessionAbi, functionName: 'deposit' }), value: shortfall },
-    open,
-  ]
 }
 
 /**

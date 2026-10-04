@@ -2,13 +2,13 @@
 
 ## 1. 总体模型
 
-React/Vite 前端负责页面、输入与比赛预览；TypeScript 规则实现用于即时渲染和测试对照；Monad 上的 PonyGame/PaidRaceSolver 依据冻结规则独立求出比赛结果，PonyVault 按合约结算指令记账。浏览器名次不是奖金依据，具体边界见[项目决策](../decision.md)与[链上架构](onchain.md)。
+React/Vite 前端负责页面、输入与比赛预览；TypeScript 规则实现用于即时渲染和测试对照；Monad 上的 PonyGame/PaidRaceSolver 依据冻结规则独立求出比赛结果，PonyVault 按合约结算指令直接付款。浏览器名次不是奖金依据，具体边界见[项目决策](../decision.md)与[链上架构](onchain.md)。
 
 ## 2. 技术与数据流
 
 - Vite、React 和 Phaser 承载页面与赛道；规则计算不依赖 DOM、Phaser、系统时钟或美术资源。
-- Mera 通行密钥恢复根 EOA；Alchemy `sma-b` 智能账户发起 Monad 交易。原生 MON 经 Vault 管理用户可用余额、下注锁定与庄家流动性。
-- PonyGame 记录会话与检查点选择，PaidRaceSolver 复算五马轨迹与名次，PonyVault 执行账务变化。RPC/合约是资金与会话状态的权威来源。
+- Mera 通行密钥恢复根 EOA；Alchemy `sma-b` 智能账户发起 Monad 交易。原生 MON 经 Game 在开场收款并同笔转入 Vault；Vault 管理下注锁定、庄家流动性和直接奖金付款。
+- PonyGame 记录会话与检查点选择，单个 PaidRaceSolver 以内联 Engine/Motion/Cold 复算五马轨迹与名次，PonyVault 执行账务变化。RPC/合约是资金与会话状态的权威来源。
 - Envio 从合约事件建立可回滚的历史与统计；图鉴 Worker 通过 D1 保存经浏览器加密的图鉴密文。二者都不决定比赛结果或资金状态。
 
 ```text
@@ -38,7 +38,7 @@ gogo 输入只更新表现层摄像机状态。跨马卡牌按规则显式修改
 
 ## 5. 比赛生命周期
 
-开场冻结下注档位、规则版本与 seed（各名次赔率是合约常量）；Vault 锁定下注及庄家净赔付预留。实际选牌写链并封存所需区块哈希；冲线后 PonyGame 调用求时器复算物理排序与结算排序，再指示 Vault 记入返还。所需随机锚过窗丢失或求时器故障的会话按返还 0 判负，玩家放弃某个检查点的选牌不判负；Vault 不设退款。
+开场冻结下注档位、规则版本与 seed（各名次赔率是合约常量）；Vault 锁定下注及庄家净赔付预留。实际选牌写链并封存所需区块哈希；冲线后 PonyGame 调用求时器复算物理排序与结算排序，再指示 Vault 直接向玩家智能账户转入返还。所需随机锚过窗丢失或求时器故障的会话按返还 0 判负，玩家放弃某个检查点的选牌不判负；Vault 不设退款。
 
 页面刷新或网络状态不确定时，客户端根据合约状态、账户、sessionId、调用 ID 与交易哈希恢复，不以浏览器快照覆盖链上状态。进度细节和链上验收记录见[链上服务交付](../plan/onchain-services.md)。
 

@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPaidRaceSolver} from "../../contracts/IPaidRaceSolver.sol";
-import {PaidCardRules} from "../../contracts/PaidCardRules.sol";
-import {PaidCpuDeck} from "../../contracts/PaidCpuDeck.sol";
-import {PaidDeck} from "../../contracts/PaidDeck.sol";
-import {PaidProfiles} from "../../contracts/PaidProfiles.sol";
-import {PaidRaceEngine} from "../../contracts/PaidRaceEngine.sol";
+import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
+import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
+import {PaidCpuDeck} from "../../contracts/libraries/PaidCpuDeck.sol";
+import {PaidDeck} from "../../contracts/libraries/PaidDeck.sol";
+import {PaidProfiles} from "../../contracts/libraries/PaidProfiles.sol";
+import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 import {PaidRaceSolver} from "../../contracts/PaidRaceSolver.sol";
-import {PaidRaceSupport} from "../../contracts/PaidRaceSupport.sol";
 import {FieldStretchProbe} from "./PaidRaceMotion.t.sol";
 import {PaidRaceVectorBase} from "./PaidRaceVectorBase.sol";
 
@@ -25,14 +24,8 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorBase {
     /// settlement's solve must stay at or below 23.5M.
     uint256 internal constant SOLVE_GAS_CAP = 23_500_000;
 
-    PaidRaceSupport internal support;
-
-    function setUp() public {
-        support = new PaidRaceSupport();
-    }
-
     function _opts(uint8 stopAt, bool logEvents) internal view returns (PaidRaceEngine.Options memory) {
-        return PaidRaceEngine.Options(stopAt, false, 0, logEvents, support);
+        return PaidRaceEngine.Options(stopAt, false, 0, logEvents);
     }
 
     // ------------------------------------------------------------ harness entry points (self-calls: fresh memory)
@@ -143,8 +136,8 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorBase {
     /// The real-race chunk gates retain their independent 23.5M limit.
     function testRefreshedWellFieldWorkProjection() public {
         (uint256 field, uint256 steps,,) = new FieldStretchProbe().stretch(1, 150_000);
-        require(steps == 3000, "refreshed well field budget");
-        emit log_named_uint("field work projection (3000 one-well steps)", field);
+        require(steps == 600, "refreshed well field budget");
+        emit log_named_uint("field work projection (600 one-well steps)", field);
         require(field > 0, "field work was not measured");
     }
 

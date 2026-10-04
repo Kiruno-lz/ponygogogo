@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidCardRules} from "../../contracts/PaidCardRules.sol";
-import {PaidRaceCardPlan} from "../../contracts/PaidRaceCardPlan.sol";
-import {PaidRaceMotion} from "../../contracts/PaidRaceMotion.sol";
-import {PaidRaceEngine} from "../../contracts/PaidRaceEngine.sol";
-import {PaidProfiles} from "../../contracts/PaidProfiles.sol";
-import {PaidRaceSupport} from "../../contracts/PaidRaceSupport.sol";
-import {IPaidRaceSolver} from "../../contracts/IPaidRaceSolver.sol";
+import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
+import {PaidRaceCardPlan} from "../../contracts/libraries/PaidRaceCardPlan.sol";
+import {PaidRaceMotion} from "../../contracts/libraries/PaidRaceMotion.sol";
+import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
+import {PaidProfiles} from "../../contracts/libraries/PaidProfiles.sol";
+import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
 
 contract PaidRaceNewCardsTest {
     event log_named_uint(string key, uint256 value);
@@ -94,7 +93,6 @@ contract PaidRaceNewCardsTest {
     }
 
     function _lifecycleState() private returns (PaidRaceEngine.State memory st) {
-        st.support = new PaidRaceSupport();
         st.logEvents = true;
         st.eventMeta = new uint256[](4096);
         st.eventArgs = new int256[](4096);
@@ -176,7 +174,6 @@ contract PaidRaceNewCardsTest {
         input.choices[0] = IPaidRaceSolver.ChoiceInput(true, 25, 40, new uint8[](0), bytes32(uint256(1)));
         PaidRaceEngine.Options memory opts;
         opts.logEvents = true;
-        opts.support = new PaidRaceSupport();
         PaidRaceEngine.Result memory result = PaidRaceEngine.solve(input, opts);
         uint256 growth;
         bool debt;

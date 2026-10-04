@@ -28,7 +28,7 @@ import { isSponsorQuotaError, type CallAccount, type CallProgress } from './alch
 import type { ChainClock } from './chainClock.ts'
 import { trackCall, type TrackOptions } from './funds.ts'
 import {
-  chooseCardCall, openSessionCalls, ponyGameAbi, ponyVaultSessionAbi, SESSION_STATE, settleSessionCall,
+  chooseCardCall, openSessionCall, ponyGameAbi, SESSION_STATE, settleSessionCall,
 } from './paidCalls.ts'
 import { paidTierForStake } from './paidStakes.ts'
 import { settleDeadline, type SettleDeadline } from './settleDeadline.ts'
@@ -124,7 +124,6 @@ export type PaidChainDeps = {
   account: CallAccount
   client: SessionReader
   game: Address
-  vault: Address
   poll?: Omit<TrackOptions, 'onProgress'>
   /** 回执里的区块时间戳喂给时钟作下界；`now` 与时钟同一条本地时间轴 */
   clock?: ChainClock
@@ -225,7 +224,6 @@ export function parseSessionSettled(
  * 单列出来只用于解码。
  */
 const vaultErrorAbi = parseAbi([
-  'error InsufficientAvailable()',
   'error InsufficientHouseLiquidity()',
   'error InvalidLock()',
   'error UnauthorizedGame()',
@@ -263,7 +261,7 @@ export function revertName(err: unknown): string | null {
     cur = (cur as { cause?: unknown }).cause
   }
   const message = err instanceof Error ? err.message : String(err)
-  const match = /\b(ActiveSession|AnchorUnavailable|EntryPaused|ForfeitNotAllowed|ForfeitProbeGasTooLow|ForfeitTooEarly|InsufficientAvailable|InsufficientHouseLiquidity|InvalidCard|InvalidCheckpoint|InvalidEntry|InvalidRefreshSlot|InvalidSolverResult|NotSessionPlayer|RaceNotFinished|SessionNotOpen|TooManyRefreshes|UnknownSession)\b/.exec(message)
+  const match = /\b(ActiveSession|AnchorUnavailable|EntryPaused|ForfeitNotAllowed|ForfeitProbeGasTooLow|ForfeitTooEarly|InsufficientHouseLiquidity|InvalidCard|InvalidCheckpoint|InvalidEntry|InvalidRefreshSlot|InvalidSolverResult|NotSessionPlayer|RaceNotFinished|SessionNotOpen|TooManyRefreshes|UnknownSession)\b/.exec(message)
   if (match) return match[1]!
   // 只把回退数据拼进文字的错误（Alchemy 的模拟失败）：逐个试其中的十六进制串
   for (const hex of message.match(/0x[0-9a-fA-F]{8,}/g) ?? []) {
@@ -402,9 +400,7 @@ export async function readSettleDeadline(client: SessionReader, game: Address, s
   }
 }
 
-export async function readVaultAvailable(client: SessionReader, vault: Address, player: Address): Promise<bigint> {
-  return await client.readContract({ address: vault, abi: ponyVaultSessionAbi, functionName: 'available', args: [player] })
-}
+
 
 // ---------------------------------------------------------------------------------------------- flows
 
@@ -463,7 +459,7 @@ const OPEN_ERRORS: Readonly<Record<string, PaidSessionErrorCode>> = {
 }
 
 /**
- * 开场：Vault 可用余额不足时同批充值差额，然后 `openSession`。已有未完结会话时抛 `active-session`
+ * 开场：智能账户以完整下注调用 payable `openSession`，Game 同笔转入 Vault。已有未完结会话时抛 `active-session`
  * （带 sessionId，界面去走恢复）；发送失败、回退或超时都先读 `sessionOf`，链上已开场就按链上事实返回。
  */
 export async function openPaidSession(
@@ -473,13 +469,9 @@ export async function openPaidSession(
   paidTierForStake(stake)
   const existing = await readSessionOf(deps.client, deps.game, player)
   if (existing !== ZERO_HASH) throw new PaidSessionError('active-session', '', existing)
-  const available = await readVaultAvailable(deps.client, deps.vault, player)
-  const shortfall = available >= stake ? 0n : stake - available
-  if (shortfall > 0n) {
-    const wallet = await deps.client.getBalance({ address: player })
-    if (wallet < shortfall) throw new PaidSessionError('insufficient-wallet', `${shortfall}`)
-  }
-  const calls = openSessionCalls(deps.vault, deps.game, horseId, stake, shortfall)
+  const balance = await deps.client.getBalance({ address: player })
+  if (balance < stake) throw new PaidSessionError('insufficient-wallet', `${stake}`)
+  const calls = [openSessionCall(deps.game, horseId, stake)]
   const { progress, sendError, submittedAt } = await submit(deps, calls, onStep)
 
   if (progress?.state === 'included') {

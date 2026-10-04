@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidCardRules} from "../../contracts/PaidCardRules.sol";
+import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
 
 contract PaidCardRulesTest {
     function testGeneratedCardRulesAndMasks() public pure {
         require(PaidCardRules.RARE_MASK == 0xf6e232973e && PaidCardRules.CPU_MASK == 0xbfefe3fae3, "eligibility masks");
         require(
-            PaidCardRules.TABLE_HASH == 0x97caa9441c455075b4f7ef87c655e7461536eda6ead4ec9ed9f49ca93322a57d, "table hash"
+            PaidCardRules.TABLE_HASH == 0x5fe93ed7989dd76dcccbc106fc2c4d0441b0c046f09e722906afd77a3b143912, "table hash"
         );
         require(
-            PaidCardRules.RULESET_HASH == 0x57f1149242930a98ef7819e90b5945887432efcc677578a290b19e355536af6e,
+            PaidCardRules.RULESET_HASH == 0xbb2c9df7e6a29f0c6c54510063905c4652e08e0e987b262484cc77eb46dae876,
             "ruleset hash"
         );
         PaidCardRules.Rule memory gravity = PaidCardRules.get(10);

@@ -217,8 +217,7 @@ describe('modals sit on StageDialog', () => {
         <WalletModal lang="en" account={account} gameAccount={null} gameError={null} funds={null}
           rootBalance={null} tx={{ phase: 'idle' }}
           onRefresh={async () => undefined} onFaucet={async () => ({ ok: true, detail: '' })} onExport={async () => ''}
-          onDeposit={async () => undefined} onWithdraw={async () => undefined} onMigrate={async () => null}
-          onClose={noop} />,
+          onMigrate={async () => null} onClose={noop} />,
       ),
     },
   ]

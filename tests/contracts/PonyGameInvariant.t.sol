@@ -21,9 +21,9 @@ contract PonyGameHandler {
     bytes32[] public sessions;
     mapping(bytes32 => uint256) public stakeOf;
     uint256 public expectedHouse;
-    uint256 public deposits;
-    uint256 public withdrawals;
-    uint256[8] public successes; // open, choose, mine, settle, forfeit (lost anchor), forfeit (solver fault), seal, cash
+    uint256 public stakesPaid;
+    uint256 public payouts;
+    uint256[7] public successes; // open, choose, mine, settle, forfeit (lost anchor), forfeit (solver fault), seal
 
     constructor(PonyGame game_, PonyVault vault_, MockPaidRaceSolver solver_, address owner_, uint256 house) {
         game = game_;
@@ -46,7 +46,10 @@ contract PonyGameHandler {
         address actor = actors[actorSeed % 3];
         uint256 stake = game.stakeForTier(tierSeed % 4 + 1);
         vm.prank(actor);
-        bytes32 sessionId = agent ? game.openAgentSession(horseSeed % 5, stake) : game.openSession(horseSeed % 5, stake);
+        bytes32 sessionId = agent
+            ? game.openAgentSession{value: stake}(horseSeed % 5, stake)
+            : game.openSession{value: stake}(horseSeed % 5, stake);
+        stakesPaid += stake;
         sessions.push(sessionId);
         stakeOf[sessionId] = stake;
         ++successes[0];
@@ -90,6 +93,7 @@ contract PonyGameHandler {
         bytes32 sessionId = game.sessionOf(actors[actorSeed % 3]);
         solver.setOutcome(rawSeed % 5 + 1, rankSeed % 5 + 1, uint32(wallSeed % 120) * 1000);
         uint256 payout = game.settleSession(sessionId);
+        payouts += payout;
         expectedHouse = expectedHouse + stakeOf[sessionId] - payout;
         ++successes[3];
     }
@@ -119,25 +123,6 @@ contract PonyGameHandler {
         game.sealAnchors(game.sessionOf(actors[actorSeed % 3]));
         ++successes[6];
     }
-
-    function deposit(uint256 actorSeed, uint96 amountSeed) external {
-        address actor = actors[actorSeed % 3];
-        uint256 amount = uint256(amountSeed) % 2 ether + 1;
-        vm.deal(actor, amount);
-        vm.prank(actor);
-        vault.deposit{value: amount}();
-        deposits += amount;
-        ++successes[7];
-    }
-
-    function withdraw(uint256 actorSeed, uint96 amountSeed) external {
-        address actor = actors[actorSeed % 3];
-        uint256 amount = uint256(amountSeed) % (vault.available(actor) + 1);
-        vm.prank(actor);
-        vault.withdraw(amount);
-        withdrawals += amount;
-        ++successes[7];
-    }
 }
 
 struct FuzzSelector {
@@ -146,11 +131,11 @@ struct FuzzSelector {
 }
 
 contract PonyGameInvariantTest is PonyGameBase {
-    uint256 constant INITIAL_DEPOSITS = 2 * DEPOSIT;
     PonyGameHandler handler;
 
     function setUp() public override {
         super.setUp();
+        vm.deal(CAROL, DEPOSIT);
         handler = new PonyGameHandler(game, vault, solver, address(this), HOUSE);
     }
 
@@ -160,7 +145,7 @@ contract PonyGameInvariantTest is PonyGameBase {
     }
 
     function targetSelectors() public view returns (FuzzSelector[] memory targets) {
-        bytes4[] memory selectors = new bytes4[](9);
+        bytes4[] memory selectors = new bytes4[](7);
         selectors[0] = PonyGameHandler.open.selector;
         selectors[1] = PonyGameHandler.choose.selector;
         selectors[2] = PonyGameHandler.mine.selector;
@@ -168,8 +153,6 @@ contract PonyGameInvariantTest is PonyGameBase {
         selectors[4] = PonyGameHandler.forfeit.selector;
         selectors[5] = PonyGameHandler.ownerForfeit.selector;
         selectors[6] = PonyGameHandler.seal.selector;
-        selectors[7] = PonyGameHandler.deposit.selector;
-        selectors[8] = PonyGameHandler.withdraw.selector;
         targets = new FuzzSelector[](1);
         targets[0] = FuzzSelector(address(handler), selectors);
     }
@@ -177,26 +160,22 @@ contract PonyGameInvariantTest is PonyGameBase {
     /// forge-config: default.invariant.runs = 96
     /// forge-config: default.invariant.depth = 80
     function invariant_vaultConservesMonAndMatchesSessions() public view {
-        uint256 a = vault.totalAvailable();
         uint256 l = vault.totalLocked();
         uint256 h = vault.houseLiquidity();
         uint256 balance = address(vault).balance;
-        require(balance >= a + l + h && h >= vault.reservedLiquidity(), "solvency");
-        require(balance == a + l + h, "untracked MON in the vault");
-        require(balance == HOUSE + INITIAL_DEPOSITS + handler.deposits() - handler.withdrawals(), "MON created or lost");
+        require(balance >= l + h && h >= vault.reservedLiquidity(), "solvency");
+        require(balance == l + h, "untracked MON in the vault");
+        require(balance == HOUSE + handler.stakesPaid() - handler.payouts(), "MON created or lost");
         require(h == handler.expectedHouse(), "house moved outside settlement and forfeits");
 
-        uint256 availableSum;
         for (uint256 i; i < 3; ++i) {
             address actor = handler.actors(i);
-            availableSum += vault.available(actor);
             bytes32 active = game.sessionOf(actor);
             if (active != bytes32(0)) {
                 PonyGame.SessionView memory s = game.getSession(active);
                 require(s.state == game.STATE_OPEN() && s.player == actor, "active pointer");
             }
         }
-        require(availableSum == a, "available balances");
 
         uint256 locked;
         uint256 reserved;
@@ -228,13 +207,10 @@ contract PonyGameInvariantTest is PonyGameBase {
         handler.open(1, 2, 3, true);
         handler.mine(1, 0, 16);
         handler.forfeit(1);
-        handler.deposit(2, 1 ether);
         handler.open(2, 0, 0, false);
         handler.mine(1, 0, 1);
         handler.ownerForfeit(2);
-        handler.deposit(0, 1 ether);
-        handler.withdraw(0, 0.5 ether);
-        for (uint256 i; i < 8; ++i) {
+        for (uint256 i; i < 7; ++i) {
             require(handler.successes(i) > 0, "handler path never succeeded");
         }
         invariant_vaultConservesMonAndMatchesSessions();

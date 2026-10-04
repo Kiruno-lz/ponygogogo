@@ -1,6 +1,5 @@
 /** 钱包与资金错误 → 界面文案。已知错误码给出具体引导，未知错误才带上简短的原始信息。 */
 import { isSponsorQuotaError } from '../chain/alchemy.ts'
-import { FundsError } from '../chain/funds.ts'
 import { WalletError } from '../chain/wallet.ts'
 import { t, type Lang } from './i18n.ts'
 
@@ -18,7 +17,6 @@ export function errorDetail(err: unknown): string {
 }
 
 export function walletErrorText(lang: Lang, err: unknown): string {
-  if (err instanceof FundsError) return t(lang, `wallet.fundsErr.${err.code}`)
   if (err instanceof WalletError && err.code !== 'unknown') return t(lang, `wallet.err.${err.code}`)
   if (isSponsorQuotaError(err)) return t(lang, 'wallet.err.sponsor-quota')
   return t(lang, 'wallet.err.unknown', { detail: errorDetail(err) })

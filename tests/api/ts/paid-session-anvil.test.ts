@@ -27,6 +27,7 @@ import {
   classifyPaidChoice, solvePaidCore, type PaidChoiceSlot, type PaidChoiceSlots, type PaidCoreInput, type PaidSolveResult,
 } from '../../../src/race/paid/solver.ts'
 import { PAID_STAKE_WEI } from '../../../src/chain/paidStakes.ts'
+import { decodeInput, type PaidVectorCase } from '../../../src/race/paid/vectorCodec.ts'
 
 setDefaultTimeout(180_000)
 
@@ -42,7 +43,6 @@ const MULTIPLIER_BPS = [30_000n, 15_000n, 10_000n, 0n, 0n]
 type Artifact = { abi: Abi; deployedBytecode: { object: Hex } }
 const artifact = (path: string): Artifact => JSON.parse(readFileSync(resolve(ROOT, 'out', path), 'utf8')) as Artifact
 const gameAbi = () => artifact('PonyGame.sol/PonyGame.json').abi
-const vaultAbi = () => artifact('PonyVault.sol/PonyVault.json').abi
 const solverAbi = () => artifact('PaidRaceSolver.sol/PaidRaceSolver.json').abi
 
 type Settled = {
@@ -55,7 +55,6 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
   let rpcUrl = ''
   let solver: Address
   let game: Address
-  let vault: Address
   const owner = privateKeyToAccount(OWNER_KEY)
   const player = privateKeyToAccount(PLAYER_KEY)
   const gas: Record<string, bigint> = {}
@@ -125,10 +124,12 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     try {
       const script = Bun.spawnSync([
         resolve(FOUNDRY, 'forge'), 'script', 'scripts/DeployPony.s.sol', '--rpc-url', rpcUrl, '--broadcast', '--slow',
+        '--code-size-limit', '131072', '--non-interactive',
       ], {
         cwd: ROOT, stdout: 'pipe', stderr: 'pipe',
         env: {
           PATH: process.env.PATH ?? '', HOME: homedir(), FOUNDRY_OFFLINE: 'true', ETH_RPC_URL: rpcUrl,
+          NO_PROXY: 'localhost,127.0.0.1',
           DEPLOYER_PRIVATE_KEY_PATH: KEY_FILE, HOUSE_FUND_WEI: parseEther('100').toString(), UNPAUSE: '1',
         },
       })
@@ -137,11 +138,9 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
       const pick = (label: string) => getAddress(new RegExp(`^\\s+${label} (0x[0-9a-fA-F]{40})$`, 'm').exec(out)![1]!)
       solver = pick('solver')
       game = pick('game')
-      vault = pick('vault')
     } finally {
       rmSync(resolve(ROOT, KEY_FILE), { force: true })
     }
-    await sendAt((await latest()) + 1n, vault, vaultAbi(), 'deposit', [], parseEther('15'))
   })
 
   afterAll(() => {
@@ -156,17 +155,54 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     expect(await pub.readContract({ address: game, abi: gameAbi(), functionName: 'solver' })).toBe(solver)
     expect(await pub.readContract({ address: game, abi: gameAbi(), functionName: 'rulesetHash' })).toBe(PAID_RULESET_HASH)
     expect(await pub.readContract({ address: game, abi: gameAbi(), functionName: 'owner' })).toBe(owner.address)
-    // Same size as the artifact (the immutable support address is patched in at deployment) and within EIP-170.
+    // The single Solver matches the artifact and creates no independently deployed cold-path component.
     const code = (await pub.getCode({ address: solver }))!
     expect(code.length).toBe(artifact('PaidRaceSolver.sol/PaidRaceSolver.json').deployedBytecode.object.length)
-    expect((code.length - 2) / 2).toBeLessThanOrEqual(24_576)
-    const support = await pub.readContract({ address: solver, abi: solverAbi(), functionName: 'support' }) as Address
-    expect((await pub.getCode({ address: support }))?.length ?? 0).toBeGreaterThan(2)
+    expect((code.length - 2) / 2).toBeLessThanOrEqual(131_072)
+    expect(solverAbi().some((item) => item.type === 'function' && item.name === 'support')).toBe(false)
+    expect(await pub.getTransactionCount({ address: solver })).toBe(1)
+  })
+
+  test('deployed hot core matches the display solver for single and overlapping 250ms gravity wells', async () => {
+    const cases = (JSON.parse(readFileSync(resolve(ROOT, 'tests/vectors/paid-race-v4.json'), 'utf8')) as { cases: PaidVectorCase[] }).cases
+    const inputs = [
+      decodeInput(cases.find((c) => c.name === 'derived-0')!.input),
+      derivePaidCoreInput({
+        seed: '0x8486a37a59c4f66a573ec56d925ee0ed39ad950970db563e1877bfbcd8205a5b',
+        openAnchor: '0xee2f19d2d601b98cfc8b613200766bb21cbc4294476db78e9372d2f52a7a7f2e',
+        stakeTier: 1, playerHorseId: 1, choices: [null, null, null],
+      }),
+    ]
+    for (const [index, core] of inputs.entries()) {
+      const ts = solvePaidCore(core)
+      const wells = ts.trace!.instances.filter((i) => i.cardId === 10 && i.kind === 'equip')
+      expect(wells.length).toBe(index === 0 ? 1 : 2)
+      expect(ts.trace!.keyframes.some((frames) => frames.some((f) => f.tau1 - f.tau0 === 250n))).toBe(true)
+      if (index === 1) expect(wells.some((a) => wells.some((b) => a !== b && a.startTau < b.endTau! && b.startTau < a.endTau!))).toBe(true)
+      const result = await clients().pub.readContract({ address: solver, abi: solverAbi(), functionName: 'solve', args: [{
+        seed: core.seed, openAnchor: core.openAnchor, stakeTier: 1, playerHorseId: core.playerHorseId,
+        choices: core.choices.map((choice) => choice === null
+          ? { present: false, txSec: 0, cardId: 0, refreshSlots: [], anchor: `0x${'0'.repeat(64)}` }
+          : { present: true, txSec: Number(choice.txSec), cardId: choice.cardId, refreshSlots: choice.refreshSlots, anchor: choice.anchor }),
+      }] }) as {
+        finishTime: number[]; finishWall: number[]; rawOrder: number[]; settlementOrder: number[];
+        playerRawRank: number; playerSettlementRank: number; acquired: number[]; eventCount: number; digest: Hex;
+      }
+      expect(result.finishTime.map(BigInt)).toEqual(ts.finishTime)
+      expect(result.finishWall.map(BigInt)).toEqual(ts.finishWall)
+      expect(result.rawOrder).toEqual(ts.rawOrder)
+      expect(result.settlementOrder).toEqual(ts.settlementOrder)
+      expect(result.playerRawRank).toBe(ts.rawRank)
+      expect(result.playerSettlementRank).toBe(ts.settlementRank)
+      expect(result.acquired).toEqual(ts.acquiredByCheckpoint)
+      expect(result.eventCount).toBe(ts.eventCount)
+      expect(result.digest).toBe(ts.digest)
+    }
   })
 
   /** Opens a session and returns the TS core input built from the chain's seed, T0 and open block hash. */
   async function open(tier: PaidTier, horseId: number, label: string) {
-    const receipt = await sendAt((await latest()) + 3n, game, gameAbi(), 'openSession', [horseId, STAKES[tier]])
+    const receipt = await sendAt((await latest()) + 3n, game, gameAbi(), 'openSession', [horseId, STAKES[tier]], STAKES[tier])
     gas[`${label} openSession`] = receipt.gasUsed
     const opened = eventArgs(receipt, 'SessionOpened')
     const sessionId = opened.sessionId as Hex

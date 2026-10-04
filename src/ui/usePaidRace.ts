@@ -13,7 +13,7 @@
 import { useCallback, useRef, useState } from 'react'
 import type { Hex } from 'viem'
 import { ChainClock, startClockSync, type ClockSync } from '../chain/chainClock.ts'
-import { PONY_GAME_ADDRESS, PONY_VAULT_ADDRESS } from '../chain/network.ts'
+import { PONY_GAME_ADDRESS } from '../chain/network.ts'
 import { paidRaceAvailable } from '../chain/paidGate.ts'
 import {
   choosePaidCard, openPaidSession, PaidSessionError, readSessionFacts, readSettleDeadline, recoverPaidSession,
@@ -81,9 +81,9 @@ export function usePaidRace(lang: Lang, refreshFunds: () => Promise<void>) {
 
   const deps = useCallback((timeoutMs: number): PaidChainDeps => {
     const account = wallet.getCallAccount()
-    if (!account || !PONY_GAME_ADDRESS || !PONY_VAULT_ADDRESS) throw new PaidSessionError('account-not-resolved')
+    if (!account || !PONY_GAME_ADDRESS) throw new PaidSessionError('account-not-resolved')
     return {
-      account, client: wallet.publicClient, game: PONY_GAME_ADDRESS, vault: PONY_VAULT_ADDRESS,
+      account, client: wallet.publicClient, game: PONY_GAME_ADDRESS,
       poll: { pollMs: 400, timeoutMs }, clock: clockRef.current ?? undefined, now: () => performance.now(),
     }
   }, [])

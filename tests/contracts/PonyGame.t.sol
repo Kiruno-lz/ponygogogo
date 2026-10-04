@@ -2,12 +2,12 @@
 pragma solidity ^0.8.28;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {AgentBudget} from "../../contracts/AgentBudget.sol";
-import {IPaidRaceSolver} from "../../contracts/IPaidRaceSolver.sol";
-import {PaidSeed} from "../../contracts/PaidSeed.sol";
+import {AgentBudget} from "../../contracts/abstracts/AgentBudget.sol";
+import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
+import {PaidSeed} from "../../contracts/libraries/PaidSeed.sol";
 import {PonyGame} from "../../contracts/PonyGame.sol";
 import {PonyVault} from "../../contracts/PonyVault.sol";
-import {RandomAnchor} from "../../contracts/RandomAnchor.sol";
+import {RandomAnchor} from "../../contracts/libraries/RandomAnchor.sol";
 import {MockPaidRaceSolver} from "./MockPaidRaceSolver.sol";
 import {Eip2935, PonyGameBase, VmLog} from "./PonyGameBase.sol";
 
@@ -71,14 +71,8 @@ contract PonyGameTest is PonyGameBase {
         return game.canForfeit(sessionId);
     }
 
-    function _vaultSnapshot() internal view returns (uint256[5] memory totals) {
-        totals = [
-            vault.totalAvailable(),
-            vault.totalLocked(),
-            vault.houseLiquidity(),
-            vault.reservedLiquidity(),
-            address(vault).balance
-        ];
+    function _vaultSnapshot() internal view returns (uint256[4] memory totals) {
+        totals = [vault.totalLocked(), vault.houseLiquidity(), vault.reservedLiquidity(), address(vault).balance];
     }
 
     function _selectorMissing(address target, bytes memory call) internal returns (bool) {
@@ -107,7 +101,7 @@ contract PonyGameTest is PonyGameBase {
         fresh.setEntryPaused(false);
         vm.expectRevert(PonyGame.InvalidConfiguration.selector);
         vm.prank(ALICE);
-        fresh.openSession(0, TIER1);
+        fresh.openSession{value: TIER1}(0, TIER1);
         vm.expectRevert(PonyGame.InvalidConfiguration.selector);
         fresh.bindVault(vault);
         PonyVault own = new PonyVault(address(fresh), address(this));
@@ -131,7 +125,7 @@ contract PonyGameTest is PonyGameBase {
         game.setEntryPaused(true);
         vm.expectRevert(PonyGame.EntryPaused.selector);
         vm.prank(BOB);
-        game.openSession(0, TIER1);
+        game.openSession{value: TIER1}(0, TIER1);
         _mine(1, 0);
         _warpToTxSec(sessionId, 30);
         _choose(ALICE, sessionId, 1, 0, _noRefresh());
@@ -201,7 +195,7 @@ contract PonyGameTest is PonyGameBase {
                 require(!s.choices[c].present && s.choices[c].blockNumber == 0, "phantom choice");
             }
             require(game.sessionOf(player) == sessionId && game.nonces(player) == 1, "active session");
-            require(vault.available(player) == 11 ether - stakes[i], "stake not locked");
+            require(player.balance == 11 ether - stakes[i], "stake not locked");
             (address lockPlayer, uint256 lockStake, uint256 maxPayout, uint256 reserve, uint8 state) =
                 vault.stakeLocks(sessionId);
             require(lockPlayer == player && lockStake == stakes[i], "lock");
@@ -226,18 +220,19 @@ contract PonyGameTest is PonyGameBase {
         game.stakeForTier(0);
         vm.expectRevert(PonyGame.InvalidEntry.selector);
         game.stakeForTier(5);
-        require(game.nonces(ALICE) == 0 && vault.available(ALICE) == DEPOSIT, "failed open mutated state");
+        require(game.nonces(ALICE) == 0 && ALICE.balance == DEPOSIT, "failed open mutated state");
     }
 
     /// @notice The house must hold 2× the stake as reserve: tier 4 (10 MON) needs 20 MON of free liquidity.
     function testOpenNeedsPlayerBalanceAndHouseReserve() public {
-        vm.expectRevert(PonyVault.InsufficientAvailable.selector);
-        _open(CAROL, 0, TIER1);
+        vm.prank(CAROL);
+        (bool funded,) = address(game).call{value: TIER1}(abi.encodeCall(PonyGame.openSession, (0, TIER1)));
+        require(!funded, "unfunded account opened");
         require(game.nonces(CAROL) == 0 && game.sessionOf(CAROL) == bytes32(0), "failed open kept state");
         vault.withdrawHouse(HOUSE - 19.9 ether);
         vm.expectRevert(PonyVault.InsufficientHouseLiquidity.selector);
         _open(ALICE, 0, TIER4);
-        require(game.nonces(ALICE) == 0 && vault.available(ALICE) == DEPOSIT, "rejected open kept state");
+        require(game.nonces(ALICE) == 0 && ALICE.balance == DEPOSIT, "rejected open kept state");
         _open(ALICE, 0, TIER3);
         require(vault.withdrawableHouse() == 9.9 ether, "tier 3 reserve");
         _fundHouse(0.1 ether);
@@ -262,7 +257,7 @@ contract PonyGameTest is PonyGameBase {
         game.configureAgentBudget(uint64(vm.getBlockTimestamp() + 1 days), 1 ether);
         vm.expectRevert(PonyGame.ActiveSession.selector);
         vm.prank(ALICE);
-        game.openAgentSession(1, TIER1);
+        game.openAgentSession{value: TIER1}(1, TIER1);
         require(game.sessionOf(ALICE) == first && game.nonces(ALICE) == 1, "active session overwritten");
 
         _settleNow(first, 3);
@@ -281,31 +276,31 @@ contract PonyGameTest is PonyGameBase {
         uint64 expiry = uint64(vm.getBlockTimestamp() + 1 days);
         vm.expectRevert(AgentBudget.AgentBudgetExceeded.selector);
         vm.prank(ALICE);
-        game.openAgentSession(1, TIER1);
+        game.openAgentSession{value: TIER1}(1, TIER1);
 
         vm.prank(ALICE);
         game.configureAgentBudget(expiry, 1.3 ether);
         vm.expectEmit(address(game));
         emit AgentBudget.AgentBudgetSpent(ALICE, TIER2, TIER2);
         vm.prank(ALICE);
-        bytes32 first = game.openAgentSession(1, TIER2);
+        bytes32 first = game.openAgentSession{value: TIER2}(1, TIER2);
         require(game.sessionOf(ALICE) == first, "agent session");
         _settleNow(first, 3);
 
         vm.expectRevert(AgentBudget.AgentBudgetExceeded.selector);
         vm.prank(ALICE);
-        game.openAgentSession(1, TIER2);
+        game.openAgentSession{value: TIER2}(1, TIER2);
 
         game.setEntryPaused(true);
         vm.expectRevert(PonyGame.EntryPaused.selector);
         vm.prank(ALICE);
-        game.openAgentSession(1, TIER1);
+        game.openAgentSession{value: TIER1}(1, TIER1);
         (,, uint256 spent) = game.agentBudgets(ALICE);
         require(spent == TIER2, "failed open consumed budget");
         game.setEntryPaused(false);
 
         vm.prank(ALICE);
-        bytes32 second = game.openAgentSession(1, TIER1);
+        bytes32 second = game.openAgentSession{value: TIER1}(1, TIER1);
         (,, spent) = game.agentBudgets(ALICE);
         require(spent == 1.3 ether, "cumulative spend");
         _settleNow(second, 2);
@@ -314,7 +309,7 @@ contract PonyGameTest is PonyGameBase {
         game.revokeAgentBudget();
         vm.expectRevert(AgentBudget.AgentBudgetExceeded.selector);
         vm.prank(ALICE);
-        game.openAgentSession(1, TIER1);
+        game.openAgentSession{value: TIER1}(1, TIER1);
         bytes32 direct = _open(ALICE, 1, TIER1);
         require(direct != bytes32(0), "revocation blocked the player's own entry");
         _settleNow(direct, 1);
@@ -324,7 +319,7 @@ contract PonyGameTest is PonyGameBase {
         vm.warp(vm.getBlockTimestamp() + 10);
         vm.expectRevert(AgentBudget.AgentBudgetExceeded.selector);
         vm.prank(ALICE);
-        game.openAgentSession(1, TIER1);
+        game.openAgentSession{value: TIER1}(1, TIER1);
         _assertVault();
     }
 
@@ -580,8 +575,8 @@ contract PonyGameTest is PonyGameBase {
         require(game.settleSession(sessionId) == 1.5 ether, "payout");
         require(game.getSession(sessionId).state == game.STATE_SETTLED(), "state");
         require(game.sessionOf(ALICE) == bytes32(0) && _stakeLockState(sessionId) == 2, "closed");
-        require(vault.available(ALICE) == DEPOSIT - TIER2 + 1.5 ether, "player credited");
-        require(vault.available(CAROL) == 0, "settler credited");
+        require(ALICE.balance == DEPOSIT - TIER2 + 1.5 ether, "player credited");
+        require(CAROL.balance == 0, "settler credited");
         require(vault.houseLiquidity() == HOUSE + TIER2 - 1.5 ether, "house debited");
         _assertVault();
     }
@@ -594,7 +589,7 @@ contract PonyGameTest is PonyGameBase {
             _warpToTxSec(sessionId, 20 + rank);
             _choose(ALICE, sessionId, 2, rank + 10, _noRefresh());
             _finish(sessionId, rank, 30_000);
-            uint256 available = vault.available(ALICE);
+            uint256 available = ALICE.balance;
             uint256 house = vault.houseLiquidity();
             (IPaidRaceSolver.RaceResult memory result, uint256 payout,) = game.previewSettlement(sessionId);
             require(payout == expected[rank - 1], "multiplier table");
@@ -614,7 +609,7 @@ contract PonyGameTest is PonyGameBase {
                 result.acquired
             );
             require(game.settleSession(sessionId) == payout, "returned payout");
-            require(vault.available(ALICE) == available + payout, "player balance");
+            require(ALICE.balance == available + payout, "player balance");
             require(vault.houseLiquidity() + payout == house + TIER2, "house balance");
             require(vault.totalLocked() == 0 && vault.reservedLiquidity() == 0, "released");
             _assertVault();
@@ -676,7 +671,7 @@ contract PonyGameTest is PonyGameBase {
         for (uint256 i; i < 3; ++i) {
             require(s.choices[i].anchor == _hashOf(blocks[i]), "anchor not sealed");
         }
-        require(vault.available(BOB) == DEPOSIT - TIER4 + 30 ether, "tier 4 rank 1 payout");
+        require(BOB.balance == DEPOSIT - TIER4 + 30 ether, "tier 4 rank 1 payout");
         _assertVault();
     }
 
@@ -685,7 +680,7 @@ contract PonyGameTest is PonyGameBase {
         _settleNow(settled, 2);
         _mine(1, 0);
         _jump(9_000, 2 days);
-        uint256[5] memory totals = _vaultSnapshot();
+        uint256[4] memory totals = _vaultSnapshot();
         vm.expectRevert(PonyGame.SessionNotOpen.selector);
         game.settleSession(settled);
         vm.expectRevert(PonyGame.SessionNotOpen.selector);
@@ -786,7 +781,7 @@ contract PonyGameTest is PonyGameBase {
         emit PonyVault.StakeSettled(sessionId, ALICE, 0);
         vm.prank(CAROL);
         game.forfeitSession(sessionId);
-        require(vault.available(ALICE) == DEPOSIT - TIER2 && vault.available(CAROL) == 0, "player forfeits the stake");
+        require(ALICE.balance == DEPOSIT - TIER2 && CAROL.balance == 0, "player forfeits the stake");
         require(vault.houseLiquidity() == HOUSE + TIER2 && vault.reservedLiquidity() == 0, "stake to the house");
         require(vault.totalLocked() == 0, "lock released");
         require(game.getSession(sessionId).state == game.STATE_FORFEITED(), "state");
@@ -811,7 +806,7 @@ contract PonyGameTest is PonyGameBase {
         (bool ok, uint8 reason) = _canForfeit(sessionId);
         require(ok && reason == 1, "lost choice anchor");
         game.forfeitSession(sessionId); // the owner takes the permissionless path too
-        require(vault.available(ALICE) == DEPOSIT - TIER1, "no refund");
+        require(ALICE.balance == DEPOSIT - TIER1, "no refund");
         _assertVault();
     }
 
@@ -827,7 +822,7 @@ contract PonyGameTest is PonyGameBase {
         vm.prank(CAROL);
         game.forfeitSession(sessionId);
         _settleNow(sessionId, 4);
-        require(vault.available(ALICE) == DEPOSIT - TIER1, "rank 4 pays nothing");
+        require(ALICE.balance == DEPOSIT - TIER1, "rank 4 pays nothing");
         require(vault.houseLiquidity() == HOUSE + TIER1, "house keeps the stake");
         _assertVault();
     }
@@ -867,8 +862,8 @@ contract PonyGameTest is PonyGameBase {
         vm.expectEmit(address(vault));
         emit PonyVault.StakeSettled(sessionId, ALICE, 0);
         game.forfeitSession(sessionId);
-        require(vault.available(ALICE) == DEPOSIT - TIER4, "no refund");
-        require(vault.available(address(this)) == 0 && vault.houseLiquidity() == HOUSE + TIER4, "stake to the house");
+        require(ALICE.balance == DEPOSIT - TIER4, "no refund");
+        require(address(this).balance == 0 && vault.houseLiquidity() == HOUSE + TIER4, "stake to the house");
         require(game.getSession(sessionId).state == game.STATE_FORFEITED(), "state");
         vm.expectRevert(PonyGame.SessionNotOpen.selector);
         game.forfeitSession(sessionId);
@@ -968,13 +963,10 @@ contract PonyGameTest is PonyGameBase {
         _warpToTxSec(sessionId, 30);
         uint256 payout = game.settleSession(sessionId);
         require(payout == stake * game.payoutMultipliers()[rank - 1] / 10_000, "payout formula");
-        require(vault.available(ALICE) == DEPOSIT - stake + payout, "player");
+        require(ALICE.balance == DEPOSIT - stake + payout, "player");
         require(vault.houseLiquidity() + payout == HOUSE + stake, "house");
-        require(
-            vault.totalAvailable() + vault.totalLocked() + vault.houseLiquidity() == address(vault).balance,
-            "conservation"
-        );
-        require(address(vault).balance == HOUSE + 2 * DEPOSIT, "native balance moved");
+        require(vault.totalLocked() + vault.houseLiquidity() == address(vault).balance, "conservation");
+        require(address(vault).balance == HOUSE + stake - payout, "native payout balance");
         _assertVault();
     }
 
@@ -989,9 +981,9 @@ contract PonyGameTest is PonyGameBase {
         } else {
             _forfeitLost(sessionId);
         }
-        require(vault.available(BOB) == DEPOSIT - stake, "player");
+        require(BOB.balance == DEPOSIT - stake, "player");
         require(vault.houseLiquidity() == HOUSE + stake && vault.reservedLiquidity() == 0, "house");
-        require(address(vault).balance == HOUSE + 2 * DEPOSIT, "native balance moved");
+        require(address(vault).balance == HOUSE + stake, "native forfeit balance");
         _assertVault();
     }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidDeck} from "../../contracts/PaidDeck.sol";
+import {PaidDeck} from "../../contracts/libraries/PaidDeck.sol";
 
 contract PaidDeckTest {
     function deriveForMask(uint256 mask) external pure {

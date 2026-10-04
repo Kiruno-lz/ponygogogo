@@ -1,102 +1,19 @@
-/**
- * 真实资金：sma-b 钱包里的原生 MON，与 PonyVault 里该账户的可用余额（界面上的「游戏余额」）。
- *
- * - 两个数在**同一块高度**读取，只信 RPC 与合约，不信 Envio、不信浏览器算出的结算。
- * - Vault 地址未配置或该地址没有代码时返回 `not-deployed`，不把异常抛进界面。
- * - 充值 `deposit{value}` 与提款 `withdraw(amount)` 都经同一个 `CallAccount` 发出：
- *   运行时是 Alchemy sma-b（Gas 由策略代付），测试里是直接 EOA。
- */
-import {
-  encodeFunctionData,
-  isAddressEqual,
-  type Address,
-  type Hex,
-  type PublicClient,
-} from 'viem'
-import type { CallAccount, CallProgress, ContractCall } from './alchemy.ts'
-import { vaultAbi } from './vault.ts'
-
-export type VaultState =
-  | { state: 'not-deployed'; reason: 'unset' | 'no-code' }
-  | { state: 'ready'; address: Address; available: bigint }
+/** 玩家资金只读取智能账户的原生 MON；比赛开场直接支付，结算直接收款。 */
+import type { Address, Hex, PublicClient } from 'viem'
+import type { CallAccount, CallProgress } from './alchemy.ts'
 
 export type FundsSnapshot = {
   readonly blockNumber: bigint
   readonly player: Address
-  /** sma-b 自己持有的原生 MON */
   readonly wallet: bigint
-  readonly vault: VaultState
 }
 
-export type FundsErrorCode =
-  | 'vault-not-deployed'
-  | 'invalid-amount'
-  | 'insufficient-wallet'
-  | 'insufficient-available'
-  | 'account-not-resolved'
-  | 'stale-funds'
+type FundsReader = Pick<PublicClient, 'getBlockNumber' | 'getBalance'>
 
-export class FundsError extends Error {
-  readonly code: FundsErrorCode
-  constructor(code: FundsErrorCode, message: string = code) {
-    super(message)
-    this.name = 'FundsError'
-    this.code = code
-  }
-}
-
-type FundsReader = Pick<PublicClient, 'getBlockNumber' | 'getBalance' | 'getCode' | 'readContract'>
-
-export async function readFunds(client: FundsReader, vault: Address | null, player: Address): Promise<FundsSnapshot> {
-  // viem 默认把块高缓存约 4 秒；刚入块就刷新会钉在旧块上读出旧余额，所以这里不用缓存
+export async function readFunds(client: FundsReader, player: Address): Promise<FundsSnapshot> {
   const blockNumber = await client.getBlockNumber({ cacheTime: 0 })
-  if (!vault) {
-    const wallet = await client.getBalance({ address: player, blockNumber })
-    return { blockNumber, player, wallet, vault: { state: 'not-deployed', reason: 'unset' } }
-  }
-  const [wallet, code] = await Promise.all([
-    client.getBalance({ address: player, blockNumber }),
-    client.getCode({ address: vault, blockNumber }),
-  ])
-  if (!code || code === '0x') {
-    return { blockNumber, player, wallet, vault: { state: 'not-deployed', reason: 'no-code' } }
-  }
-  const available = await client.readContract({
-    address: vault, abi: vaultAbi, functionName: 'available', args: [player], blockNumber,
-  })
-  return { blockNumber, player, wallet, vault: { state: 'ready', address: vault, available } }
-}
-
-export function depositCall(vault: Address, amount: bigint): ContractCall {
-  return { to: vault, data: encodeFunctionData({ abi: vaultAbi, functionName: 'deposit' }), value: amount }
-}
-
-export function withdrawCall(vault: Address, amount: bigint): ContractCall {
-  return { to: vault, data: encodeFunctionData({ abi: vaultAbi, functionName: 'withdraw', args: [amount] }) }
-}
-
-/** 发交易前的本地校验：只防明显会失败的请求，最终以链上结果为准。 */
-function readyVault(account: CallAccount, funds: FundsSnapshot, amount: bigint): Address {
-  const address = account.getAddress()
-  if (!address) throw new FundsError('account-not-resolved')
-  if (!isAddressEqual(address, funds.player)) throw new FundsError('stale-funds')
-  if (funds.vault.state !== 'ready') throw new FundsError('vault-not-deployed')
-  if (amount <= 0n) throw new FundsError('invalid-amount')
-  return funds.vault.address
-}
-
-/** sma-b 钱包 → Vault 可用余额。Gas 由赞助策略付，钱包余额可以整额充入。 */
-export async function depositToVault(account: CallAccount, funds: FundsSnapshot, amount: bigint): Promise<string> {
-  const vault = readyVault(account, funds, amount)
-  if (amount > funds.wallet) throw new FundsError('insufficient-wallet')
-  return account.send([depositCall(vault, amount)])
-}
-
-/** Vault 可用余额 → sma-b 钱包。 */
-export async function withdrawFromVault(account: CallAccount, funds: FundsSnapshot, amount: bigint): Promise<string> {
-  const vault = readyVault(account, funds, amount)
-  if (funds.vault.state === 'ready' && amount > funds.vault.available) throw new FundsError('insufficient-available')
-  return account.send([withdrawCall(vault, amount)])
+  const wallet = await client.getBalance({ address: player, blockNumber })
+  return { blockNumber, player, wallet }
 }
 
 export type TrackOptions = {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidSettlement} from "../../contracts/PaidSettlement.sol";
+import {PaidSettlement} from "../../contracts/libraries/PaidSettlement.sol";
 
 contract PaidSettlementTest {
     function testPhysicalTieAndVersionAnswer() public pure {

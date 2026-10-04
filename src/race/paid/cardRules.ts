@@ -12,7 +12,7 @@ export const CARD_EFFECT = {
 
 export type PaidCardEffect = keyof typeof CARD_EFFECT
 export type PaidCardBonusMode = 'follow' | 'permanent' | 'default' | 'loot'
-export const PAID_CARD_GLOBALS = { bonusDefaultMs: 20_000, minCostFactorBps: 1_000 } as const
+export const PAID_CARD_GLOBALS = { bonusDefaultMs: 20_000, minCostFactorBps: 1_000, rkStepMs: 250 } as const
 export type PaidCardRule = {
   id: number
   effect: PaidCardEffect
@@ -113,5 +113,5 @@ export function paidCardRuleTuple(card: PaidCardRule): number[] {
 }
 
 export const PAID_CARD_RULES_HASH = keccak256(toBytes(JSON.stringify({ globals: PAID_CARD_GLOBALS, cards: PAID_CARD_RULES.map(paidCardRuleTuple) })))
-/** New rules are immutable per solver/Game deployment; the hash changes with any card-table edit. */
+/** New rules are immutable per solver/Game deployment; the hash changes with any card or shared numeric-rule edit. */
 export const PAID_RULESET_HASH = keccak256(toBytes(`ponygogogo/paid-rules/v4/${PAID_CARD_RULES_HASH}`))

@@ -7,7 +7,7 @@
  * - 有奖比赛（档位 1–4，只在 chain/paidGate 的 `paidEntry` 开放时可选：构建期地址、链上代码、已登录）：开场交易
  *   → 链上规范时间线上的 P2 求时器画面 → 选牌交易 → 冲线后自动结算 → 结算页以 SessionSettled 为准。
  *   编排在 ui/usePaidRace.ts；登录后若链上还有未完结会话，首页弹出恢复窗口。
- * 钱包显示的是真实资金：游戏账户（sma-b）的原生 MON 与 Vault 可用余额。
+ * 钱包显示的是真实资金：游戏账户（sma-b）的原生 MON。
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { AudioManager } from './assets/audio.ts'
@@ -690,8 +690,6 @@ export default function App() {
             onRefresh={refreshWallet}
             onFaucet={() => wallet.claimFaucet()}
             onExport={() => wallet.exportMnemonic()}
-            onDeposit={funds.deposit}
-            onWithdraw={funds.withdraw}
             onMigrate={funds.migrate}
             onClose={() => setWalletOpen(false)}
           />

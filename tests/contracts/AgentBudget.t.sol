@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {AgentBudget} from "../../contracts/AgentBudget.sol";
+import {AgentBudget} from "../../contracts/abstracts/AgentBudget.sol";
 
 interface VmTime {
     function warp(uint256 timestamp) external;

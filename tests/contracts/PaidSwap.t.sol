@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidSwap} from "../../contracts/PaidSwap.sol";
+import {PaidSwap} from "../../contracts/libraries/PaidSwap.sol";
 
 contract PaidSwapTest {
     function testTriggerScheduleStopsBeforeExpiry() public pure {

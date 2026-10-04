@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPaidRaceSolver} from "../../contracts/IPaidRaceSolver.sol";
-import {PaidRaceEngine} from "../../contracts/PaidRaceEngine.sol";
+import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
+import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 import {PaidRaceSolver} from "../../contracts/PaidRaceSolver.sol";
 import {PonyGame} from "../../contracts/PonyGame.sol";
 import {PonyVault} from "../../contracts/PonyVault.sol";
-import {RacePayout} from "../../contracts/RacePayout.sol";
+import {RacePayout} from "../../contracts/libraries/RacePayout.sol";
 import {Eip2935, PonyVm, VmLog} from "./PonyGameBase.sol";
 import {PaidRaceVectorBase} from "./PaidRaceVectorBase.sol";
 
@@ -38,8 +38,6 @@ contract PaidRaceSolverSessionTest is PaidRaceVectorBase {
         chain.deal(address(this), 100 ether);
         vault.fundHouse{value: 100 ether}();
         chain.deal(PLAYER, 30 ether);
-        chain.prank(PLAYER);
-        vault.deposit{value: 30 ether}();
         game.setEntryPaused(false);
     }
 
@@ -71,12 +69,12 @@ contract PaidRaceSolverSessionTest is PaidRaceVectorBase {
         uint256 stake = game.stakeForTier(tier);
 
         chain.prank(PLAYER);
-        bytes32 sessionId = game.openSession(core.playerHorseId, stake);
+        bytes32 sessionId = game.openSession{value: stake}(core.playerHorseId, stake);
         uint256 t0 = chain.getBlockTimestamp();
         uint256 openBlock = chain.getBlockNumber();
         _injectSeed(sessionId, core.seed);
         _setHash(openBlock, core.openAnchor);
-        uint256 availableAfterLock = vault.available(PLAYER);
+        uint256 availableAfterLock = PLAYER.balance;
 
         uint256 lastTxSec = _chooseAll(name, sessionId, core, openBlock, t0);
         chain.roll(openBlock + 40);
@@ -109,7 +107,7 @@ contract PaidRaceSolverSessionTest is PaidRaceVectorBase {
         settleGas -= gasleft();
         emit log_named_uint(string.concat(name, " settleSession gas"), settleGas);
         _requireSettled(json, sessionId, payout, stake);
-        require(vault.available(PLAYER) == before + payout, "payout credited to the player");
+        require(PLAYER.balance == before + payout, "payout sent to the player");
         require(game.sessionOf(PLAYER) == bytes32(0), "session closed");
     }
 

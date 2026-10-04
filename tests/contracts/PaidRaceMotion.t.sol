@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidRaceMotion} from "../../contracts/PaidRaceMotion.sol";
-import {PaidCardRules} from "../../contracts/PaidCardRules.sol";
+import {PaidRaceMotion} from "../../contracts/libraries/PaidRaceMotion.sol";
+import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
 
 /// @notice Synthetic stretches for PaidRaceMotion: five running horses spaced inside the well radius, never crossing.
 contract FieldStretchProbe {
@@ -80,9 +80,15 @@ contract FieldStretchProbe {
 contract PaidRaceMotionTest {
     event log_named_uint(string key, uint256 val);
 
-    /// @dev Fixed benchmark: ten ten-second well lifetimes at H = 50 ms; refresh extends the v4 budget.
-    uint256 internal constant CEILING_STEPS = 2_000;
+    /// @dev Fixed benchmark: ten ten-second well lifetimes at H = 250 ms; refresh extends the v4 budget.
+    uint256 internal constant CEILING_STEPS = 400;
     uint256 internal constant CEILING_MS = 100_000;
+
+    function testGravityUses250MsSteps() public {
+        (uint256 used, uint256 steps,,) = new FieldStretchProbe().stretch(1, 1_001);
+        require(steps == 5, "four 250ms steps plus 1ms tail");
+        require(used > 0, "motion was not computed");
+    }
 
     /// @notice The H_*/S_*/B_* offsets the assembly uses are the Solidity member offsets.
     function testLayoutOffsetsMatchStructOrder() public pure {
@@ -209,15 +215,15 @@ contract PaidRaceMotionTest {
         require(posOnce[0] > 0, "moved");
     }
 
-    /// @notice Compare a fixed 100-second field-work budget as 2000 one-well steps or 400 five-well steps.
+    /// @notice Compare a fixed 100-second field-work budget as 400 one-well steps or 80 five-well steps.
     /// Refresh can extend well lifetimes; this benchmark is not the full v4 worst-case gas proof.
     function testTheoreticalFieldCeilingGas() public {
         FieldStretchProbe probe = new FieldStretchProbe();
         (uint256 one, uint256 steps1,,) = probe.stretch(1, CEILING_MS);
         (uint256 five, uint256 steps5,,) = probe.stretch(5, CEILING_MS / 5);
         require(steps1 == CEILING_STEPS && steps5 == CEILING_STEPS / 5, "step counts");
-        emit log_named_uint("field ceiling: 2000 steps, 1 well (gas)", one);
-        emit log_named_uint("field ceiling: 400 steps, 5 wells (gas)", five);
+        emit log_named_uint("field ceiling: 400 steps, 1 well (gas)", one);
+        emit log_named_uint("field ceiling: 80 steps, 5 wells (gas)", five);
         emit log_named_uint("gas per 1-well step", one / steps1);
         emit log_named_uint("gas per 5-well step", five / steps5);
         require(five <= one, "five overlapping wells must not cost more than the sequential budget");

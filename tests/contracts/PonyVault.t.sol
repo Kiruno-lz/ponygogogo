@@ -10,14 +10,6 @@ interface Vm {
 contract VaultActor {
     receive() external payable {}
 
-    function deposit(PonyVault vault) external payable {
-        vault.deposit{value: msg.value}();
-    }
-
-    function withdraw(PonyVault vault, uint256 amount) external {
-        vault.withdraw(amount);
-    }
-
     function fund(PonyVault vault) external payable {
         vault.fundHouse{value: msg.value}();
     }
@@ -31,7 +23,7 @@ contract VaultActor {
     }
 
     function lock(PonyVault vault, bytes32 id, address player, uint256 stake, uint256 maxPayout) external {
-        vault.lockStake(id, player, stake, maxPayout);
+        vault.lockStake{value: stake}(id, player, stake, maxPayout);
     }
 
     function settle(PonyVault vault, bytes32 id, uint256 payout) external {
@@ -61,40 +53,35 @@ contract PonyVaultTest {
         vault = new PonyVault(address(game), address(house));
         vm.deal(address(player), 100 * UNIT);
         vm.deal(address(house), 100 * UNIT);
+        vm.deal(address(game), 100 * UNIT);
     }
 
     function _fund() internal {
-        player.deposit{value: 20 * UNIT}(vault);
         house.fund{value: 30 * UNIT}(vault);
     }
 
     function _assertSolvent() internal view {
-        require(
-            address(vault).balance >= vault.totalAvailable() + vault.totalLocked() + vault.houseLiquidity(), "insolvent"
-        );
+        require(address(vault).balance >= vault.totalLocked() + vault.houseLiquidity(), "insolvent");
         require(vault.houseLiquidity() >= vault.reservedLiquidity(), "reserve exceeds house");
     }
 
-    function testDepositAndWithdrawUseActualNativeBalance() public {
-        player.deposit{value: 10 * UNIT}(vault);
-        require(vault.available(address(player)) == 10 * UNIT, "deposit balance");
-        player.withdraw(vault, 4 * UNIT);
-        require(vault.available(address(player)) == 6 * UNIT, "withdraw balance");
-        require(address(player).balance == 104 * UNIT, "wallet native balance");
-        _assertSolvent();
+    function testPlayerDepositAndWithdrawEntrypointsAreAbsent() public {
+        (bool deposit,) = address(vault).call{value: UNIT}(abi.encodeWithSignature("deposit()"));
+        (bool withdraw,) = address(vault).call(abi.encodeWithSignature("withdraw(uint256)", UNIT));
+        require(!deposit && !withdraw, "player balance entrypoint exists");
     }
 
     function testReserveSettlementAndHouseWithdrawal() public {
         _fund();
         game.lock(vault, SESSION, address(player), 5 * UNIT, 15 * UNIT);
-        require(vault.available(address(player)) == 15 * UNIT, "stake was not locked");
+        require(address(player).balance == 100 * UNIT, "stake was not locked");
         require(vault.totalLocked() == 5 * UNIT, "locked total");
         require(vault.reservedLiquidity() == 10 * UNIT, "reserve");
         require(vault.withdrawableHouse() == 20 * UNIT, "withdrawable house");
         (bool blocked,) = address(house).call(abi.encodeCall(VaultActor.withdrawHouse, (vault, 21 * UNIT)));
         require(!blocked, "reserved house funds withdrawn");
         game.settle(vault, SESSION, 15 * UNIT);
-        require(vault.available(address(player)) == 30 * UNIT, "payout");
+        require(address(player).balance == 115 * UNIT, "payout");
         require(vault.houseLiquidity() == 20 * UNIT, "house loss");
         require(vault.reservedLiquidity() == 0, "reserve not released");
         _assertSolvent();
@@ -109,7 +96,7 @@ contract PonyVaultTest {
             game.call(address(vault), abi.encodeWithSignature("refundStake(bytes32)", SESSION));
         require(!ok && ret.length == 0, "refundStake exists");
         game.settle(vault, SESSION, 0);
-        require(vault.available(address(player)) == 15 * UNIT, "forfeited stake returned");
+        require(address(player).balance == 100 * UNIT, "forfeited stake returned");
         require(vault.houseLiquidity() == 35 * UNIT && vault.reservedLiquidity() == 0, "stake to the house");
         (,,,, uint8 state) = vault.stakeLocks(SESSION);
         require(state == 2 && vault.totalLocked() == 0, "settled lock");
@@ -132,12 +119,11 @@ contract PonyVaultTest {
     }
 
     function testInsufficientReserveCannotLock() public {
-        player.deposit{value: 20 * UNIT}(vault);
         house.fund{value: 9 * UNIT}(vault);
         (bool ok,) =
             address(game).call(abi.encodeCall(VaultActor.lock, (vault, SESSION, address(player), 5 * UNIT, 15 * UNIT)));
         require(!ok, "undercollateralized lock");
-        require(vault.available(address(player)) == 20 * UNIT, "failed lock changed balance");
+        require(address(player).balance == 100 * UNIT, "failed lock changed balance");
         _assertSolvent();
     }
 
@@ -149,7 +135,7 @@ contract PonyVaultTest {
             .call(abi.encodeCall(VaultActor.lock, (vault, keccak256("session-2"), address(player), UNIT, 3 * UNIT)));
         require(!newLock, "paused game accepted lock");
         game.settle(vault, SESSION, 0);
-        require(vault.available(address(player)) == 15 * UNIT && vault.houseLiquidity() == 35 * UNIT, "paused forfeit");
+        require(address(player).balance == 100 * UNIT && vault.houseLiquidity() == 35 * UNIT, "paused forfeit");
         _assertSolvent();
     }
 
@@ -168,7 +154,7 @@ contract PonyVaultTest {
         _fund();
         game.lock(vault, SESSION, address(player), 5 * UNIT, 15 * UNIT);
         game.settle(vault, SESSION, payout);
-        require(vault.available(address(player)) == 15 * UNIT + payout, "wrong payout balance");
+        require(address(player).balance == 100 * UNIT + payout, "wrong payout balance");
         require(vault.houseLiquidity() == 35 * UNIT - payout, "wrong house balance");
         _assertSolvent();
     }

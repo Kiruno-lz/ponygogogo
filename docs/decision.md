@@ -12,19 +12,20 @@
 
 ## 比赛规则与权威结果
 
-- 有奖比赛由 Monad 上的 PonyGame/PaidRaceSolver 复算，PonyVault 按合约结算结果记账。浏览器只负责操作、动画与待确认预览；Envio 只作可回滚的历史和统计读模型，不决定资金或比赛终态。仓库规则集为 v4，测试网已部署的仍是 v3，部署进度见[链上服务交付](plan/onchain-services.md)。
+- 有奖比赛由 Monad 上的 PonyGame/PaidRaceSolver 复算，PonyVault 按合约结算结果直接向玩家智能账户付款。浏览器只负责操作、动画与待确认预览；Envio 只作可回滚的历史和统计读模型，不决定资金或比赛终态。仓库规则集为 v4，测试网已部署的仍是 v3，部署进度见[链上服务交付](plan/onchain-services.md)。
 - 不引入 Game Server、TEE 或结果签名者作为裁判。TypeScript 规则内核用于预览、测试和跨实现对照，不能替代 Solidity 验证。
 - 规则输入来自开场 seed 与可验证区块哈希、实际选择交易时间与区块哈希，以及冻结的卡牌和五马规则。权威比赛时钟依据链上秒级时间；本地时钟、浏览器暂停、gogo 输入和客户端声称的名次均不构成结算证据。
-- 结算按事件驱动求解整场五马冲线时间，不按固定步长或浏览器帧在链上回放。无动态场区间使用解析积分；重力井按实时距离影响五马耦合轨迹，以冻结的定点数值积分和事件定位处理，不取触发时距离快照。
+- 结算按事件驱动求解整场五马冲线时间，不按固定步长或浏览器帧在链上回放。无动态场区间使用解析积分；重力井按实时距离影响五马耦合轨迹，以步长不超过 250 ms 的定点 RK2 中点积分和事件定位处理；遇已知事件或首次越过时截断。步长在共享 `PAID_CARD_GLOBALS.rkStepMs` 中定义、生成 Solidity 常量并纳入 `rulesetHash`。练习与有奖展示读取同一 TS 求时器的规范轨迹，不按渲染帧重新积分。
 - 结算保留物理排序 `rawRank`；合约验证【版本答案】后得到付款与战绩使用的 `settlementRank`。客户端不能写入特殊名次，也不能用浏览器名次决定奖金。
 - 规则与赔率在开场时冻结。修改有奖规则须生成新的规则版本并部署新的求时器/Game；未完成会话继续由其原绑定版本结算或判负。
+- 求时器部署为单个 `PaidRaceSolver`：Engine 唯一持有比赛状态与事件顺序，Motion、watch/gated 和冷路径 `PaidRaceCold` 均编为内部库调用。派生、规则表、发牌、新卡决策与最终排序保留独立领域文件；不独立部署 Support，不通过外部 ABI 搬运比赛状态，不引入组件注册表或 DELEGATECALL。体积按 Monad 协议上限验收：runtime ≤ 131,072 B、initcode ≤ 262,144 B；EIP-170 只作对照。执行 gas 以 Monad 计价验收。依据见[单体求时器对照](_reaserch/paid-solver-inline-support.md)。
 
 ## 资金与账户
 
-- 游戏只使用 Monad 原生 MON，不发行或依赖 ERC-20、WMON 等资产。充值与庄家注资通过 payable 入口传入原生 MON，下注从 Vault 可用余额锁定，提款以原生 MON 返还，账本金额以 wei 记录。
+- 游戏只使用 Monad 原生 MON，不发行或依赖 ERC-20、WMON 等资产，金额以 wei 记录。玩家在一次 `PonyGame.openSession{value: stake}` 调用中支付完整下注；Game 同笔调用绑定 Vault 的 payable `lockStake` 转入下注并登记赔付预留。结算时 Game 依据规则结果发起付款，Vault 在同笔结算交易内直接向该玩家智能账户发放总返还。Vault 不提供玩家充值、可用余额或提款入口。庄家通过 `fundHouse` 注资。
 - Vault 不设退款。所需随机锚过窗丢失（任何人可判）或求时器故障（仅 owner、开场 1 天后）的会话按返还 0 判负；玩家放弃某个检查点的选牌不判负，会话照常按名次结算。判负与正常结算互斥，下注不会经退款入口返还。
 - 当前测试网下注档位为 `0 / 0.3 / 1 / 5 / 10 MON`，名次 1 至 5 的总返还倍率为 `[3, 1.5, 1, 0, 0]`（含本金）。这些是当前测试参数；最终返奖率结论在牌库与电脑马参数平衡后计算，不构成当前测试网发布门槛。
-- Vault 分别记账用户可用余额 `A`、锁定下注 `L`、庄家流动性 `H` 和最大净赔付预留 `R`；持续满足 `Vault 原生余额 >= A + L + H` 与 `H >= R`。庄家只能提取未预留的 `H - R`。
+- Vault 只接受绑定 Game 登记下注与发起奖金结算，记账锁定下注 `L`、庄家流动性 `H` 和最大净赔付预留 `R`；持续满足 `Vault 原生余额 >= L + H` 与 `H >= R`。庄家只能提取未预留的 `H - R`。开场内部转账与结算内部付款不新增独立交易。
 - Mera 通行密钥 PRF 恢复根 EOA，保留既有派生路径和地址；Alchemy `sma-b` 是每条链独立的交易账户。根 EOA 不作为默认同址 EIP-7702 交易账户。资金、余额和交易发送方均明确使用原生 MON 智能账户。
 - Agent Session Key 若启用，只能在期限与累计额度内调用 PonyGame 指定入口，不得任意转账、提款或修改 owner 权限。
 
@@ -49,4 +50,4 @@
 
 - `art-src/` 是作者本地保存的美术母版，不纳入 Git。运行时素材由脚本生成到 `public/assets/` 并随项目版本管理；正常开发与部署使用已提交的运行时素材。
 - Wrangler 的 Worker 与 D1 迁移统一放在 `scripts/Wrangler/`：Worker 入口为 `scripts/Wrangler/worker/collection.ts`，迁移目录为 `scripts/Wrangler/migrations/`。根目录 `wrangler.toml` 是 production/preview 部署配置的唯一入口。
-- Foundry 脚本统一放在 `scripts/`；当前 PonyGame 部署入口为 `scripts/DeployPony.s.sol`，由 `foundry.toml` 的脚本目录配置发现。其他应用开发、资源与运维脚本也放在此目录，按文件类型和入口区分用途。
+- Solidity 具体合约留在 `contracts/` 根目录，内部库、抽象继承模块与接口分别放在 `contracts/libraries/`、`contracts/abstracts/`、`contracts/interfaces/`。Foundry 脚本统一放在 `scripts/`；当前 PonyGame 部署入口为 `scripts/DeployPony.s.sol`，由 `foundry.toml` 的脚本目录配置发现。其他应用开发、资源与运维脚本也放在此目录，按文件类型和入口区分用途。

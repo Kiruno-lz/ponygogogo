@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidCpuDeck} from "../../contracts/PaidCpuDeck.sol";
+import {PaidCpuDeck} from "../../contracts/libraries/PaidCpuDeck.sol";
 
 contract PaidCpuDeckTest {
     function testCrossLanguageVectorsAndNoDuplicates() public pure {

@@ -24,7 +24,7 @@ export function explorerTxUrl(hash: Hex): string | null {
 
 /**
  * 合约地址只从构建期变量读取，**不接受 URL 参数覆盖**：能被链接改写的 Vault 地址等于把玩家的
- * 充值引到任意地址。空值、非法值与零地址都视为未配置。
+ * 下注发往任意地址。空值、非法值与零地址都视为未配置。
  */
 export function parseContractAddress(raw: string | undefined | null): Address | null {
   const s = (raw ?? '').trim()

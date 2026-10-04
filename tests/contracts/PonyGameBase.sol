@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPaidRaceSolver} from "../../contracts/IPaidRaceSolver.sol";
-import {PaidCardRules} from "../../contracts/PaidCardRules.sol";
+import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
+import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
 import {PonyGame} from "../../contracts/PonyGame.sol";
 import {PonyVault} from "../../contracts/PonyVault.sol";
 import {MockPaidRaceSolver} from "./MockPaidRaceSolver.sol";
@@ -25,6 +25,7 @@ interface PonyVm {
     function prank(address sender) external;
     function startPrank(address sender) external;
     function stopPrank() external;
+    function expectRevert() external;
     function expectRevert(bytes4 selector) external;
     function expectRevert(bytes calldata revertData) external;
     function expectEmit(address emitter) external;
@@ -87,13 +88,11 @@ abstract contract PonyGameBase {
 
     function _fundPlayer(address player, uint256 amount) internal {
         vm.deal(player, amount);
-        vm.prank(player);
-        vault.deposit{value: amount}();
     }
 
     function _open(address player, uint8 horseId, uint256 stake) internal returns (bytes32 sessionId) {
         vm.prank(player);
-        sessionId = game.openSession(horseId, stake);
+        sessionId = game.openSession{value: stake}(horseId, stake);
     }
 
     /// @dev Advances `blocks` blocks and `secs` seconds, recording `hash` for every skipped block both as
@@ -132,10 +131,9 @@ abstract contract PonyGameBase {
     }
 
     function _assertVault() internal view {
-        uint256 a = vault.totalAvailable();
         uint256 l = vault.totalLocked();
         uint256 h = vault.houseLiquidity();
-        require(address(vault).balance >= a + l + h, "vault: balance < A + L + H");
+        require(address(vault).balance >= l + h, "vault: balance < L + H");
         require(h >= vault.reservedLiquidity(), "vault: H < R");
     }
 

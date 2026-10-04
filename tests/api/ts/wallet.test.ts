@@ -7,29 +7,23 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import {
   custom,
-  decodeFunctionData,
-  encodeAbiParameters,
   getAddress,
   keccak256,
   parseTransaction,
   recoverTransactionAddress,
   type Address,
-  type Hex,
   type TransactionSerialized,
 } from 'viem'
 import type { AccountClient } from '../../../src/chain/alchemy.ts'
-import { FundsError } from '../../../src/chain/funds.ts'
 import { MIGRATION_MIN_WEI } from '../../../src/chain/migration.ts'
 import { MeraWallet, WalletError, type WalletDeps } from '../../../src/chain/wallet.ts'
 import { CHAIN } from '../../../src/chain/network.ts'
-import { vaultAbi } from '../../../src/chain/vault.ts'
 import { accountFromMnemonic, mnemonicFromPrf } from '../../../src/chain/derive.ts'
 import { FakeAuthenticator, type FakeAuthenticatorMode } from '../../fakes/authenticator.ts'
 
 const RP_ID = 'ponygogogo.test'
 const ONE_MON = 10n ** 18n
 const GAS_PRICE = 100n * 10n ** 9n
-const VAULT = '0x00000000000000000000000000000000000fa017' as Address
 const POLICY = 'policy-l2'
 
 /** 与 Alchemy 一样对同一个签名者给出同一个地址：取签名者地址哈希的低 20 字节 */
@@ -43,8 +37,6 @@ function smaFor(signer: Address): Address {
  */
 function fakeChain() {
   const balances = new Map<string, bigint>()
-  const available = new Map<string, bigint>()
-  const code = new Map<string, Hex>()
   const receipts = new Map<string, 'success' | 'reverted'>()
   const calls: string[] = []
   const sentRaw: Array<{ from: Address; to: Address; value: bigint; gas: bigint; maxFeePerGas: bigint }> = []
@@ -59,13 +51,6 @@ function fakeChain() {
         case 'eth_chainId': return hex(CHAIN.id)
         case 'eth_blockNumber': return hex(1234)
         case 'eth_getBalance': return hex(balances.get(key(String(p[0]))) ?? 0n)
-        case 'eth_getCode': return code.get(key(String(p[0]))) ?? '0x'
-        case 'eth_call': {
-          const req = p[0] as { to: string; data: Hex }
-          if (key(req.to) !== key(VAULT)) throw new Error(`unexpected eth_call to ${req.to}`)
-          const { args } = decodeFunctionData({ abi: vaultAbi, data: req.data }) as unknown as { args: readonly [Address] }
-          return encodeAbiParameters([{ type: 'uint256' }], [available.get(key(args[0])) ?? 0n])
-        }
         case 'eth_estimateGas': return hex(21_000)
         case 'eth_maxPriorityFeePerGas': return hex(2n * 10n ** 9n)
         case 'eth_getBlockByNumber': return {
@@ -114,10 +99,7 @@ function fakeChain() {
       balances.set(key(address), (balances.get(key(address)) ?? 0n) + amount)
     },
     balanceOf: (address: string) => balances.get(key(address)) ?? 0n,
-    deployVault(avail: Record<string, bigint> = {}) {
-      code.set(key(VAULT), '0x6080')
-      for (const [k, v] of Object.entries(avail)) available.set(key(k), v)
-    },
+
   }
 }
 
@@ -171,7 +153,6 @@ function makeRig(
     mode?: FakeAuthenticatorMode
     faucet?: 'grant' | 'reject'
     alchemy?: 'ok' | 'down'
-    vault?: Address | null
     share?: Partial<Rig>
   } = {},
 ): Rig {
@@ -187,7 +168,6 @@ function makeRig(
     fundingPoll: { tries: 5, gapMs: 0 },
     alchemyClient: alchemy.factory,
     alchemyPolicyId: POLICY,
-    vaultAddress: opts.vault === undefined ? null : opts.vault,
     txPoll: { pollMs: 0, timeoutMs: 1000 },
   }
   return { wallet: new MeraWallet(deps), auth, chain, faucet, alchemy }
@@ -434,8 +414,7 @@ describe('通行密钥钱包契约', () => {
       fetchImpl: lazyFaucet,
       fundingPoll: { tries: 3, gapMs: 0 },
       alchemyClient: fakeAlchemy().factory,
-      vaultAddress: null,
-    })
+      })
     const out = await w.register()
     expect(out.faucet?.ok).toBe(true)
     expect(out.funded).toBe(false)
@@ -486,59 +465,16 @@ describe('通行密钥钱包契约', () => {
     const chain = fakeChain()
     const auth = new FakeAuthenticator('ok')
     const w = new MeraWallet({ rpId: RP_ID, webAuthnClient: auth.client, transport: chain.transport,
-      fetchImpl: fakeFaucet(chain).impl, fundingPoll: { tries: 1, gapMs: 0 }, alchemyApiKey: '', vaultAddress: null })
+      fetchImpl: fakeFaucet(chain).impl, fundingPoll: { tries: 1, gapMs: 0 }, alchemyApiKey: '' })
     const out = await w.register()
     expect(out.gameError?.code).toBe('game-account')
     expect(out.gameError?.message).toBe('ALCHEMY_API_KEY_REQUIRED')
   })
 
-  test('资金快照：Vault 未配置或没有代码时报 not-deployed，钱包余额照常来自同一块', async () => {
+  test('资金快照只读取 sma-b 在指定区块的原生 MON，不读取 Vault', async () => {
     const out = await rig.wallet.register()
-    expect(await rig.wallet.readFunds()).toEqual({
-      blockNumber: 1234n, player: out.game!.address, wallet: ONE_MON, vault: { state: 'not-deployed', reason: 'unset' },
-    })
-    const noCode = makeRig({ vault: VAULT, share: { auth: rig.auth, chain: rig.chain } })
-    await noCode.wallet.login()
-    expect((await noCode.wallet.readFunds()).vault).toEqual({ state: 'not-deployed', reason: 'no-code' })
-    const err = await noCode.wallet.deposit(await noCode.wallet.readFunds(), 1n).catch((e: unknown) => e)
-    expect(err).toBeInstanceOf(FundsError)
-    expect((err as FundsError).code).toBe('vault-not-deployed')
-    expect(noCode.alchemy.sends).toHaveLength(0)
-  })
-
-  test('充值与提款由 sma-b 发出受赞助的 Vault 调用，调用 ID 追到入块', async () => {
-    const w = makeRig({ vault: VAULT })
-    const out = await w.wallet.register()
-    w.chain.deployVault({ [out.game!.address]: 3n * ONE_MON / 10n })
-    const funds = await w.wallet.readFunds()
-    expect(funds.vault).toEqual({ state: 'ready', address: VAULT, available: 3n * ONE_MON / 10n })
-
-    const depositId = await w.wallet.deposit(funds, ONE_MON / 2n)
-    const withdrawId = await w.wallet.withdraw(funds, ONE_MON / 10n)
-    expect([depositId, withdrawId]).toEqual(['call-1', 'call-2'])
-    const [dep, wd] = w.alchemy.sends
-    expect(dep!.account).toBe(out.game!.address)
-    expect(dep!.capabilities).toEqual({ paymaster: { policyId: POLICY } })
-    const depCall = dep!.calls[0] as { to: Address; data: Hex; value: bigint }
-    expect(depCall.to).toBe(VAULT)
-    expect(depCall.value).toBe(ONE_MON / 2n)
-    expect(decodeFunctionData({ abi: vaultAbi, data: depCall.data }).functionName).toBe('deposit')
-    const wdCall = wd!.calls[0] as { to: Address; data: Hex }
-    expect(decodeFunctionData({ abi: vaultAbi, data: wdCall.data })).toEqual({ functionName: 'withdraw', args: [ONE_MON / 10n] })
-
-    const progress: string[] = []
-    expect(await w.wallet.trackCall(depositId, (p) => progress.push(p.state)))
-      .toEqual({ state: 'included', callId: 'call-1', transactionHashes: [`0x${'cd'.repeat(32)}`] })
-    expect(progress).toEqual(['included'])
-    w.alchemy.setStatus('failure')
-    expect((await w.wallet.trackCall(withdrawId)).state).toBe('failed')
-    w.alchemy.setStatus('pending')
-    expect(await w.wallet.trackCall(withdrawId)).toEqual({ state: 'timeout', callId: withdrawId })
-
-    // 本地先拦下注定失败的金额，不发交易
-    await expect(w.wallet.deposit(funds, 2n * ONE_MON)).rejects.toMatchObject({ code: 'insufficient-wallet' })
-    await expect(w.wallet.withdraw(funds, ONE_MON)).rejects.toMatchObject({ code: 'insufficient-available' })
-    expect(w.alchemy.sends).toHaveLength(2)
+    expect(await rig.wallet.readFunds()).toEqual({ blockNumber: 1234n, player: out.game!.address, wallet: ONE_MON })
+    expect(rig.chain.calls).not.toContain('eth_call')
   })
 
   test('根账户余额迁入 sma-b：根地址自付 Gas，转出余额减去 gas 上限 × maxFee', async () => {

@@ -33,7 +33,7 @@ library PaidRaceMotion {
     uint256 internal constant REGEN_PER_MS = 10_000;
     /// @dev Exhaustion penalty E = 10 units/s, in mu/s.
     uint256 internal constant EXHAUST_PENALTY_MILLI = 10_000;
-    uint256 internal constant RK_STEP_MS = 50;
+    uint256 internal constant RK_STEP_MS = PaidCardRules.RK_STEP_MS;
     uint256 internal constant NEVER = 0xffffffff;
 
     /// @dev One word per member; see the H_* offsets.
@@ -369,6 +369,7 @@ library PaidRaceMotion {
     /// @return cut true when the last step was truncated at a crossing
     function advance(Stretch memory sx, uint256 tau, uint256 horizon) internal pure returns (uint256 t, bool cut) {
         if (horizon <= tau) revert NoProgress();
+        uint256 rkStep = RK_STEP_MS;
         assembly ("memory-safe") {
             // Δpos over dt ms at multiplier mu: analytic while not exhausted, constant speed while exhausted.
             function delta(h, mu, dt) -> d {
@@ -533,7 +534,7 @@ library PaidRaceMotion {
             for {} 1 {} {
                 let limit := sub(horizon, t)
                 if wells {
-                    if gt(limit, RK_STEP_MS) { limit := RK_STEP_MS }
+                    if gt(limit, rkStep) { limit := rkStep }
                     mstore(add(sx, S_STEPS), add(mload(add(sx, S_STEPS)), 1))
                     accumulate(sx, H_POS)
                     midpoint(sx, limit)

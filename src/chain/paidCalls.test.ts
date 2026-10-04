@@ -1,34 +1,24 @@
 import { expect, test } from 'bun:test'
-import { decodeFunctionData, encodeFunctionData, parseAbi } from 'viem'
+import { decodeFunctionData, encodeFunctionData } from 'viem'
 import {
-  chooseCardCall, forfeitSessionCall, openSessionCalls, ponyGameAbi, sealAnchorsCall, settleSessionCall,
+  chooseCardCall, forfeitSessionCall, openSessionCall, ponyGameAbi, sealAnchorsCall, settleSessionCall,
 } from './paidCalls.ts'
 
 const GAME = '0x1111111111111111111111111111111111111111' as const
-const VAULT = '0x2222222222222222222222222222222222222222' as const
 const SESSION = `0x${'ab'.repeat(32)}` as const
 const STAKE = 3n * 10n ** 17n // tier 1 = 0.3 MON
 
-test('entry batches a deposit for the shortfall only, then openSession', () => {
-  const full = openSessionCalls(VAULT, GAME, 2, STAKE, STAKE)
-  expect(full).toEqual([
-    { to: VAULT, data: encodeFunctionData({ abi: parseAbi(['function deposit() payable']), functionName: 'deposit' }), value: STAKE },
-    { to: GAME, data: encodeFunctionData({ abi: parseAbi(['function openSession(uint8,uint256)']), functionName: 'openSession', args: [2, STAKE] }) },
-  ])
-  const part = openSessionCalls(VAULT, GAME, 2, STAKE, 1n)
-  expect(part[0]).toMatchObject({ to: VAULT, value: 1n })
-  const none = openSessionCalls(VAULT, GAME, 2, STAKE, 0n)
-  expect(none).toEqual([full[1]!])
+test('entry sends the complete stake directly to Game', () => {
+  expect(openSessionCall(GAME, 2, STAKE)).toEqual({
+    to: GAME, data: encodeFunctionData({ abi: ponyGameAbi, functionName: 'openSession', args: [2, STAKE] }), value: STAKE,
+  })
 })
 
-test('entry rejects bad horses, off-tier stakes, bad shortfalls and a vault equal to the game', () => {
-  expect(() => openSessionCalls(VAULT, GAME, 5, STAKE, 0n)).toThrow('INVALID_PAID_ENTRY')
-  expect(() => openSessionCalls(VAULT, GAME, 0, 5n * 10n ** 16n, 0n)).toThrow('INVALID_PAID_ENTRY') // v1 0.05 MON
-  expect(() => openSessionCalls(VAULT, GAME, 0, 0n, 0n)).toThrow('INVALID_PAID_ENTRY')
-  expect(() => openSessionCalls(VAULT, GAME, 0, STAKE, STAKE + 1n)).toThrow('INVALID_PAID_ENTRY')
-  expect(() => openSessionCalls(VAULT, GAME, 0, STAKE, -1n)).toThrow('INVALID_PAID_ENTRY')
-  expect(() => openSessionCalls(GAME, GAME, 0, STAKE, 0n)).toThrow('INVALID_PAID_ENTRY')
-  expect(() => openSessionCalls(`0x${'00'.repeat(20)}`, GAME, 0, STAKE, 0n)).toThrow('INVALID_CONTRACT_ADDRESS')
+test('entry rejects invalid horses, off-tier stakes and missing Game', () => {
+  expect(() => openSessionCall(GAME, 5, STAKE)).toThrow('INVALID_PAID_ENTRY')
+  expect(() => openSessionCall(GAME, 0, 0n)).toThrow('INVALID_PAID_ENTRY')
+  expect(() => openSessionCall(GAME, 0, 5n * 10n ** 16n)).toThrow('INVALID_PAID_ENTRY')
+  expect(() => openSessionCall(`0x${'00'.repeat(20)}`, 0, STAKE)).toThrow('INVALID_CONTRACT_ADDRESS')
 })
 
 test('chooseCard encodes checkpoints 1..3, forfeit 0 and ordered refresh slots', () => {

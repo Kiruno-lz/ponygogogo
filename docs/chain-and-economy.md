@@ -20,17 +20,17 @@
 
 ## 4. Vault 与偿付
 
-游戏只使用 Monad 原生 MON，不使用 ERC-20 或 WMON。用户充值与庄家注资通过 `deposit()` / `fundHouse()` 这两个 payable 入口转入 Vault；下注从已入账的可用余额锁定，开场批次可先补足差额再 `openSession`。余额以 wei 记账。
+游戏只使用 Monad 原生 MON，不使用 ERC-20 或 WMON。玩家通过 `Game.openSession{value: stake}` 支付完整下注，Game 同笔调用 `Vault.lockStake{value: stake}` 转入下注并登记预留。庄家通过 `Vault.fundHouse{value: amount}` 注资。Vault 不设玩家充值、可用余额或提款入口。余额以 wei 记账。
 
-定义 `A` 为玩家可用余额总和、`L` 为锁定下注总和、`H` 为庄家流动性、`R` 为未结算最大净赔付预留：
+定义 `L` 为锁定下注总和、`H` 为庄家流动性、`R` 为未结算最大净赔付预留：
 
 ```text
-address(Vault).balance >= A + L + H
+address(Vault).balance >= L + H
 H >= R
 R(session) = max(maxPayout - stake, 0)
 ```
 
-开场时锁定下注并预留最大净赔付。结算后将实际返还记入玩家余额，判负则按返还 0 结算；两种状态互斥。庄家只能提取 `H - R`。用户充值、提款和管理员操作不得改写已开场赔率或规则。
+开场时锁定下注并预留最大净赔付。结算时直接将实际返还转入玩家智能账户，判负则按返还 0 结算；两种状态互斥。庄家只能提取 `H - R`。管理员操作不得改写已开场赔率或规则。
 
 Vault 不设退款。随机锚过期导致会话无法结算、求时器故障会话被判负或玩家放弃结算，都按返还 0 处理；不存在退款入口。
 

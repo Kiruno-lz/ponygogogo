@@ -1,11 +1,11 @@
 /**
- * 钱包管理面板：游戏账户（sma-b）地址、签名账户（根 EOA）地址、网络、钱包余额与游戏余额（Vault 可用），
- * 充值 / 提款及其交易状态、给游戏账户领测试币、把签名账户的余额迁入、导出助记词，以及索引器里的最近战绩
+ * 钱包管理面板：游戏账户（sma-b）地址、签名账户（根 EOA）地址、网络、原生 MON 余额，
+ * 账户迁入的交易状态、给游戏账户领测试币、把签名账户的余额迁入、导出助记词，以及索引器里的最近战绩
  * （只读、只作展示，未配置索引器时不出现）。
  * 助记词只活在这个组件的局部 state 里：面板一卸载就随组件消失，不写任何持久存储。
  */
 import { useCallback, useState } from 'react'
-import { formatMon, parseMonAmount } from '../chain/amount.ts'
+import { formatMon } from '../chain/amount.ts'
 import type { FaucetResult } from '../chain/faucet.ts'
 import type { FundsSnapshot } from '../chain/funds.ts'
 import { ENVIO_GRAPHQL_URL } from '../chain/history.ts'
@@ -23,7 +23,7 @@ type Pending = 'refresh' | 'faucet' | 'export' | null
 
 export function WalletModal({
   lang, account, gameAccount, gameError, funds, rootBalance, tx,
-  onRefresh, onFaucet, onExport, onDeposit, onWithdraw, onMigrate, onClose,
+  onRefresh, onFaucet, onExport, onMigrate, onClose,
 }: {
   lang: Lang
   /** 根 EOA：签名者，只作次要信息展示 */
@@ -38,8 +38,6 @@ export function WalletModal({
   onRefresh: () => Promise<void>
   onFaucet: () => Promise<FaucetResult>
   onExport: () => Promise<string>
-  onDeposit: (amount: bigint) => Promise<void>
-  onWithdraw: (amount: bigint) => Promise<void>
   onMigrate: () => Promise<MigrationOutcome | null>
   onClose: () => void
 }) {
@@ -47,8 +45,6 @@ export function WalletModal({
   const [message, setMessage] = useState<string | null>(null)
   const [mnemonic, setMnemonic] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const [amount, setAmount] = useState('')
-  const [amountError, setAmountError] = useState<string | null>(null)
 
   const copyAddress = useCallback(() => {
     if (!gameAccount) return
@@ -90,29 +86,7 @@ export function WalletModal({
       .finally(() => setPending(null))
   }, [onExport, lang])
 
-  const vaultReady = funds?.vault.state === 'ready'
   const busy = isTxBusy(tx)
-
-  /** 本地先拦下注定失败的金额，不让玩家为一笔必然回退的交易等待 */
-  const submitFunds = useCallback((kind: 'deposit' | 'withdraw') => {
-    const parsed = parseMonAmount(amount)
-    if (!parsed.ok) {
-      setAmountError(t(lang, `wallet.amountErr.${parsed.reason}`))
-      return
-    }
-    if (!funds || funds.vault.state !== 'ready') {
-      setAmountError(t(lang, 'wallet.fundsErr.vault-not-deployed'))
-      return
-    }
-    const limit = kind === 'deposit' ? funds.wallet : funds.vault.available
-    if (parsed.wei > limit) {
-      setAmountError(t(lang, kind === 'deposit' ? 'wallet.fundsErr.insufficient-wallet' : 'wallet.fundsErr.insufficient-available'))
-      return
-    }
-    setAmountError(null)
-    setMessage(null)
-    void (kind === 'deposit' ? onDeposit(parsed.wei) : onWithdraw(parsed.wei))
-  }, [amount, funds, lang, onDeposit, onWithdraw])
 
   const migrate = useCallback(() => {
     setMessage(null)
@@ -154,26 +128,7 @@ export function WalletModal({
               onClick={refresh} disabled={pending !== null} />
           </dd>
 
-          <dt>{t(lang, 'wallet.gameBalance')}</dt>
-          <dd>
-            {funds?.vault.state === 'not-deployed'
-              ? <span data-testid="wallet-game-balance" className="wallet-muted">{t(lang, 'wallet.vaultNotDeployed')}</span>
-              : <strong className="mono" data-testid="wallet-game-balance">
-                {money(funds?.vault.state === 'ready' ? funds.vault.available : null)}
-              </strong>}
-            <small>{t(lang, 'wallet.gameBalanceHint')}</small>
-          </dd>
         </dl>
-
-        <div className="wallet-funds" data-testid="wallet-funds">
-          <label htmlFor="wallet-amount">{t(lang, 'wallet.amount')}</label>
-          <input id="wallet-amount" data-testid="wallet-amount" inputMode="decimal" autoComplete="off"
-            placeholder="0.1" value={amount} disabled={!vaultReady || busy}
-            onChange={(e) => { setAmount(e.target.value); setAmountError(null) }} />
-          <Chip label={t(lang, 'wallet.deposit')} onClick={() => submitFunds('deposit')} disabled={!vaultReady || busy} />
-          <Chip label={t(lang, 'wallet.withdraw')} onClick={() => submitFunds('withdraw')} disabled={!vaultReady || busy} />
-          {amountError && <span className="wallet-amount-error" data-testid="wallet-amount-error" role="alert">{amountError}</span>}
-        </div>
 
         <TxLine lang={lang} tx={tx} />
 

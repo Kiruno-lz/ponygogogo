@@ -5,13 +5,12 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-/// @notice Custody and accounting for native MON and one immutable game.
+/// @notice Game-only native MON stake custody, payout reserves and direct player payments.
 contract PonyVault is Ownable2Step, ReentrancyGuard {
     error ZeroAddress();
     error ZeroAmount();
     error UnauthorizedGame();
     error EntryPaused();
-    error InsufficientAvailable();
     error InsufficientHouseLiquidity();
     error InvalidLock();
     error ExcessPayout();
@@ -29,15 +28,11 @@ contract PonyVault is Ownable2Step, ReentrancyGuard {
 
     address public immutable game;
     bool public entryPaused;
-    mapping(address => uint256) public available;
     mapping(bytes32 => StakeLock) public stakeLocks;
-    uint256 public totalAvailable;
     uint256 public totalLocked;
     uint256 public houseLiquidity;
     uint256 public reservedLiquidity;
 
-    event Deposited(address indexed player, uint256 amount);
-    event Withdrawn(address indexed player, uint256 amount);
     event HouseFunded(address indexed funder, uint256 amount);
     event HouseWithdrawn(address indexed recipient, uint256 amount);
     event EntryPauseChanged(bool paused);
@@ -65,24 +60,6 @@ contract PonyVault is Ownable2Step, ReentrancyGuard {
         return houseLiquidity - reservedLiquidity;
     }
 
-    function deposit() external payable nonReentrant {
-        if (msg.value == 0) revert ZeroAmount();
-        available[msg.sender] += msg.value;
-        totalAvailable += msg.value;
-        _assertSolvent();
-        emit Deposited(msg.sender, msg.value);
-    }
-
-    function withdraw(uint256 amount) external nonReentrant {
-        if (amount == 0) revert ZeroAmount();
-        if (available[msg.sender] < amount) revert InsufficientAvailable();
-        available[msg.sender] -= amount;
-        totalAvailable -= amount;
-        _sendNative(msg.sender, amount);
-        _assertSolvent();
-        emit Withdrawn(msg.sender, amount);
-    }
-
     function fundHouse() external payable onlyOwner nonReentrant {
         if (msg.value == 0) revert ZeroAmount();
         houseLiquidity += msg.value;
@@ -101,18 +78,19 @@ contract PonyVault is Ownable2Step, ReentrancyGuard {
 
     function lockStake(bytes32 sessionId, address player, uint256 stake, uint256 maxPayout)
         external
+        payable
         onlyGame
         nonReentrant
     {
         if (entryPaused) revert EntryPaused();
-        if (sessionId == bytes32(0) || player == address(0) || stake == 0 || stakeLocks[sessionId].state != 0) {
+        if (
+            sessionId == bytes32(0) || player == address(0) || stake == 0 || msg.value != stake
+                || stakeLocks[sessionId].state != 0
+        ) {
             revert InvalidLock();
         }
-        if (available[player] < stake) revert InsufficientAvailable();
         uint256 reserve = maxPayout > stake ? maxPayout - stake : 0;
         if (reserve > withdrawableHouse()) revert InsufficientHouseLiquidity();
-        available[player] -= stake;
-        totalAvailable -= stake;
         totalLocked += stake;
         reservedLiquidity += reserve;
         stakeLocks[sessionId] = StakeLock(player, stake, maxPayout, reserve, 1);
@@ -120,7 +98,7 @@ contract PonyVault is Ownable2Step, ReentrancyGuard {
         emit StakeLocked(sessionId, player, stake, maxPayout, reserve);
     }
 
-    function settleStake(bytes32 sessionId, uint256 payout) external onlyGame nonReentrant {
+    function settleStake(bytes32 sessionId, uint256 payout) external onlyGame nonReentrant returns (uint256 paid) {
         StakeLock storage lock = stakeLocks[sessionId];
         if (lock.state != 1) revert InvalidLock();
         if (payout > lock.maxPayout) revert ExcessPayout();
@@ -132,10 +110,16 @@ contract PonyVault is Ownable2Step, ReentrancyGuard {
         } else {
             houseLiquidity += lock.stake - payout;
         }
-        available[lock.player] += payout;
-        totalAvailable += payout;
+        paid = payout;
+        if (payout != 0) {
+            (bool sent,) = lock.player.call{value: payout}("");
+            if (!sent) {
+                houseLiquidity += payout;
+                paid = 0;
+            }
+        }
         _assertSolvent();
-        emit StakeSettled(sessionId, lock.player, payout);
+        emit StakeSettled(sessionId, lock.player, paid);
     }
 
     function _sendNative(address to, uint256 amount) private {
@@ -144,8 +128,7 @@ contract PonyVault is Ownable2Step, ReentrancyGuard {
     }
 
     function _assertSolvent() private view {
-        if (houseLiquidity < reservedLiquidity || address(this).balance < totalAvailable + totalLocked + houseLiquidity)
-        {
+        if (houseLiquidity < reservedLiquidity || address(this).balance < totalLocked + houseLiquidity) {
             revert Insolvent();
         }
     }

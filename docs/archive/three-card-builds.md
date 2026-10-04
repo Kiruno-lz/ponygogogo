@@ -380,9 +380,7 @@ N-11 至 N-14 的装备反应、N-20 的定向交换、N-22 的临时固定值�
 | 主动放弃 / 有限复制 | 规范选择原因、白名单载荷、一次性额度 | TS/Solidity 关面板/选牌分支；保留现有随机锚与 C-04 奖励语义 |
 | 功能分类 / 保留候选 | 冻结的主类型；若采用保留则保存两张候选与消费口径 | 规则表；保留方案另改 `paidDrawRules.ts` / Solidity `PaidDrawRules` |
 
-总池超过 26 时，需要同时处理 [paidDeck.ts](../../src/race/core/paidDeck.ts)的满池 mask 与循环、[PaidDeck.sol](../../contracts/PaidDeck.sol)的固定数组、TS/Solidity 输入 ID 校验、[paidSnapshot.ts](../../src/race/paidSnapshot.ts)的 ID 转换边界、[生成脚本](../../scripts/gen-paid-card-rules.ts)的数量校验和向量夹具。填五个占位可以暂不扩 ID 范围，但不意味着无需新效果支持。
-
-即使总池仍为 26，若将 C-22 至 C-26 的新效果开放给电脑马，也必须修改 [paidCpuDeck.ts](../../src/race/core/paidCpuDeck.ts)和 [PaidCpuDeck.sol](../../contracts/PaidCpuDeck.sol)：两者当前只遍历到 21，Solidity 候选数组容量为 13。只修改规则表里的 `cpu` 标记不会让新 ID 实际进入 CPU 派生池。
+总池超过 26 时，需要同时处理 [paidDeck.ts](../../src/race/core/paidDeck.ts)的满池 mask 与循环、[PaidDeck.sol](../../contracts/libraries/PaidDeck.sol)的固定数组、TS/Solidity 输入 ID 校验、[paidSnapshot.ts](../../src/race/paidSnapshot.ts)的 ID 转换边界、[生成脚本](../../scripts/gen-paid-card-rules.ts)的数量校验和向量夹具。
 
 有限触发必须给出可达上界。若未来允许 CPU 使用里程成长，最多五马 × 四次新增成长事件；新的盾、阈值恢复等各自最多一次。实例、事件、炸弹和最长比赛限制应在冻结牌库后按合法组合重新核算。不要以“玩家只有三张牌”为理由认定 gas 不会增加。
 

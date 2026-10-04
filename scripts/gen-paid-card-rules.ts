@@ -7,7 +7,7 @@ import {
   PAID_RULESET_HASH, paidCardRuleTuple,
 } from '../src/race/paid/cardRules.ts'
 
-const target = fileURLToPath(new URL('../contracts/PaidCardRules.sol', import.meta.url))
+const target = fileURLToPath(new URL('../contracts/libraries/PaidCardRules.sol', import.meta.url))
 const check = process.argv.includes('--check')
 const fields = [
   'id', 'effect', 'rare', 'cpu', 'durationMs', 'bonusMode', 'pBps', 'fixedSpeed',
@@ -31,7 +31,7 @@ if (PAID_CARD_RULES.filter((card) => card.rare).length < 2 || PAID_CARD_RULES.fi
 
 /**
  * get(id) decodes a packed record instead of building struct literals, which keeps the table about 3 KB smaller
- * in every contract that reads it (PaidRaceSolver must stay under EIP-170). Record = the tuple fields big-endian at
+ * in every contract that reads it. Record = the tuple fields big-endian at
  * the byte widths below: the first 13 fields (id..radiusMicro) fill word `hi`, the remaining fields fill word `lo`;
  * signed fields are two's complement at their width.
  */
@@ -102,6 +102,7 @@ library PaidCardRules {
     uint8 internal constant CARD_COUNT = ${PAID_CARD_RULES.length};
     uint16 internal constant MIN_COST_FACTOR_BPS = ${PAID_CARD_GLOBALS.minCostFactorBps};
     uint32 internal constant BONUS_DEFAULT_MS = ${PAID_CARD_GLOBALS.bonusDefaultMs};
+    uint256 internal constant RK_STEP_MS = ${PAID_CARD_GLOBALS.rkStepMs};
 ${effects}
 
     struct Rule {

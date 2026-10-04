@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPaidRaceSolver} from "../contracts/IPaidRaceSolver.sol";
-import {PaidCardRules} from "../contracts/PaidCardRules.sol";
+import {IPaidRaceSolver} from "../contracts/interfaces/IPaidRaceSolver.sol";
+import {PaidCardRules} from "../contracts/libraries/PaidCardRules.sol";
 import {PonyGame} from "../contracts/PonyGame.sol";
 import {PonyVault} from "../contracts/PonyVault.sol";
 
@@ -21,8 +21,8 @@ interface DeployVm {
     function stopBroadcast() external;
 }
 
-/// @notice Deploys solver (or reuses PONY_SOLVER), PonyGame, PonyVault; binds them; optionally funds the house and
-/// opens entry.
+/// @notice Deploys the single Solver (or reuses PONY_SOLVER), PonyGame and PonyVault; binds them; optionally funds
+/// the house and opens entry. Solver's hot core and cold-path libraries are compiled into its artifact.
 /// @dev Environment:
 ///   DEPLOYER_PRIVATE_KEY_PATH  file holding the 0x-prefixed deployer key (read via vm.readFile, never logged;
 ///                              foundry.toml grants read access to ./keys only)
