@@ -709,7 +709,6 @@ export default function App() {
         {walletOpen && account && (
           <WalletModal
             lang={lang}
-            account={account}
             gameAccount={gameAccount}
             gameError={gameError}
             funds={funds.funds}

@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
-import type { Address } from 'viem'
 import { PaidResumeModal } from './PaidResumeModal.tsx'
 import { RegisterModal } from './RegisterModal.tsx'
 import { openModal, type KeySource, type ModalHost } from './modalHost.ts'
@@ -193,7 +192,6 @@ describe('openModal', () => {
 })
 
 describe('modals sit on StageDialog', () => {
-  const account = { address: '0x3333333333333333333333333333333333333333' as Address, label: '0x3333…3333' }
   const cases = [
     {
       testId: 'paid-resume',
@@ -214,7 +212,7 @@ describe('modals sit on StageDialog', () => {
       testId: 'wallet-modal',
       label: t('en', 'wallet.title'),
       html: renderToStaticMarkup(
-        <WalletModal lang="en" account={account} gameAccount={null} gameError={null} funds={null}
+        <WalletModal lang="en" gameAccount={null} gameError={null} funds={null}
           rootBalance={null} tx={{ phase: 'idle' }}
           onRefresh={async () => undefined} onFaucet={async () => ({ ok: true, detail: '' })} onExport={async () => ''}
           onMigrate={async () => null} onClose={noop} />,

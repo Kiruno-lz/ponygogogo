@@ -37,7 +37,7 @@ export function HomeScreen({ lang, account, gameAccount, balance, busy, error, o
       {account ? <div className="home-wallet" data-testid="wallet-panel">
         <button type="button" className="btn wallet-content" data-testid="wallet-open"
           aria-label={t(lang, 'wallet.title')} onClick={onOpenWallet}>
-          <div className="wallet-row"><img src="/assets/art/ui/avatar-trimmed.webp" alt=""/><span className="mono" data-testid="wallet-label">{gameAccount?.label ?? '…'}</span></div>
+          <div className="wallet-row"><img src="/assets/art/ui/avatar-trimmed.webp" alt=""/><span className="mono wallet-label" data-testid="wallet-label">{gameAccount ? `${gameAccount.address.slice(0, 10)}…${gameAccount.address.slice(-4)}` : '…'}</span></div>
           <div className="wallet-row"><img src="/assets/art/ui/coin-trimmed.webp" alt=""/><span className="mono" data-testid="balance">{balance === null ? '—' : `${formatMon(balance)} ${CURRENCY}`}</span></div>
           <div className="wallet-row"><img src="/assets/placeholder/icons/icon_13.webp" alt=""/><span>0 / {PAID_CARD_POOL.length}</span></div>
         </button>
