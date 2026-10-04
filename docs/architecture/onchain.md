@@ -6,9 +6,9 @@ Monad 上的 `PonyGame` 以固定规则版本、入场 seed、选择卡牌和随
 每场比赛在入场和结算时写链，选择卡牌时产生小笔交易。
 
 ```text
-Mera 通行密钥 → 根 EOA → Alchemy sma-b → Monad
-       │              │                         ├─ PonyGame → PaidRaceSolver
-       │              └─ owner / recovery       └─ PonyVault (原生 MON)
+Mera 通行密钥 → 根 EOA → Alchemy sma-b → Monad / PonyGame
+       │              │                         ├─ PaidRaceSolver（内部 Engine/Motion/Cold）
+       │              └─ owner / recovery       └─ PonyVault → 玩家 sma-b (原生 MON)
        └─ 独立 PRF 命名空间 → 图鉴密钥
 
 浏览器：规则预览、交易发起与状态恢复
@@ -20,23 +20,57 @@ Envio：合约事件的可回滚历史与统计
 
 保持现有 Mera 根 EOA 的 WebAuthn PRF、BIP-39/BIP-32 派生路径及地址。由该 EOA 拥有并恢复独立 Alchemy Modular Account V2（`sma-b`），显式 `createAdditional: true`，持久记录每条链上的账户地址；不要把根 EOA 当成默认同址 EIP-7702 账户。[Alchemy 账户类型](https://www.alchemy.com/docs/wallets/transactions/using-eip-7702)、[Monad EIP-7702 规则](https://docs.monad.xyz/developer-essentials/eip-7702)。
 
-项目只使用 Monad 原生 MON，不部署或依赖 ERC-20/WMON。Vault 通过 `payable` 入账、按 wei 记账并以原生 MON 返还；用户钱包余额与 Vault 偿付余额均读取原生币余额。图鉴解密仍用独立 PRF salt；图鉴密钥不签交易。Agent Session Key 只获 PonyGame 指定入口权限、有效期和链上累计下注上限，禁止任意转账、提款和 owner 修改。临时 Action Key 不作为结果权威。
+项目只使用 Monad 原生 MON，不部署或依赖 ERC-20/WMON。Game 通过 payable 开场接收下注并同笔转入 Vault；Vault 按 wei 管理下注与赔付预留，结算时直接付款；用户钱包余额与 Vault 偿付余额均读取原生币余额。图鉴解密仍用独立 PRF salt；图鉴密钥不签交易。Agent Session Key 只获 PonyGame 指定入口权限、有效期和链上累计下注上限，禁止任意转账、提款和 owner 修改。临时 Action Key 不作为结果权威。
 
-入场可在一次智能账户确认中批量完成 `deposit{value: 差额} → openSession`（Vault 可用余额已够则只发 `openSession`）。下注从 Vault 的玩家可用 MON 余额锁定；不需要 ERC-20 授权。浏览器跟踪调用 ID 与交易哈希，状态不确定时先读链上会话状态再决定是否重试。免费本地试玩与有奖链上会话分离，不能用免费试玩结果领取链上奖金。
+入场只发送 `PonyGame.openSession{value: stake}(horseId, stake)`，完整下注来自玩家智能账户的原生 MON。Game 校验 `msg.value == stake`，在同笔交易中调用 `Vault.lockStake{value: stake}`；任一检查失败，资金与会话一起回退。Vault 不提供玩家充值、提款或可用余额账户。奖金由 Game 在结算时发起，Vault 直接向该会话玩家智能账户转账，无需额外领取交易。浏览器只显示智能账户原生余额，状态不确定时先读链上会话状态再决定是否重试。免费本地试玩不能领取链上奖金。
 
 ## 3. 合约与资金不变量
 
-部署 `PonyGame` 和 `PonyVault`。Vault 固定资产与唯一 Game 地址；Game 固定 Vault 地址。管理员可暂停新入场、管理庄家流动性，但不得修改已开场规则、提取用户可用余额或占用已锁定的下注。求时器与 `rulesetHash` 在 `PonyGame` 构造时固定；换规则即部署新求时器、新 `PonyGame` 与新 `PonyVault`，已有会话由旧 Game 按其求时器结算或判负。**Vault 不设退款。**
+部署三个具体合约：`PonyGame`、`PonyVault`、`PaidRaceSolver`。Solver 内联热核心与冷路径内部库，独立完成无状态事件求时，不创建辅助计算合约。Vault 固定资产与唯一 Game 地址；Game 固定 Vault 地址。管理员可暂停新入场、管理庄家流动性，但不得修改已开场规则、占用已锁定下注或赔付预留。求时器与 `rulesetHash` 在 `PonyGame` 构造时固定；换规则即部署新求时器、新 `PonyGame` 与新 `PonyVault`，已有会话由旧 Game 按其求时器结算或判负。**Vault 不设退款。**
 
-定义 `A` 为用户可用余额总和、`L` 为未结算下注总和、`H` 为庄家自有流动性、`R` 为最大庄家净赔付预留总和：
+定义 `L` 为未结算下注总和、`H` 为庄家自有流动性、`R` 为最大庄家净赔付预留总和：
 
 ```text
-address(Vault).balance >= A + L + H
+address(Vault).balance >= L + H
 H >= R
 R(session) = max(maxPayout - stake, 0)
 ```
 
-开场时从用户可用余额锁定下注并预留最大净赔付。结算时 `PonyGame` 按求时器给出的 `settlementOrder` 计算赔付，调用 `settleStake(sessionId, payout)`；Vault 只接受 `PonyGame` 的调用，且要求 `payout` 不超过锁定的最大赔付，随后原子释放预留并记入实际返还。判负由 `forfeitSession` 执行：所需随机锚过窗永久不可读时任何人可调用；求时器故障时仅 owner 可在开场 1 天后调用，并先以 `FORFEIT_PROBE_GAS` 预算探测结算预览确实失败。判负按返还 0 处理：下注转入庄家流动性并释放预留；判负与结算互斥；玩家放弃某个检查点的选牌不判负。庄家仅可提取 `H - R`。转账前先扣账并防重入；Envio 或管理员不能调用 Game 专用记账入口。
+开场时接收 Game 转入的下注并预留最大净赔付。结算时 `PonyGame` 按求时器给出的 `settlementOrder` 计算赔付，调用 `settleStake(sessionId, payout)`；Vault 只接受 `PonyGame` 的调用，且要求 `payout` 不超过锁定的最大赔付，随后原子释放预留并将实际返还直接转入玩家智能账户。判负由 `forfeitSession` 执行：所需随机锚过窗永久不可读时任何人可调用；求时器故障时仅 owner 可在开场 1 天后调用，并先以 `FORFEIT_PROBE_GAS` 预算探测结算预览确实失败。判负按返还 0 处理：下注转入庄家流动性并释放预留；判负与结算互斥；玩家放弃某个检查点的选牌不判负。庄家仅可提取 `H - R`。转账前先扣账并防重入；Envio 或管理员不能调用 Game 专用记账入口。
+
+### 合约文件与调用边界
+
+| 文件 | 类型 | 职责 |
+| --- | --- | --- |
+| `contracts/PonyGame.sol` | 部署合约 | 持久保存会话与选择事实、封存随机锚；接收并转入下注；调用求时器并发起结算 |
+| `contracts/PonyVault.sol` | 部署合约 | Game 专用下注托管、庄家流动性与赔付预留、直接奖金付款 |
+| `contracts/PaidRaceSolver.sol` | 部署合约 | 求时器入口，派生输入并执行事件引擎，返回完整规则结果 |
+| `contracts/libraries/PaidRaceCold.sol` | 内部库 | 编入 Solver，提供属性与牌堆派生、规则表、发牌合法性与转移、卡牌快照决策与排序 |
+| `contracts/interfaces/IPaidRaceSolver.sol` | 接口 | Game 与求时器的输入、结果和规则标识 |
+| `contracts/abstracts/AgentBudget.sol` | 继承模块 | Game 中的 Agent 累计下注额度与期限 |
+| `contracts/libraries/PaidSeed.sol`、`RandomAnchor.sol`、`RacePayout.sol` | 内部库 | 会话 seed、区块哈希读取、赔付计算，编入 Game |
+| `contracts/libraries/PaidRaceEngine.sol` | 内部库 | 编入 Solver，唯一拥有比赛内存状态、时间映射、事件顺序、效果生命周期、监听触发与门控修正 |
+| `contracts/libraries/PaidRaceMotion.sol` | 内部库 | 编入 Solver，直接读写 Engine 的 Horse/Bomb/Stretch 内存，执行阈值扫描、解析推进与 RK2 |
+| `contracts/libraries/PaidRaceCardPlan.sol`、`PaidCardRules.sol` | 内部库 | 快照动作决策与生成的规则参数；动作由 Engine 应用 |
+| `contracts/libraries/PaidProfiles.sol`、`PaidDeck.sol`、`PaidCpuDeck.sol` | 内部库 | 五马属性、玩家牌堆和 CPU 牌堆派生 |
+| `contracts/libraries/PaidDrawRules.sol`、`PaidSettlement.sol` | 内部库 | 发牌合法性与状态转移、物理排序与结算排序 |
+| `contracts/libraries/PaidSwap.sol`、`RaceEntropy.sol` | 内部库 | 交换快照决策与用途域分离的确定性派生 |
+
+内部库与继承模块不对应独立业务部署地址。采用[单体对照研究](../_reaserch/paid-solver-inline-support.md)验证的源码边界：Engine 唯一持有比赛状态、时间映射与事件生命周期；Motion、watch/gated 与 PaidRaceCold 全部在 Solver 的同一内存帧内执行。Cold 只提供派生、规则、快照决策、发牌与排序的纯函数，不拥有另一套比赛状态。Solver 不创建或链接外部计算合约，不使用 DELEGATECALL 或组件注册表；生产结算与诊断入口共用同一 Engine/Motion 内核。
+
+```mermaid
+flowchart LR
+    A[玩家智能账户] -->|开场携带完整下注| G[PonyGame]
+    G -->|同笔 lockStake 转入下注| V[PonyVault]
+    G -->|结算 solve| S
+    subgraph S[PaidRaceSolver 单个合约]
+        E[Engine / Motion / watch / gated]
+        C[PaidRaceCold 内部库]
+        E -->|规则 / 发牌 / 快照决策 / 排序| C
+    end
+    G -->|按规则结果发起付款| V
+    V -->|同笔直接转账奖金| A
+```
 
 ## 4. 比赛输入、真实时间与随机锚
 
@@ -60,13 +94,13 @@ R(session) = max(maxPayout - stake, 0)
 
 1. 初始化五马位置、累计里程、性格基础速度、体力、有效百分比 `P`、固定值 `K` 和卡牌状态；以 `T0` 为现实时间起点，选牌阶段按 `dτ/dt=0.1` 映射模拟时间。
 2. 无重力井的区间，对每匹马用 `b(τ)=min(C,b₀+a·Δτ)`、`v(τ)=max(0,b(τ)·(1+Σp)+Σk−E)` 的解析积分，解出最早的速度达上限、体力见底/回满、里程检查点、静态炸弹碰撞与冲线时刻；卡牌到期、每 2 秒交换、风火轮叠层、已锁定选择时间也各提供候选事件。
-3. 重力井生效时，`P_i(τ)` 含随目标与持有者实时距离变化的场项；五马运动耦合，使用规则版本冻结的定点数值积分（步长不超过 50 ms 的 RK2，被事件截断），并在积分中定位炸弹、检查点、C-40 里程与终点的首次越过（最小整数毫秒）；场项取步中点值，不定位场边界。不能取触发时距离快照，也不能把渲染帧当积分步长。
+3. 重力井生效时，`P_i(τ)` 含随目标与持有者实时距离变化的场项；五马运动耦合，使用规则版本冻结的定点数值积分（步长不超过 250 ms 的 RK2，被事件截断），并在积分中定位炸弹、检查点、C-40 里程与终点的首次越过（最小整数毫秒）；场项取步中点值，不定位场边界。不能取触发时距离快照，也不能把渲染帧当积分步长。
 4. 取全场最早事件，推进五马到该时刻，按固定优先级结算并建立下一段；直到五匹马都有首次 `pos >= L` 的规范时间。交换只跳变 `pos/laneIndex`，不凭空增加 `dist`；马可因交换在事件时刻冲线。
 5. 结算事件保留 `finishTime`、`rawOrder` 与 `settlementOrder`；`PonyGame` 按经合约检测彩蛋后的 `settlementOrder` 计算赔付。浏览器在回执后用同一 TS 求时器与 `SessionSettled` 逐字段比对，只提示不一致，不上链，也不进入赔率或付款公式。
 
 重力井的场修正为 `p_target(τ)=±0.3·max(0,1−|pos_target(τ)−pos_owner(τ)|/r_well)`（`r_well` 为规则表 `radiusMicro`，即 8000 单位），符号由实时前后关系决定；持有者变化、赛道交换和越过场源都会改变场方程。天气方向在触发时固定直到替换。C-09 的随机目标由原卡选择区块哈希与触发序号决定。只有**无动态场**的区间可把百分比视为常量，位移积分化为至多二次多项式；动态场区间需解耦合轨迹，不能用逐 tick 回放作为结算备用路径。
 
-例如在未达性格上限、`P` 与 `K` 不变的 `Δτ` 内，`Δpos=(1+P)·(b₀·Δτ+a·Δτ²/2)+K·Δτ`；到上限后把剩余时段改为线性。体力流率、卡牌到期或跨马事件若更早发生，必须先截断区间，不能把公式套过事件边界。根的取整方向、定点舍入、零速、同刻事件与并列名次顺序都由 `rulesetHash` 冻结，浏览器与 Solidity 使用同一组测试向量。
+例如在未达性格上限、`P` 与 `K` 不变的 `Δτ` 内，`Δpos=(1+P)·(b₀·Δτ+a·Δτ²/2)+K·Δτ`；到上限后把剩余时段改为线性。体力流率、卡牌到期或跨马事件若更早发生，必须先截断区间，不能把公式套过事件边界。根的取整方向、定点舍入、零速、同刻事件与并列名次顺序都由 `rulesetHash` 冻结，浏览器与 Solidity 使用同一组测试向量。重力井步长由 `PAID_CARD_GLOBALS.rkStepMs = 250` 生成 Solidity 常量，并纳入规则哈希；前端练习与有奖展示共用 `solvePaidCore`，通过 `PaidTrace`、`sampleHorse` 与 `buildPaidSnapshot` 采样规范轨迹，渲染帧不重新积分。
 
 十五次仅是五马卡牌**挂载**上限，不是事件数上限；自动交换、叠层、死亡、体力循环仍会产生事件。规则冻结的上限：最长比赛时间 `MAX_TAU = 600000` ms、事件数 `MAX_EVENTS = 4096`、效果实例 `MAX_INSTANCES = 96`、炸弹 `MAX_BOMBS = 20`，越界抛错而不是静默截断。全部运算为整数，冲线时间量化到 1 ms（取满足 `pos ≥ L` 的最小整数毫秒），同毫秒并列按 `horseId`。重力井积分误差与最坏合法场次 gas 的验收记录在[链上服务交付](../plan/onchain-services.md)；若最坏场次超 Monad 单笔 gas 限制，有奖版不能退回浏览器名次或逐 tick 合约循环。[Monad gas 规则](https://docs.monad.xyz/developer-essentials/gas-pricing)。
 
@@ -74,8 +108,8 @@ R(session) = max(maxPayout - stake, 0)
 
 ## 6. 事件与查询
 
-`PonyGame` 发 `SessionOpened`（sessionId、玩家、马、下注、seed、`openedAt`、`openedBlock`、`rulesetHash`）、`CardChosen`（检查点、`cardId`（0 为主动放弃）、刷新位置、`txSec`、区块号）、`RandomAnchorSealed`（源区块与实际哈希）、`SessionSettled`（`finishTime[5]`、`rawOrder`、`settlementOrder`、玩家结算名次、返还、`digest`、实际获得的三张牌）、`SessionForfeited`（含判负原因）；Vault 发充值、提款、`StakeLocked`、`StakeSettled`（判负为返还 0）和庄家资金事件。Envio 按合约事件建立比赛历史、玩家战绩、马匹胜率与 Vault 统计。RPC/合约决定资金与会话状态；Envio 仅作可回滚的读模型，不能决定付款。链重组后按最终 canonical 事件重算统计。
+`PonyGame` 发 `SessionOpened`（sessionId、玩家、马、下注、seed、`openedAt`、`openedBlock`、`rulesetHash`）、`CardChosen`（检查点、`cardId`（0 为主动放弃）、刷新位置、`txSec`、区块号）、`RandomAnchorSealed`（源区块与实际哈希）、`SessionSettled`（`finishTime[5]`、`rawOrder`、`settlementOrder`、玩家结算名次、返还、`digest`、实际获得的三张牌）、`SessionForfeited`（含判负原因）；Vault 发 `StakeLocked`、`StakeSettled`（判负为返还 0）和庄家资金事件。Envio 按合约事件建立比赛历史、玩家战绩、马匹胜率与 Vault 统计。RPC/合约决定资金与会话状态；Envio 仅作可回滚的读模型，不能决定付款。链重组后按最终 canonical 事件重算统计。
 
 ## 7. 验收门禁
 
-跨语言向量、Vault 不变量、最坏路径 gas、测试网时延和剩余上线门槛统一记录在[链上服务交付](../plan/onchain-services.md)。修改已部署规则时，须重新跑该记录定义的向量与 Foundry 门禁，并部署新的求时器、`PonyGame` 与 `PonyVault`；有奖结算不得依赖浏览器自报名次、退款入口、Game Server 或逐 tick 链上回放。
+`bun run check:contracts` 构建并断言所有根目录部署合约 runtime ≤ 131,072 B、initcode ≤ 262,144 B，且创建码与运行码均无库链接；EIP-170 余量只作报告。`bun run check:solver-monad` 使用只读 `eth_call` state override 验证 80 场生产输入的结果哈希与 Monad gas，不签名或广播；Foundry gas 只作回归对照。跨语言向量、Vault 不变量、最坏路径 gas、测试网时延和剩余上线门槛统一记录在[链上服务交付](../plan/onchain-services.md)。修改已部署规则时，须重新跑该记录定义的向量与 Foundry 门禁，并部署新的求时器、`PonyGame` 与 `PonyVault`；有奖结算不得依赖浏览器自报名次、退款入口、Game Server 或逐 tick 链上回放。

@@ -63,7 +63,7 @@
 ### 4.1 新增一张卡
 
 - 机制已有：在 `cardRules.ts` 加一行，在 `src/race/cards/metadata.ts` 加名称、梗源与图标；说明文字由规则表生成。重新生成 Solidity 表与向量，规则版本随卡表哈希变化。
-- 引入新机制：先在 `cardRules.ts` 加 `effect` 与字段，在 `solver.ts` 的 `applyCard`、`mods()`、`triggerAt`、`findDue` 加分支，同步 `contracts/PaidRaceEngine.sol`、`PaidRaceCardPlan.sol` 与 `PaidRaceMotion.sol`，再生成向量，最后部署新的求时器与 Game。如果一张新卡逼着你改同刻顺序或积分函数，说明它需要第十类原语，先回[卡牌设计 §3](../card-design.md) 论证，再改本文，最后才加卡。
+- 引入新机制：先在 `cardRules.ts` 加 `effect` 与字段，在 `solver.ts` 的 `applyCard`、`mods()`、`triggerAt`、`findDue` 加分支，同步 `contracts/libraries/PaidRaceEngine.sol`、`PaidRaceCardPlan.sol` 与 `PaidRaceMotion.sol`，再生成向量，最后部署新的求时器与 Game。如果一张新卡逼着你改同刻顺序或积分函数，说明它需要第十类原语，先回[卡牌设计 §3](../card-design.md) 论证，再改本文，最后才加卡。
 
 ### 4.2 速度与体力是聚合出来的
 
@@ -112,7 +112,7 @@
 同毫秒内的事件按类处理，类内按括号中的键升序，同毫秒新产生的项按同一规则继续插入：
 
 ```
-积分推进到最早事件（无场解析 / 有场 RK2 定点积分，步长 ≤ 50 ms）
+积分推进到最早事件（无场解析 / 有场 RK2 定点积分，步长 ≤ 250 ms）
      → 0 效果到期与移除（instanceId）
      → 1 基础速度封顶、体力见底与回满（horseId，同一匹马先封顶后体力）
      → 2 冲线（horseId）→ 3 炸弹首次触线，死亡或免死（horseId，炸弹序号）

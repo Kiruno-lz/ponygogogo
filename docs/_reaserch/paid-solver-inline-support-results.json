@@ -1,0 +1,1881 @@
+{
+  "purpose": "250ms dry-run: preserve Engine/Motion/watch/gated and cold-path source modules; eliminate separate Support deployment",
+  "formalImplementationChanged": false,
+  "remoteBroadcast": false,
+  "compiler": {
+    "solc": "0.8.28",
+    "optimizerRuns": 200,
+    "evmTarget": "prague",
+    "viaIR": false
+  },
+  "rulesetHash": "0xbb2c9df7e6a29f0c6c54510063905c4652e08e0e987b262484cc77eb46dae876",
+  "rkStepMs": 250,
+  "limits": {
+    "monadRuntimeBytes": 131072,
+    "monadInitcodeBytes": 262144,
+    "transactionGas": 30000000
+  },
+  "sourceFingerprints": {
+    "contracts/PonyGame.sol": "00b4804b8f1f9a3f69d0f6b4338dd3defa32e54e0c90d22eae4cc7e91f33953a",
+    "contracts/PaidRaceSolver.sol": "2ed01227e99dec5608fbf81d5e3cec46f22c415f2c731c2c37fb0e4091837883",
+    "contracts/PonyVault.sol": "69bc3870988d0accbe098c61ff60f6caf3fe47956bf95980a5dbcfff2586c542",
+    "contracts/PaidRaceSupport.sol": "d75359676f079dcba3713ae640b5e27a7d106fff8a6e866726ef5f6de99ff8ca",
+    "contracts/libraries/RandomAnchor.sol": "3dda076e7933795616eb672d4f3faa5c3f9f0858258c46ea48a125b932c4b8d1",
+    "contracts/libraries/PaidRaceMotion.sol": "f2c9a122047f69f10f608d2f03c712e82f9e99b42b1120d4de553c623322fb6e",
+    "contracts/libraries/PaidCpuDeck.sol": "e2708b3672e44ec455ca46963b9d34842c7531ccfeaf966af33906c16a881d0f",
+    "contracts/libraries/PaidProfiles.sol": "86229eb8514de91ff674aa759ff48cdd07265e528dbbd0c5e8e3aaf80b155c2c",
+    "contracts/libraries/PaidSeed.sol": "d1192f7d903177ee9bd27e89236f79a01f26001ed15daa601312f21d24c34655",
+    "contracts/libraries/PaidSwap.sol": "fd5c0b752d15e608a000cac90853580c4e73e74ce79f873cbd693703e87f0dd8",
+    "contracts/libraries/PaidSettlement.sol": "1c3b97a3ec60d47dbf72cdf5c4d64a111ebf4b946e7cfaf9fb776acb607bf6f9",
+    "contracts/libraries/PaidDeck.sol": "f7f173faad363371ff58552f09e1e4bc3f0d10c719d5280012d7e1abf78abe69",
+    "contracts/libraries/PaidCardRules.sol": "0d36b0a906f6482f47b3a30835444c12ddc282787c4d9cab71c9325c5da1a650",
+    "contracts/libraries/PaidRaceEngine.sol": "ab96ea8eb2bd94eb263e274acf8d8062651bc061b711a27e90663341ea84ff5b",
+    "contracts/libraries/PaidRaceCardPlan.sol": "0bc62d251a8bdf5ca2ad9d7b43234591aed5402a36067234ba421167f1eedcdc",
+    "contracts/libraries/RacePayout.sol": "4c5ac099282185caebc6a4d39ad28bee872b0c21bf7e1f8c087516368547ea45",
+    "contracts/libraries/PaidDrawRules.sol": "b901f0751095760139839857bf9ba08c4518d2d040c9f7cd3ac8658adbfac96e",
+    "contracts/libraries/RaceEntropy.sol": "4efd77ab3fbd1d89bc57e5b3987ac8eaf5f129700ea2aff5e1c1c3b44b74b530",
+    "contracts/abstracts/AgentBudget.sol": "b39d1a2dc77e91fd609829fbdb3667681487ad5ab0ce50184ded5c17617729ac",
+    "contracts/interfaces/IPaidRaceSolver.sol": "de5dab5f21a3acb80e853a7748be1e5fee089e5d5a3d312a1a9a55822a852965",
+    "scripts/prepare-share-qr.ts": "a7072c70a123210616e96fae3a253066e9b14561ca94c4b7143cba18d98f7a18",
+    "scripts/render-spin-thrust.ts": "c299f4bf52cdb99757c9629c49765c0bb54ea514fcbe6c58dcc202e6221bf719",
+    "scripts/preview-ponies.ts": "da2c4cfb63d2cf82cc3654fac394fb429708e8a5ccd8423c54197a9f39ab81cd",
+    "scripts/DeployPony.s.sol": "936aed239baf332053099b8f625b720e5c6ab6e5b5683d9767e5af70f88bed6e",
+    "scripts/build-web-assets.py": "644b4adea5a1debb52197f5d202412c7ea79dd625824fff707856ef1ff19a781",
+    "scripts/check-asset-quality.py": "80bfd7d0a986ac87b8728531c9babc2da8d915e80595b192c344ab5191917cf5",
+    "scripts/README-assets.md": "2a55517aa70373d45973ad503c7e97e126898e957a75cfe3e63a5c5748a8ef44",
+    "scripts/testnet-session.ts": "568c849c57337e7e6fb96412fdcc6b138e6beba99f25800546f3a5002da42a50",
+    "scripts/prepare-art.py": "b7fb2631f26e435afa4aed4668c90a6847439e394400efb6a6627023b3eb1adb",
+    "scripts/dev-mock-oracle.ts": "f1ecfd13d16c1c4bfcb7945af0055476d9a18cc0f35e92c9789d86d9720e192e",
+    "scripts/prepare-share-qr.test.ts": "dd0374d7d028af4209e955501d67b65b41a12d08478846d52068a30157c5e8a8",
+    "scripts/dev-chain.ts": "c1ebd2cbb73b3425e62c0c3937b012a6037d4f62739346ae77b3eee9a24be104",
+    "scripts/dev.sh": "d013ce7d5c05d48297ae74aa1f7e6aa545f12a2eadaad4892640df07057bd3e4",
+    "scripts/measure-paid-solver.ts": "7ec4b12345d063265c83a4135ebf8162f8af71a0768045423c0dbdba5ea6c4a0",
+    "scripts/prepare-share-art.py": "516940f4ffa83873b355a35e945b0d610d76754469cfac08797b5d8e4fd292b2",
+    "scripts/fetch-audio.sh": "c7afff3178ea0b227c7cfb57b0329761dd60ddb7fa0205b11b1e3e74812be1f9",
+    "scripts/measure-display-sizes.ts": "ec0f339857ed6fccf60a4106fd62e5a1d2c96048bcc73306eaa5d35915dda026",
+    "scripts/keeper.ts": "fd9af768de77b55bd5710089ddd61353724be7c6f3f5e05df0a28ed10be7faa6",
+    "scripts/gen-paid-card-icons.ts": "eeaba227e211652fcb96f2f2df39bd54e1d99348e6deb1cccbac50fdc390a6ed",
+    "scripts/analyze-paid-card-builds.ts": "bbdd375650f20750a2bc11b89a719a934a4eff1b969dc5078f02566a106edcc3",
+    "scripts/get_faucet.sh": "1a2074ca9cc17be2881524d1ca0d3873143aaa624fce8faeb10c5d8224f5e3de",
+    "scripts/check-contract-sizes.ts": "fcc3e028a8a76782d10c81003c68323605ee0899a5104dca86e9675f5a8b63d1",
+    "scripts/postprocess-assets.py": "d62bd28fdb3af7bf7e11090981c2b8877033ac85123efa1284b4a56530a2354b",
+    "scripts/spin-thrust-draw.ts": "9a9b7e1303ca5bd80f269bd6d7f72e446c426f2d6312c4e02281ef19c86cc282",
+    "scripts/gen-paid-card-rules.ts": "92cbf2b91a2c8b4dff85eefb5c924410cef056f439f467eca5c919ad780f4fc9",
+    "scripts/deploy.sh": "4e2e12120a907a63d218a856a6498eb3bec76bbd4241c52fa29b6c475b72f1f5",
+    "scripts/prepare-head-cosmetics.py": "259149235073f97c6d971f762d74b83d86dee3a77c76da8afc6b8c8cfe82ec67",
+    "scripts/display-sizes.json": "ee224ec16239d4702bedeffdc58bcf12ce42539bc96b26b839a119d30aa39072",
+    "scripts/README-audio.md": "fc768590da01af7835604e00f04abc252647a5b92be3be8150c7892f07509dfb",
+    "scripts/process-assets.py": "a3b09b3aa9bdb462cb5f7a796d4f2f3bac9367630dc3e4862b3dd63ac433b377",
+    "scripts/gen-paid-vectors.ts": "fa2e544a9aa9da2397d426495b32f7f49091ce5594730f4f851cac1d9f2e14f7",
+    "scripts/prepare-spin-thrust.py": "0c39e7f0ddb5969d0ca4aa817c58920e8dc917ea5b177d5484491a9ac0455508",
+    "scripts/spin-thrust-motion.ts": "e86a7cb9b885d803aeee2ecda26eb778535ee82f088b0388c234c39feb94f23c",
+    "tests/contracts/PaidRaceHotCore.t.sol": "0f83465bec0ec56313f5059d1eafbc8c466e5247817925242ef49495cc39096b",
+    "tests/contracts/PonyGameInvariant.t.sol": "4223a32e3fc85e2ef1d6df0a423bbfd0f0e159a29a31e1fcf633dd7fc250796e",
+    "tests/contracts/PaidRaceMotion.t.sol": "fe400651df4bb26bca91b2ed8da5478243aafe7b19de2f48da3bc1c5436afbf6",
+    "tests/contracts/PonyGameBase.sol": "9cc25032594fff2d7df80e75fe3e41b30e2e5f868c8517ea61313a90ac2ae810",
+    "tests/contracts/MockPaidRaceSolver.sol": "b46ce90bcab3073f4815efec3a4094be98c5035b0cd45c01daa6c148d6d354a4",
+    "tests/contracts/PaidDrawRules.t.sol": "719c82e03d46aa11e8e1d5c33ced36b2e8451dc58c332ca53c650776cfb74f73",
+    "tests/contracts/PaidRaceSolverVectors.t.sol": "3d676861238c9da45aea1e3a7349df09de0916cdb772d3849d07aa6343a1c23f",
+    "tests/contracts/DirectFunding.t.sol": "16b6e24ae2948fb029956487dcca903e56bba58657d5be838e2e6906f2fa6495",
+    "tests/contracts/PonyGame.t.sol": "ee8d5ce2900797f889938b9ed606d086a5a1fae4b54b922afaeaf032549eb2ad",
+    "tests/contracts/PaidRaceNewCards.t.sol": "34077d472cd51ac2c17a17661123ba8b77fc981b21774993b7d3fc565814837e",
+    "tests/contracts/PaidCardRules.t.sol": "decf78e49cfab35069d3a44c02469812bfbb987ab5501b8658b38f199bd5eb77",
+    "tests/contracts/PaidDeck.t.sol": "c10e7d2348b875404acad56f1b6ea5fb4389989cca14cfca39e73f942c7a41d2",
+    "tests/contracts/PonyVault.t.sol": "276dfcf457f3d1884fca2a0574515070245a87303d7c86f6d63fd90c72f11601",
+    "tests/contracts/AgentBudget.t.sol": "3c7df9557ce8db5aff15afdf84f16c28276cdb157ce414b1fd3641d220889593",
+    "tests/contracts/PaidProfiles.t.sol": "742651d5ccf16f961518c76840b5ccfaf480d5d1740c94acb7656b8ab3e1bf7b",
+    "tests/contracts/PaidSwap.t.sol": "2188c1011251eded785bc635b4e9b09c5df21107630ad0f7b7866b41b049967f",
+    "tests/contracts/PaidCpuDeck.t.sol": "0746a8ce7ffa37a976cde622d4f6646e928dfa673cac6576254460d70c35655c",
+    "tests/contracts/PaidSettlement.t.sol": "88730cf13883229296930fcf4e4255589d5987ed59e7fd4ffbb6bf7aa83871f8",
+    "tests/contracts/PaidRaceVectorBase.sol": "effa849fbd86af947ecf2235957ab76f5596c37d12d42dddb2cefce17ae1edea",
+    "tests/contracts/RacePayout.t.sol": "8b9cc3c8fcc47b7f28153acf47bd8bf1f87b4893c45364430891791498bbc454",
+    "tests/contracts/PaidRaceSolverSession.t.sol": "cae21581d497e2578783e2785bcad9434b54bd5719759f586cb9c78db9b022ba",
+    "tests/contracts/PaidSeed.t.sol": "cdd8daf0c804a8df5f70542d91e54586b65d4813baa2f9a19f8eaf05dd12e5c4",
+    "tests/contracts/RandomAnchor.t.sol": "3682ada30c238743c9abaca5c3a689617b64b7bf4a3fa22b1a763c946015dc17",
+    "tests/contracts/RaceEntropy.t.sol": "9067f9a9ff1c9fd14a13ce7bfb542ca0d278dd89aef6e4e0bb9b0c7f71d8fabc",
+    "foundry.toml": "26ed3185dbe4f23a2a93f3c7e9d19524641398c3cf411613bd3fce783bafadc7",
+    "docs/_reaserch/paid-solver-contract-split.md": "f4d2879816568e6a4bdf9d821da308b2dd780766a213f7e3394d86314b633540"
+  },
+  "method": {
+    "execution": "gasleft around staticcall(solver.solve), cold components, identical 80 derived inputs",
+    "monad": "eth_call runtime state overrides; local hashes verified for every input",
+    "creation": "eth_estimateGas CREATE, public dummy sender balance override, Solver constructor only including nested Support CREATE",
+    "localSimulation": "DeployPony without --broadcast, public local anvil key, sender nonce stayed 0"
+  },
+  "variants": {
+    "baseline": {
+      "sizes": {
+        "PaidRaceSolver": {
+          "runtimeBytes": 25728,
+          "initcodeBytes": 41579,
+          "linkReferences": {},
+          "deployedLinkReferences": {},
+          "compilerSettings": {
+            "enabled": true,
+            "runs": 200
+          }
+        },
+        "PaidRaceSupport": {
+          "runtimeBytes": 15708,
+          "initcodeBytes": 15736,
+          "linkReferences": {},
+          "deployedLinkReferences": {},
+          "compilerSettings": {
+            "enabled": true,
+            "runs": 200
+          }
+        },
+        "PonyGame": {
+          "runtimeBytes": 13299,
+          "initcodeBytes": 13910,
+          "linkReferences": {},
+          "deployedLinkReferences": {},
+          "compilerSettings": {
+            "enabled": true,
+            "runs": 200
+          }
+        },
+        "PonyVault": {
+          "runtimeBytes": 3434,
+          "initcodeBytes": 3870,
+          "linkReferences": {},
+          "deployedLinkReferences": {},
+          "compilerSettings": {
+            "enabled": true,
+            "runs": 200
+          }
+        }
+      },
+      "foundry": {
+        "count": 80,
+        "mean": 2779973.55,
+        "min": 2010337,
+        "max": 4431947,
+        "median": 2702582.5,
+        "maxCase": "derived-58",
+        "samples": [
+          {
+            "name": "derived-0",
+            "gas": 3184919,
+            "resultHash": "0xd4f2c7f8385073a18e3d104f8fffc72abca31fe329bc20ac5c3328b0371da9cf"
+          },
+          {
+            "name": "derived-1",
+            "gas": 2761537,
+            "resultHash": "0x0234e2094b9f6ceb28f5bb875af449010f6513fa8e6b75ab923c6d6cf8dc24ec"
+          },
+          {
+            "name": "derived-2",
+            "gas": 2611588,
+            "resultHash": "0x35c5bf4d71dc194120e9f10dd0d42272a3e61cbec2e2b72447e8ee10a3adad2e"
+          },
+          {
+            "name": "derived-3",
+            "gas": 3024121,
+            "resultHash": "0xb8126aa2131a280edf9df2b9caf19020b9f44b088514ae1569fedd7edae9014a"
+          },
+          {
+            "name": "derived-4",
+            "gas": 2251791,
+            "resultHash": "0x1e854678c7db8570cdb20863e3431691adc91eb297c9ef810299be6711c21d10"
+          },
+          {
+            "name": "derived-5",
+            "gas": 2885041,
+            "resultHash": "0x1db39bc3c9d995f105479fbc2c7fa03f684ad9a8ee9b521926695ad5a46b6f51"
+          },
+          {
+            "name": "derived-6",
+            "gas": 2580386,
+            "resultHash": "0xca7e0466604e1a9b669205b46ffcbfa2de4ed795d431179991aae605e94e32b1"
+          },
+          {
+            "name": "derived-7",
+            "gas": 3021718,
+            "resultHash": "0x574e23cde24ed73098d61cbf31f497b0f555937dbf4511bc63b5e746079b5a93"
+          },
+          {
+            "name": "derived-8",
+            "gas": 3229487,
+            "resultHash": "0x63636588593466b45f8f5ef28c2a2ee46c706119010c43078f9eaf453151360f"
+          },
+          {
+            "name": "derived-9",
+            "gas": 2717031,
+            "resultHash": "0x0835e115183e359461b9448978901bc58d5d5e1dac20ebc30e39ca8c20d0eb2e"
+          },
+          {
+            "name": "derived-10",
+            "gas": 2596261,
+            "resultHash": "0x90b7c432d936ae3e49f73b9ebf8f08172b321132907e2f3bc2b840c7d6368a9b"
+          },
+          {
+            "name": "derived-11",
+            "gas": 3600141,
+            "resultHash": "0xb4bdedea2a847ed0a23a7b72b394e00a61c6e42915508efd72f666e1490432f9"
+          },
+          {
+            "name": "derived-12",
+            "gas": 2808020,
+            "resultHash": "0x6e303bcae40c0d4d627a10014825971044cb9ca3d0218c1d157f4e7df468592d"
+          },
+          {
+            "name": "derived-13",
+            "gas": 2569063,
+            "resultHash": "0xf375ed2ba5b94ce1a8793433f3b853f63fd2f7d7db17791d3ba80a41fb26e2a8"
+          },
+          {
+            "name": "derived-14",
+            "gas": 3062203,
+            "resultHash": "0xaa48eb44248139c86b41842aac1e48865d51c90b8cf72db9caaea91aec61d959"
+          },
+          {
+            "name": "derived-15",
+            "gas": 2662678,
+            "resultHash": "0x041d511a259fc8e5e6e16438111512e8431fdd6b791e2f51ea5d27db2324d09b"
+          },
+          {
+            "name": "derived-16",
+            "gas": 3128831,
+            "resultHash": "0x25839bcfa48141c82fc93ba9c010f4234519eb95ced5ae9bf703fbefcdd1f8f5"
+          },
+          {
+            "name": "derived-17",
+            "gas": 3110926,
+            "resultHash": "0xaf84c2c35681f7001efbe6b6b8948d22bfd08e4922f4f0b92765d403944424cc"
+          },
+          {
+            "name": "derived-18",
+            "gas": 2923342,
+            "resultHash": "0x7412731ced1b6c851aaa89c385f8ecff29fe12935db129d85a885fa2044220c5"
+          },
+          {
+            "name": "derived-19",
+            "gas": 2887901,
+            "resultHash": "0xdf4ea29ce0400fbb29facd633d5318970a73a0b783bf20a30c5258d72841cc7a"
+          },
+          {
+            "name": "derived-20",
+            "gas": 3151622,
+            "resultHash": "0xab53009af915763416e826019eb684aea58c80749432541d7252bcac4e4f12ed"
+          },
+          {
+            "name": "derived-21",
+            "gas": 3228577,
+            "resultHash": "0x3cfe653a30b00ec60937908ea0cffaf67e8eeedd6fe1b474865c8af5b3509ebf"
+          },
+          {
+            "name": "derived-22",
+            "gas": 3488927,
+            "resultHash": "0xc10b959c029c9da7a4c758fef49dea71dbc39a0883d4edc5d30684cfd416626f"
+          },
+          {
+            "name": "derived-23",
+            "gas": 2171247,
+            "resultHash": "0xe9d44e7b0022e70906118176be65f6ce1222254404c5e08a48c009323ef9553e"
+          },
+          {
+            "name": "derived-24",
+            "gas": 2456563,
+            "resultHash": "0xddf2f28a8487f43ef91cb7d7f766bfabf4ad0f49c1c12c5bbc0c655f4ad46e37"
+          },
+          {
+            "name": "derived-25",
+            "gas": 3517878,
+            "resultHash": "0x9cdbd540a5ba7670b52f0f95bb0a31e5811936815484deedfcabb214fe0a57c2"
+          },
+          {
+            "name": "derived-26",
+            "gas": 3228526,
+            "resultHash": "0x5b3d49fb934b1eeb07a4a843bf5b0b630a762c483fe0e9cc95da88cc874ea6e5"
+          },
+          {
+            "name": "derived-27",
+            "gas": 2333821,
+            "resultHash": "0xe5ceafa185429acffde3d16e9ed4699b63c0b4110d8105fbad71910a1afc41ee"
+          },
+          {
+            "name": "derived-28",
+            "gas": 2482909,
+            "resultHash": "0x907133c4e342812809a6b932b8120775862fc2b172e06d42100903a1e98044cc"
+          },
+          {
+            "name": "derived-29",
+            "gas": 2732545,
+            "resultHash": "0x3dab847d5325e84c22a88df514405622f87875fba5aa5492b5bd7d5ffea963f8"
+          },
+          {
+            "name": "derived-30",
+            "gas": 2417520,
+            "resultHash": "0xe791b78db05fcab3dd9c6ec61ffdda26f6804dcd2a29ba8e4e13d5c79a45c488"
+          },
+          {
+            "name": "derived-31",
+            "gas": 2439538,
+            "resultHash": "0xb64bca751a5d53753d160a6297513b2d8334c14cff734a6c6840c079e1878394"
+          },
+          {
+            "name": "derived-32",
+            "gas": 2165321,
+            "resultHash": "0xcadf5e080fc93d1f089e8037578879761ef575d3a51696563915fdf42f39d5a9"
+          },
+          {
+            "name": "derived-33",
+            "gas": 2576882,
+            "resultHash": "0x675f350c637eb9739408ef5e14b75d0da98b8e09285f4814cf066164eb660378"
+          },
+          {
+            "name": "derived-34",
+            "gas": 2617279,
+            "resultHash": "0x388e4e47605f65b4665d4b690e85944ff77e2eb21a87e03110ed719111fe7d1d"
+          },
+          {
+            "name": "derived-35",
+            "gas": 2572700,
+            "resultHash": "0xf2f99bec9b00e7b8ac5b2795706604928d7cc510c0673aa85bfecd20c68645b3"
+          },
+          {
+            "name": "derived-36",
+            "gas": 3220116,
+            "resultHash": "0x2b2e0af0ab2d0c5e2d1f8afaeb5e30581c66a7826d5cc7443a89f093c1648dbc"
+          },
+          {
+            "name": "derived-37",
+            "gas": 2397733,
+            "resultHash": "0x5914248a776a558597b65637d571bdc88a4e130b5ea95b4b3609530c8e8b5be4"
+          },
+          {
+            "name": "derived-38",
+            "gas": 2761692,
+            "resultHash": "0xb7a519f8c85edd081522e42130367045eaab7c88d84b3dca1e384d21e12a5bc3"
+          },
+          {
+            "name": "derived-39",
+            "gas": 3646220,
+            "resultHash": "0x1e7ba1a57762495e715cbef8513340776b32e49d9cc4164a76f4d7b0f6244b9e"
+          },
+          {
+            "name": "derived-40",
+            "gas": 3736778,
+            "resultHash": "0x7079fa69174201858f501f289c5664a1830193ffde631f29e8a7f46d68d16519"
+          },
+          {
+            "name": "derived-41",
+            "gas": 3295202,
+            "resultHash": "0x8f7b577d840ea02d5ba32a571b2066a857f868d207a18d29fd9cec0fc9e3787e"
+          },
+          {
+            "name": "derived-42",
+            "gas": 2085728,
+            "resultHash": "0x7d981d958a408e19d1c89ea5459f3f3055da309e7cb16ead7995f19a5183555e"
+          },
+          {
+            "name": "derived-43",
+            "gas": 3191211,
+            "resultHash": "0x7a1b069956c977c072c72dee6a2afa56cb65a1094f4c506f9d2c4cfbb8efd696"
+          },
+          {
+            "name": "derived-44",
+            "gas": 2468072,
+            "resultHash": "0x3136d36cd0fb8a6ccdab077f257f7ec05a87c71d8f69db73d02d900bb4ade0c9"
+          },
+          {
+            "name": "derived-45",
+            "gas": 2688134,
+            "resultHash": "0x5e2a11b812b590c7e83f0737bedbb17e680907473395bc6de1142181ae66290d"
+          },
+          {
+            "name": "derived-46",
+            "gas": 2523983,
+            "resultHash": "0x64bc5e17ace6d965d8a49d349b03c33daaf5f401697e178f04e0073701da63ad"
+          },
+          {
+            "name": "derived-47",
+            "gas": 2131048,
+            "resultHash": "0x688e6b77e4e5fcbed464e81fcf2ed211db7a657a3ab8c8813fcb9ced27a04a72"
+          },
+          {
+            "name": "derived-48",
+            "gas": 2330173,
+            "resultHash": "0x28d954b0c9d4bee23f4bf19f6af1b99deb1f1aea2d03744c69aa3f76e4cdf1a8"
+          },
+          {
+            "name": "derived-49",
+            "gas": 3140303,
+            "resultHash": "0x6cace40baff37e4cbbfc7e7cfe6bdc3479191fd0d6816d64bd9d7e2d7f5563e9"
+          },
+          {
+            "name": "derived-50",
+            "gas": 3015713,
+            "resultHash": "0xd8e9afcdf1f074c8160d42d11786684e2a608130b03d0cc608c3607716518118"
+          },
+          {
+            "name": "derived-51",
+            "gas": 2162534,
+            "resultHash": "0x7b135a948ca1ecf81d0a880ba1eb07c54f0eed886d6a007c3de564de32d3bc8a"
+          },
+          {
+            "name": "derived-52",
+            "gas": 2379115,
+            "resultHash": "0x5444134a4899cdd90be58213a2f156e299a58eff3dd11491aadd5f0fb5698ff0"
+          },
+          {
+            "name": "derived-53",
+            "gas": 2611147,
+            "resultHash": "0x2817afb80d79b67f1cc6ce9fd26eff2391f814b19535cf1b457499abb08e16a2"
+          },
+          {
+            "name": "derived-54",
+            "gas": 2660773,
+            "resultHash": "0x90ee178714c835a093e3318eb72fdfef56270b385b687b38beb4fd6d2b74fa09"
+          },
+          {
+            "name": "derived-55",
+            "gas": 3200557,
+            "resultHash": "0xea62a07333d412b5a12855978ddda7ab77dbd92a3bdb03bcbb3c5d77283044c6"
+          },
+          {
+            "name": "derived-56",
+            "gas": 2519141,
+            "resultHash": "0x45719ab495ca5da59116c5ca7cde777aa9f111ccd8bda046b92e9722e563d095"
+          },
+          {
+            "name": "derived-57",
+            "gas": 2010337,
+            "resultHash": "0x735108abc7227c379b6aedb262e5dd55c72150a02b09df9e256356dd707db00f"
+          },
+          {
+            "name": "derived-58",
+            "gas": 4431947,
+            "resultHash": "0x263904b7e4d4164aa65f5c317b38cc880a19b3960b70b302e2ed5da4d35e9240"
+          },
+          {
+            "name": "derived-59",
+            "gas": 2527810,
+            "resultHash": "0xfcf2cf964a5adf82909081ac60641120ddb9f68415d258158565fd2d551fab34"
+          },
+          {
+            "name": "derived-60",
+            "gas": 2401739,
+            "resultHash": "0x82a2d6ac597122f1ae58882be228df3e7585cf8d0879130070accef43aa89268"
+          },
+          {
+            "name": "derived-61",
+            "gas": 3076978,
+            "resultHash": "0x8dea7d399c67912a4c5cea158335135e3c21b5c1102e65e73778b5e78e9e7d84"
+          },
+          {
+            "name": "derived-62",
+            "gas": 2234946,
+            "resultHash": "0x6ee4934193eee4f9fea3f1427953d0c22163ad36b4e49f9c045e3e59cb51d3d8"
+          },
+          {
+            "name": "derived-63",
+            "gas": 2764133,
+            "resultHash": "0xc92794b6c6511d9160986a5c9bea0f3c24785d4a041ced25d9f4acea270ec09e"
+          },
+          {
+            "name": "derived-64",
+            "gas": 2121213,
+            "resultHash": "0x9277af994a6f9dfdf6df8789464fe6f787e8d9fa5f7d89e799ee7aa193dc4311"
+          },
+          {
+            "name": "derived-65",
+            "gas": 2164636,
+            "resultHash": "0xe096a33695ab913af466aec82e71576b196f33526718fcb6b5a86d80343e3cfe"
+          },
+          {
+            "name": "derived-66",
+            "gas": 3299417,
+            "resultHash": "0xc81426dc672badab2757b287bfc62a919f0d4404ef1387f6f0d126f9e9740e45"
+          },
+          {
+            "name": "derived-67",
+            "gas": 2346641,
+            "resultHash": "0x6df3d1db97aefa4078e142a3da9a6497afcb3134f2d88e04eca89f81b36364a8"
+          },
+          {
+            "name": "derived-68",
+            "gas": 2626738,
+            "resultHash": "0xe36883af51e58f3dbd02b62dd0b20c5d08b89e1e31a14e0850885dce7fee87b6"
+          },
+          {
+            "name": "derived-69",
+            "gas": 3090146,
+            "resultHash": "0xf026df07b14b4d15874ae71cbe5b302d12eb221f9b44a544013daeabf9d685d2"
+          },
+          {
+            "name": "derived-70",
+            "gas": 3014658,
+            "resultHash": "0x1f6a325081ff247a7d65a79b6dbda84b0008f78ba7a0918c6d1cf7a919efda23"
+          },
+          {
+            "name": "derived-71",
+            "gas": 2279752,
+            "resultHash": "0xbd0360642e1afc823f9952912906d747bfe4c1aab89b1d6727811d93ad9cbb7a"
+          },
+          {
+            "name": "derived-72",
+            "gas": 3224553,
+            "resultHash": "0x264753af3e0783c137b1f3b80b1145e9a8f66daa31027eacb60570a82e4d8f9a"
+          },
+          {
+            "name": "derived-73",
+            "gas": 2940668,
+            "resultHash": "0x6163bffa25c5670ff14d2e42f10626d259c04edc5efc8471f28148e547b663e4"
+          },
+          {
+            "name": "derived-74",
+            "gas": 3419559,
+            "resultHash": "0x9129e36f513e976b8d0ff80a3b315ec26dd58e880a5badfbc1540f555c8944dc"
+          },
+          {
+            "name": "derived-75",
+            "gas": 2916905,
+            "resultHash": "0x5c4027cc3f0fed030df42e9c8bd2373d2295377a2e3641179af159acdf3f5569"
+          },
+          {
+            "name": "derived-76",
+            "gas": 2374816,
+            "resultHash": "0xea07296569166981539ad31e17325855d47a513a1c43a522b12e287dedc59004"
+          },
+          {
+            "name": "derived-77",
+            "gas": 2504289,
+            "resultHash": "0x3e62fc3f47bae2134b047937a744f629662992617eacd01415d1264c89a4681d"
+          },
+          {
+            "name": "derived-78",
+            "gas": 2776483,
+            "resultHash": "0x70ee845dffb794b0b630547cfd16d96852e6c83b65e8e16d20709ccfeba53abb"
+          },
+          {
+            "name": "derived-79",
+            "gas": 2485307,
+            "resultHash": "0x19e5b36fba8cdd8c5027441f8ef26262cef6b2682fdbcb19038bfcde4c6d3cd0"
+          }
+        ]
+      },
+      "monad": {
+        "rpcUrl": "https://testnet-rpc.monad.xyz",
+        "rulesetHash": "0xbb2c9df7e6a29f0c6c54510063905c4652e08e0e987b262484cc77eb46dae876",
+        "runtimeStateOverrides": true,
+        "broadcast": false,
+        "stats": {
+          "count": 80,
+          "mean": 2512423.3,
+          "min": 1851662,
+          "max": 3955438,
+          "median": 2463401.5
+        },
+        "samples": [
+          {
+            "name": "derived-0",
+            "gas": 2900470,
+            "resultHash": "0xd4f2c7f8385073a18e3d104f8fffc72abca31fe329bc20ac5c3328b0371da9cf"
+          },
+          {
+            "name": "derived-1",
+            "gas": 2450645,
+            "resultHash": "0x0234e2094b9f6ceb28f5bb875af449010f6513fa8e6b75ab923c6d6cf8dc24ec"
+          },
+          {
+            "name": "derived-2",
+            "gas": 2386828,
+            "resultHash": "0x35c5bf4d71dc194120e9f10dd0d42272a3e61cbec2e2b72447e8ee10a3adad2e"
+          },
+          {
+            "name": "derived-3",
+            "gas": 2764365,
+            "resultHash": "0xb8126aa2131a280edf9df2b9caf19020b9f44b088514ae1569fedd7edae9014a"
+          },
+          {
+            "name": "derived-4",
+            "gas": 2125114,
+            "resultHash": "0x1e854678c7db8570cdb20863e3431691adc91eb297c9ef810299be6711c21d10"
+          },
+          {
+            "name": "derived-5",
+            "gas": 2611931,
+            "resultHash": "0x1db39bc3c9d995f105479fbc2c7fa03f684ad9a8ee9b521926695ad5a46b6f51"
+          },
+          {
+            "name": "derived-6",
+            "gas": 2299698,
+            "resultHash": "0xca7e0466604e1a9b669205b46ffcbfa2de4ed795d431179991aae605e94e32b1"
+          },
+          {
+            "name": "derived-7",
+            "gas": 2616130,
+            "resultHash": "0x574e23cde24ed73098d61cbf31f497b0f555937dbf4511bc63b5e746079b5a93"
+          },
+          {
+            "name": "derived-8",
+            "gas": 2840167,
+            "resultHash": "0x63636588593466b45f8f5ef28c2a2ee46c706119010c43078f9eaf453151360f"
+          },
+          {
+            "name": "derived-9",
+            "gas": 2337882,
+            "resultHash": "0x0835e115183e359461b9448978901bc58d5d5e1dac20ebc30e39ca8c20d0eb2e"
+          },
+          {
+            "name": "derived-10",
+            "gas": 2297108,
+            "resultHash": "0x90b7c432d936ae3e49f73b9ebf8f08172b321132907e2f3bc2b840c7d6368a9b"
+          },
+          {
+            "name": "derived-11",
+            "gas": 3160407,
+            "resultHash": "0xb4bdedea2a847ed0a23a7b72b394e00a61c6e42915508efd72f666e1490432f9"
+          },
+          {
+            "name": "derived-12",
+            "gas": 2488770,
+            "resultHash": "0x6e303bcae40c0d4d627a10014825971044cb9ca3d0218c1d157f4e7df468592d"
+          },
+          {
+            "name": "derived-13",
+            "gas": 2273466,
+            "resultHash": "0xf375ed2ba5b94ce1a8793433f3b853f63fd2f7d7db17791d3ba80a41fb26e2a8"
+          },
+          {
+            "name": "derived-14",
+            "gas": 2789775,
+            "resultHash": "0xaa48eb44248139c86b41842aac1e48865d51c90b8cf72db9caaea91aec61d959"
+          },
+          {
+            "name": "derived-15",
+            "gas": 2513766,
+            "resultHash": "0x041d511a259fc8e5e6e16438111512e8431fdd6b791e2f51ea5d27db2324d09b"
+          },
+          {
+            "name": "derived-16",
+            "gas": 2901903,
+            "resultHash": "0x25839bcfa48141c82fc93ba9c010f4234519eb95ced5ae9bf703fbefcdd1f8f5"
+          },
+          {
+            "name": "derived-17",
+            "gas": 2858869,
+            "resultHash": "0xaf84c2c35681f7001efbe6b6b8948d22bfd08e4922f4f0b92765d403944424cc"
+          },
+          {
+            "name": "derived-18",
+            "gas": 2546986,
+            "resultHash": "0x7412731ced1b6c851aaa89c385f8ecff29fe12935db129d85a885fa2044220c5"
+          },
+          {
+            "name": "derived-19",
+            "gas": 2513484,
+            "resultHash": "0xdf4ea29ce0400fbb29facd633d5318970a73a0b783bf20a30c5258d72841cc7a"
+          },
+          {
+            "name": "derived-20",
+            "gas": 3005325,
+            "resultHash": "0xab53009af915763416e826019eb684aea58c80749432541d7252bcac4e4f12ed"
+          },
+          {
+            "name": "derived-21",
+            "gas": 2881462,
+            "resultHash": "0x3cfe653a30b00ec60937908ea0cffaf67e8eeedd6fe1b474865c8af5b3509ebf"
+          },
+          {
+            "name": "derived-22",
+            "gas": 3013424,
+            "resultHash": "0xc10b959c029c9da7a4c758fef49dea71dbc39a0883d4edc5d30684cfd416626f"
+          },
+          {
+            "name": "derived-23",
+            "gas": 1994936,
+            "resultHash": "0xe9d44e7b0022e70906118176be65f6ce1222254404c5e08a48c009323ef9553e"
+          },
+          {
+            "name": "derived-24",
+            "gas": 2271585,
+            "resultHash": "0xddf2f28a8487f43ef91cb7d7f766bfabf4ad0f49c1c12c5bbc0c655f4ad46e37"
+          },
+          {
+            "name": "derived-25",
+            "gas": 2870045,
+            "resultHash": "0x9cdbd540a5ba7670b52f0f95bb0a31e5811936815484deedfcabb214fe0a57c2"
+          },
+          {
+            "name": "derived-26",
+            "gas": 2875688,
+            "resultHash": "0x5b3d49fb934b1eeb07a4a843bf5b0b630a762c483fe0e9cc95da88cc874ea6e5"
+          },
+          {
+            "name": "derived-27",
+            "gas": 2108093,
+            "resultHash": "0xe5ceafa185429acffde3d16e9ed4699b63c0b4110d8105fbad71910a1afc41ee"
+          },
+          {
+            "name": "derived-28",
+            "gas": 2184058,
+            "resultHash": "0x907133c4e342812809a6b932b8120775862fc2b172e06d42100903a1e98044cc"
+          },
+          {
+            "name": "derived-29",
+            "gas": 2478036,
+            "resultHash": "0x3dab847d5325e84c22a88df514405622f87875fba5aa5492b5bd7d5ffea963f8"
+          },
+          {
+            "name": "derived-30",
+            "gas": 2223073,
+            "resultHash": "0xe791b78db05fcab3dd9c6ec61ffdda26f6804dcd2a29ba8e4e13d5c79a45c488"
+          },
+          {
+            "name": "derived-31",
+            "gas": 2163185,
+            "resultHash": "0xb64bca751a5d53753d160a6297513b2d8334c14cff734a6c6840c079e1878394"
+          },
+          {
+            "name": "derived-32",
+            "gas": 2015295,
+            "resultHash": "0xcadf5e080fc93d1f089e8037578879761ef575d3a51696563915fdf42f39d5a9"
+          },
+          {
+            "name": "derived-33",
+            "gas": 2282171,
+            "resultHash": "0x675f350c637eb9739408ef5e14b75d0da98b8e09285f4814cf066164eb660378"
+          },
+          {
+            "name": "derived-34",
+            "gas": 2283688,
+            "resultHash": "0x388e4e47605f65b4665d4b690e85944ff77e2eb21a87e03110ed719111fe7d1d"
+          },
+          {
+            "name": "derived-35",
+            "gas": 2224945,
+            "resultHash": "0xf2f99bec9b00e7b8ac5b2795706604928d7cc510c0673aa85bfecd20c68645b3"
+          },
+          {
+            "name": "derived-36",
+            "gas": 3055653,
+            "resultHash": "0x2b2e0af0ab2d0c5e2d1f8afaeb5e30581c66a7826d5cc7443a89f093c1648dbc"
+          },
+          {
+            "name": "derived-37",
+            "gas": 2149543,
+            "resultHash": "0x5914248a776a558597b65637d571bdc88a4e130b5ea95b4b3609530c8e8b5be4"
+          },
+          {
+            "name": "derived-38",
+            "gas": 2470376,
+            "resultHash": "0xb7a519f8c85edd081522e42130367045eaab7c88d84b3dca1e384d21e12a5bc3"
+          },
+          {
+            "name": "derived-39",
+            "gas": 3179799,
+            "resultHash": "0x1e7ba1a57762495e715cbef8513340776b32e49d9cc4164a76f4d7b0f6244b9e"
+          },
+          {
+            "name": "derived-40",
+            "gas": 3268199,
+            "resultHash": "0x7079fa69174201858f501f289c5664a1830193ffde631f29e8a7f46d68d16519"
+          },
+          {
+            "name": "derived-41",
+            "gas": 2941232,
+            "resultHash": "0x8f7b577d840ea02d5ba32a571b2066a857f868d207a18d29fd9cec0fc9e3787e"
+          },
+          {
+            "name": "derived-42",
+            "gas": 1959651,
+            "resultHash": "0x7d981d958a408e19d1c89ea5459f3f3055da309e7cb16ead7995f19a5183555e"
+          },
+          {
+            "name": "derived-43",
+            "gas": 2902795,
+            "resultHash": "0x7a1b069956c977c072c72dee6a2afa56cb65a1094f4c506f9d2c4cfbb8efd696"
+          },
+          {
+            "name": "derived-44",
+            "gas": 2308746,
+            "resultHash": "0x3136d36cd0fb8a6ccdab077f257f7ec05a87c71d8f69db73d02d900bb4ade0c9"
+          },
+          {
+            "name": "derived-45",
+            "gas": 2494853,
+            "resultHash": "0x5e2a11b812b590c7e83f0737bedbb17e680907473395bc6de1142181ae66290d"
+          },
+          {
+            "name": "derived-46",
+            "gas": 2280954,
+            "resultHash": "0x64bc5e17ace6d965d8a49d349b03c33daaf5f401697e178f04e0073701da63ad"
+          },
+          {
+            "name": "derived-47",
+            "gas": 1961291,
+            "resultHash": "0x688e6b77e4e5fcbed464e81fcf2ed211db7a657a3ab8c8813fcb9ced27a04a72"
+          },
+          {
+            "name": "derived-48",
+            "gas": 2176413,
+            "resultHash": "0x28d954b0c9d4bee23f4bf19f6af1b99deb1f1aea2d03744c69aa3f76e4cdf1a8"
+          },
+          {
+            "name": "derived-49",
+            "gas": 2946946,
+            "resultHash": "0x6cace40baff37e4cbbfc7e7cfe6bdc3479191fd0d6816d64bd9d7e2d7f5563e9"
+          },
+          {
+            "name": "derived-50",
+            "gas": 2846593,
+            "resultHash": "0xd8e9afcdf1f074c8160d42d11786684e2a608130b03d0cc608c3607716518118"
+          },
+          {
+            "name": "derived-51",
+            "gas": 2015363,
+            "resultHash": "0x7b135a948ca1ecf81d0a880ba1eb07c54f0eed886d6a007c3de564de32d3bc8a"
+          },
+          {
+            "name": "derived-52",
+            "gas": 2161690,
+            "resultHash": "0x5444134a4899cdd90be58213a2f156e299a58eff3dd11491aadd5f0fb5698ff0"
+          },
+          {
+            "name": "derived-53",
+            "gas": 2308559,
+            "resultHash": "0x2817afb80d79b67f1cc6ce9fd26eff2391f814b19535cf1b457499abb08e16a2"
+          },
+          {
+            "name": "derived-54",
+            "gas": 2536392,
+            "resultHash": "0x90ee178714c835a093e3318eb72fdfef56270b385b687b38beb4fd6d2b74fa09"
+          },
+          {
+            "name": "derived-55",
+            "gas": 2897573,
+            "resultHash": "0xea62a07333d412b5a12855978ddda7ab77dbd92a3bdb03bcbb3c5d77283044c6"
+          },
+          {
+            "name": "derived-56",
+            "gas": 2408208,
+            "resultHash": "0x45719ab495ca5da59116c5ca7cde777aa9f111ccd8bda046b92e9722e563d095"
+          },
+          {
+            "name": "derived-57",
+            "gas": 1851662,
+            "resultHash": "0x735108abc7227c379b6aedb262e5dd55c72150a02b09df9e256356dd707db00f"
+          },
+          {
+            "name": "derived-58",
+            "gas": 3955438,
+            "resultHash": "0x263904b7e4d4164aa65f5c317b38cc880a19b3960b70b302e2ed5da4d35e9240"
+          },
+          {
+            "name": "derived-59",
+            "gas": 2259486,
+            "resultHash": "0xfcf2cf964a5adf82909081ac60641120ddb9f68415d258158565fd2d551fab34"
+          },
+          {
+            "name": "derived-60",
+            "gas": 2241133,
+            "resultHash": "0x82a2d6ac597122f1ae58882be228df3e7585cf8d0879130070accef43aa89268"
+          },
+          {
+            "name": "derived-61",
+            "gas": 2585906,
+            "resultHash": "0x8dea7d399c67912a4c5cea158335135e3c21b5c1102e65e73778b5e78e9e7d84"
+          },
+          {
+            "name": "derived-62",
+            "gas": 2125197,
+            "resultHash": "0x6ee4934193eee4f9fea3f1427953d0c22163ad36b4e49f9c045e3e59cb51d3d8"
+          },
+          {
+            "name": "derived-63",
+            "gas": 2538532,
+            "resultHash": "0xc92794b6c6511d9160986a5c9bea0f3c24785d4a041ced25d9f4acea270ec09e"
+          },
+          {
+            "name": "derived-64",
+            "gas": 2011209,
+            "resultHash": "0x9277af994a6f9dfdf6df8789464fe6f787e8d9fa5f7d89e799ee7aa193dc4311"
+          },
+          {
+            "name": "derived-65",
+            "gas": 1976103,
+            "resultHash": "0xe096a33695ab913af466aec82e71576b196f33526718fcb6b5a86d80343e3cfe"
+          },
+          {
+            "name": "derived-66",
+            "gas": 2987664,
+            "resultHash": "0xc81426dc672badab2757b287bfc62a919f0d4404ef1387f6f0d126f9e9740e45"
+          },
+          {
+            "name": "derived-67",
+            "gas": 2222793,
+            "resultHash": "0x6df3d1db97aefa4078e142a3da9a6497afcb3134f2d88e04eca89f81b36364a8"
+          },
+          {
+            "name": "derived-68",
+            "gas": 2456427,
+            "resultHash": "0xe36883af51e58f3dbd02b62dd0b20c5d08b89e1e31a14e0850885dce7fee87b6"
+          },
+          {
+            "name": "derived-69",
+            "gas": 2840681,
+            "resultHash": "0xf026df07b14b4d15874ae71cbe5b302d12eb221f9b44a544013daeabf9d685d2"
+          },
+          {
+            "name": "derived-70",
+            "gas": 2744063,
+            "resultHash": "0x1f6a325081ff247a7d65a79b6dbda84b0008f78ba7a0918c6d1cf7a919efda23"
+          },
+          {
+            "name": "derived-71",
+            "gas": 2093495,
+            "resultHash": "0xbd0360642e1afc823f9952912906d747bfe4c1aab89b1d6727811d93ad9cbb7a"
+          },
+          {
+            "name": "derived-72",
+            "gas": 2876812,
+            "resultHash": "0x264753af3e0783c137b1f3b80b1145e9a8f66daa31027eacb60570a82e4d8f9a"
+          },
+          {
+            "name": "derived-73",
+            "gas": 2639169,
+            "resultHash": "0x6163bffa25c5670ff14d2e42f10626d259c04edc5efc8471f28148e547b663e4"
+          },
+          {
+            "name": "derived-74",
+            "gas": 2995998,
+            "resultHash": "0x9129e36f513e976b8d0ff80a3b315ec26dd58e880a5badfbc1540f555c8944dc"
+          },
+          {
+            "name": "derived-75",
+            "gas": 2669807,
+            "resultHash": "0x5c4027cc3f0fed030df42e9c8bd2373d2295377a2e3641179af159acdf3f5569"
+          },
+          {
+            "name": "derived-76",
+            "gas": 2173093,
+            "resultHash": "0xea07296569166981539ad31e17325855d47a513a1c43a522b12e287dedc59004"
+          },
+          {
+            "name": "derived-77",
+            "gas": 2326869,
+            "resultHash": "0x3e62fc3f47bae2134b047937a744f629662992617eacd01415d1264c89a4681d"
+          },
+          {
+            "name": "derived-78",
+            "gas": 2381982,
+            "resultHash": "0x70ee845dffb794b0b630547cfd16d96852e6c83b65e8e16d20709ccfeba53abb"
+          },
+          {
+            "name": "derived-79",
+            "gas": 2216743,
+            "resultHash": "0x19e5b36fba8cdd8c5027441f8ef26262cef6b2682fdbcb19038bfcde4c6d3cd0"
+          }
+        ],
+        "adversarial": {
+          "name": "worst-gas-adversarial-climb",
+          "kind": "diagnostic kernel",
+          "gas": 3647290,
+          "resultHash": "0xb20428793ffa4150c8ed7b150570318402b3069325d66c317769495324d75b50"
+        }
+      },
+      "validation": {
+        "foundryTestsPassed": 115,
+        "foundryTestsFailed": 0,
+        "crossLanguageVectors": 355,
+        "fullDeploySimulation": "passed, not broadcast",
+        "localDeployerNonceAfter": 0,
+        "localScriptGasEstimate": 16915950
+      },
+      "monadSolverCreationGasEstimate": 9091427
+    },
+    "inline": {
+      "sizes": {
+        "PaidRaceSolver": {
+          "runtimeBytes": 35144,
+          "initcodeBytes": 35172,
+          "linkReferences": {},
+          "deployedLinkReferences": {},
+          "compilerSettings": {
+            "enabled": true,
+            "runs": 200
+          }
+        },
+        "PonyGame": {
+          "runtimeBytes": 13299,
+          "initcodeBytes": 13910,
+          "linkReferences": {},
+          "deployedLinkReferences": {},
+          "compilerSettings": {
+            "enabled": true,
+            "runs": 200
+          }
+        },
+        "PonyVault": {
+          "runtimeBytes": 3434,
+          "initcodeBytes": 3870,
+          "linkReferences": {},
+          "deployedLinkReferences": {},
+          "compilerSettings": {
+            "enabled": true,
+            "runs": 200
+          }
+        }
+      },
+      "foundry": {
+        "count": 80,
+        "mean": 2931600.85,
+        "min": 2075518,
+        "max": 4701015,
+        "median": 2844427.0,
+        "maxCase": "derived-58",
+        "samples": [
+          {
+            "name": "derived-0",
+            "gas": 3334689,
+            "resultHash": "0xd4f2c7f8385073a18e3d104f8fffc72abca31fe329bc20ac5c3328b0371da9cf"
+          },
+          {
+            "name": "derived-1",
+            "gas": 2958716,
+            "resultHash": "0x0234e2094b9f6ceb28f5bb875af449010f6513fa8e6b75ab923c6d6cf8dc24ec"
+          },
+          {
+            "name": "derived-2",
+            "gas": 2751823,
+            "resultHash": "0x35c5bf4d71dc194120e9f10dd0d42272a3e61cbec2e2b72447e8ee10a3adad2e"
+          },
+          {
+            "name": "derived-3",
+            "gas": 3168195,
+            "resultHash": "0xb8126aa2131a280edf9df2b9caf19020b9f44b088514ae1569fedd7edae9014a"
+          },
+          {
+            "name": "derived-4",
+            "gas": 2293675,
+            "resultHash": "0x1e854678c7db8570cdb20863e3431691adc91eb297c9ef810299be6711c21d10"
+          },
+          {
+            "name": "derived-5",
+            "gas": 3046254,
+            "resultHash": "0x1db39bc3c9d995f105479fbc2c7fa03f684ad9a8ee9b521926695ad5a46b6f51"
+          },
+          {
+            "name": "derived-6",
+            "gas": 2748624,
+            "resultHash": "0xca7e0466604e1a9b669205b46ffcbfa2de4ed795d431179991aae605e94e32b1"
+          },
+          {
+            "name": "derived-7",
+            "gas": 3198250,
+            "resultHash": "0x574e23cde24ed73098d61cbf31f497b0f555937dbf4511bc63b5e746079b5a93"
+          },
+          {
+            "name": "derived-8",
+            "gas": 3477173,
+            "resultHash": "0x63636588593466b45f8f5ef28c2a2ee46c706119010c43078f9eaf453151360f"
+          },
+          {
+            "name": "derived-9",
+            "gas": 2904297,
+            "resultHash": "0x0835e115183e359461b9448978901bc58d5d5e1dac20ebc30e39ca8c20d0eb2e"
+          },
+          {
+            "name": "derived-10",
+            "gas": 2767680,
+            "resultHash": "0x90b7c432d936ae3e49f73b9ebf8f08172b321132907e2f3bc2b840c7d6368a9b"
+          },
+          {
+            "name": "derived-11",
+            "gas": 3825653,
+            "resultHash": "0xb4bdedea2a847ed0a23a7b72b394e00a61c6e42915508efd72f666e1490432f9"
+          },
+          {
+            "name": "derived-12",
+            "gas": 2978026,
+            "resultHash": "0x6e303bcae40c0d4d627a10014825971044cb9ca3d0218c1d157f4e7df468592d"
+          },
+          {
+            "name": "derived-13",
+            "gas": 2726556,
+            "resultHash": "0xf375ed2ba5b94ce1a8793433f3b853f63fd2f7d7db17791d3ba80a41fb26e2a8"
+          },
+          {
+            "name": "derived-14",
+            "gas": 3230643,
+            "resultHash": "0xaa48eb44248139c86b41842aac1e48865d51c90b8cf72db9caaea91aec61d959"
+          },
+          {
+            "name": "derived-15",
+            "gas": 2756309,
+            "resultHash": "0x041d511a259fc8e5e6e16438111512e8431fdd6b791e2f51ea5d27db2324d09b"
+          },
+          {
+            "name": "derived-16",
+            "gas": 3292141,
+            "resultHash": "0x25839bcfa48141c82fc93ba9c010f4234519eb95ced5ae9bf703fbefcdd1f8f5"
+          },
+          {
+            "name": "derived-17",
+            "gas": 3270817,
+            "resultHash": "0xaf84c2c35681f7001efbe6b6b8948d22bfd08e4922f4f0b92765d403944424cc"
+          },
+          {
+            "name": "derived-18",
+            "gas": 3151165,
+            "resultHash": "0x7412731ced1b6c851aaa89c385f8ecff29fe12935db129d85a885fa2044220c5"
+          },
+          {
+            "name": "derived-19",
+            "gas": 3134965,
+            "resultHash": "0xdf4ea29ce0400fbb29facd633d5318970a73a0b783bf20a30c5258d72841cc7a"
+          },
+          {
+            "name": "derived-20",
+            "gas": 3219527,
+            "resultHash": "0xab53009af915763416e826019eb684aea58c80749432541d7252bcac4e4f12ed"
+          },
+          {
+            "name": "derived-21",
+            "gas": 3441102,
+            "resultHash": "0x3cfe653a30b00ec60937908ea0cffaf67e8eeedd6fe1b474865c8af5b3509ebf"
+          },
+          {
+            "name": "derived-22",
+            "gas": 3764935,
+            "resultHash": "0xc10b959c029c9da7a4c758fef49dea71dbc39a0883d4edc5d30684cfd416626f"
+          },
+          {
+            "name": "derived-23",
+            "gas": 2298064,
+            "resultHash": "0xe9d44e7b0022e70906118176be65f6ce1222254404c5e08a48c009323ef9553e"
+          },
+          {
+            "name": "derived-24",
+            "gas": 2597902,
+            "resultHash": "0xddf2f28a8487f43ef91cb7d7f766bfabf4ad0f49c1c12c5bbc0c655f4ad46e37"
+          },
+          {
+            "name": "derived-25",
+            "gas": 3818330,
+            "resultHash": "0x9cdbd540a5ba7670b52f0f95bb0a31e5811936815484deedfcabb214fe0a57c2"
+          },
+          {
+            "name": "derived-26",
+            "gas": 3457380,
+            "resultHash": "0x5b3d49fb934b1eeb07a4a843bf5b0b630a762c483fe0e9cc95da88cc874ea6e5"
+          },
+          {
+            "name": "derived-27",
+            "gas": 2446553,
+            "resultHash": "0xe5ceafa185429acffde3d16e9ed4699b63c0b4110d8105fbad71910a1afc41ee"
+          },
+          {
+            "name": "derived-28",
+            "gas": 2637614,
+            "resultHash": "0x907133c4e342812809a6b932b8120775862fc2b172e06d42100903a1e98044cc"
+          },
+          {
+            "name": "derived-29",
+            "gas": 2929989,
+            "resultHash": "0x3dab847d5325e84c22a88df514405622f87875fba5aa5492b5bd7d5ffea963f8"
+          },
+          {
+            "name": "derived-30",
+            "gas": 2557204,
+            "resultHash": "0xe791b78db05fcab3dd9c6ec61ffdda26f6804dcd2a29ba8e4e13d5c79a45c488"
+          },
+          {
+            "name": "derived-31",
+            "gas": 2570513,
+            "resultHash": "0xb64bca751a5d53753d160a6297513b2d8334c14cff734a6c6840c079e1878394"
+          },
+          {
+            "name": "derived-32",
+            "gas": 2257361,
+            "resultHash": "0xcadf5e080fc93d1f089e8037578879761ef575d3a51696563915fdf42f39d5a9"
+          },
+          {
+            "name": "derived-33",
+            "gas": 2750189,
+            "resultHash": "0x675f350c637eb9739408ef5e14b75d0da98b8e09285f4814cf066164eb660378"
+          },
+          {
+            "name": "derived-34",
+            "gas": 2749984,
+            "resultHash": "0x388e4e47605f65b4665d4b690e85944ff77e2eb21a87e03110ed719111fe7d1d"
+          },
+          {
+            "name": "derived-35",
+            "gas": 2766018,
+            "resultHash": "0xf2f99bec9b00e7b8ac5b2795706604928d7cc510c0673aa85bfecd20c68645b3"
+          },
+          {
+            "name": "derived-36",
+            "gas": 3307435,
+            "resultHash": "0x2b2e0af0ab2d0c5e2d1f8afaeb5e30581c66a7826d5cc7443a89f093c1648dbc"
+          },
+          {
+            "name": "derived-37",
+            "gas": 2555718,
+            "resultHash": "0x5914248a776a558597b65637d571bdc88a4e130b5ea95b4b3609530c8e8b5be4"
+          },
+          {
+            "name": "derived-38",
+            "gas": 2930390,
+            "resultHash": "0xb7a519f8c85edd081522e42130367045eaab7c88d84b3dca1e384d21e12a5bc3"
+          },
+          {
+            "name": "derived-39",
+            "gas": 3902933,
+            "resultHash": "0x1e7ba1a57762495e715cbef8513340776b32e49d9cc4164a76f4d7b0f6244b9e"
+          },
+          {
+            "name": "derived-40",
+            "gas": 3961400,
+            "resultHash": "0x7079fa69174201858f501f289c5664a1830193ffde631f29e8a7f46d68d16519"
+          },
+          {
+            "name": "derived-41",
+            "gas": 3510050,
+            "resultHash": "0x8f7b577d840ea02d5ba32a571b2066a857f868d207a18d29fd9cec0fc9e3787e"
+          },
+          {
+            "name": "derived-42",
+            "gas": 2144428,
+            "resultHash": "0x7d981d958a408e19d1c89ea5459f3f3055da309e7cb16ead7995f19a5183555e"
+          },
+          {
+            "name": "derived-43",
+            "gas": 3362857,
+            "resultHash": "0x7a1b069956c977c072c72dee6a2afa56cb65a1094f4c506f9d2c4cfbb8efd696"
+          },
+          {
+            "name": "derived-44",
+            "gas": 2567015,
+            "resultHash": "0x3136d36cd0fb8a6ccdab077f257f7ec05a87c71d8f69db73d02d900bb4ade0c9"
+          },
+          {
+            "name": "derived-45",
+            "gas": 2784557,
+            "resultHash": "0x5e2a11b812b590c7e83f0737bedbb17e680907473395bc6de1142181ae66290d"
+          },
+          {
+            "name": "derived-46",
+            "gas": 2691270,
+            "resultHash": "0x64bc5e17ace6d965d8a49d349b03c33daaf5f401697e178f04e0073701da63ad"
+          },
+          {
+            "name": "derived-47",
+            "gas": 2236308,
+            "resultHash": "0x688e6b77e4e5fcbed464e81fcf2ed211db7a657a3ab8c8813fcb9ced27a04a72"
+          },
+          {
+            "name": "derived-48",
+            "gas": 2435751,
+            "resultHash": "0x28d954b0c9d4bee23f4bf19f6af1b99deb1f1aea2d03744c69aa3f76e4cdf1a8"
+          },
+          {
+            "name": "derived-49",
+            "gas": 3247676,
+            "resultHash": "0x6cace40baff37e4cbbfc7e7cfe6bdc3479191fd0d6816d64bd9d7e2d7f5563e9"
+          },
+          {
+            "name": "derived-50",
+            "gas": 3105030,
+            "resultHash": "0xd8e9afcdf1f074c8160d42d11786684e2a608130b03d0cc608c3607716518118"
+          },
+          {
+            "name": "derived-51",
+            "gas": 2250276,
+            "resultHash": "0x7b135a948ca1ecf81d0a880ba1eb07c54f0eed886d6a007c3de564de32d3bc8a"
+          },
+          {
+            "name": "derived-52",
+            "gas": 2545229,
+            "resultHash": "0x5444134a4899cdd90be58213a2f156e299a58eff3dd11491aadd5f0fb5698ff0"
+          },
+          {
+            "name": "derived-53",
+            "gas": 2758603,
+            "resultHash": "0x2817afb80d79b67f1cc6ce9fd26eff2391f814b19535cf1b457499abb08e16a2"
+          },
+          {
+            "name": "derived-54",
+            "gas": 2739112,
+            "resultHash": "0x90ee178714c835a093e3318eb72fdfef56270b385b687b38beb4fd6d2b74fa09"
+          },
+          {
+            "name": "derived-55",
+            "gas": 3377820,
+            "resultHash": "0xea62a07333d412b5a12855978ddda7ab77dbd92a3bdb03bcbb3c5d77283044c6"
+          },
+          {
+            "name": "derived-56",
+            "gas": 2580980,
+            "resultHash": "0x45719ab495ca5da59116c5ca7cde777aa9f111ccd8bda046b92e9722e563d095"
+          },
+          {
+            "name": "derived-57",
+            "gas": 2075518,
+            "resultHash": "0x735108abc7227c379b6aedb262e5dd55c72150a02b09df9e256356dd707db00f"
+          },
+          {
+            "name": "derived-58",
+            "gas": 4701015,
+            "resultHash": "0x263904b7e4d4164aa65f5c317b38cc880a19b3960b70b302e2ed5da4d35e9240"
+          },
+          {
+            "name": "derived-59",
+            "gas": 2678780,
+            "resultHash": "0xfcf2cf964a5adf82909081ac60641120ddb9f68415d258158565fd2d551fab34"
+          },
+          {
+            "name": "derived-60",
+            "gas": 2489918,
+            "resultHash": "0x82a2d6ac597122f1ae58882be228df3e7585cf8d0879130070accef43aa89268"
+          },
+          {
+            "name": "derived-61",
+            "gas": 3312137,
+            "resultHash": "0x8dea7d399c67912a4c5cea158335135e3c21b5c1102e65e73778b5e78e9e7d84"
+          },
+          {
+            "name": "derived-62",
+            "gas": 2291753,
+            "resultHash": "0x6ee4934193eee4f9fea3f1427953d0c22163ad36b4e49f9c045e3e59cb51d3d8"
+          },
+          {
+            "name": "derived-63",
+            "gas": 2908708,
+            "resultHash": "0xc92794b6c6511d9160986a5c9bea0f3c24785d4a041ced25d9f4acea270ec09e"
+          },
+          {
+            "name": "derived-64",
+            "gas": 2157162,
+            "resultHash": "0x9277af994a6f9dfdf6df8789464fe6f787e8d9fa5f7d89e799ee7aa193dc4311"
+          },
+          {
+            "name": "derived-65",
+            "gas": 2253167,
+            "resultHash": "0xe096a33695ab913af466aec82e71576b196f33526718fcb6b5a86d80343e3cfe"
+          },
+          {
+            "name": "derived-66",
+            "gas": 3492746,
+            "resultHash": "0xc81426dc672badab2757b287bfc62a919f0d4404ef1387f6f0d126f9e9740e45"
+          },
+          {
+            "name": "derived-67",
+            "gas": 2394979,
+            "resultHash": "0x6df3d1db97aefa4078e142a3da9a6497afcb3134f2d88e04eca89f81b36364a8"
+          },
+          {
+            "name": "derived-68",
+            "gas": 2713329,
+            "resultHash": "0xe36883af51e58f3dbd02b62dd0b20c5d08b89e1e31a14e0850885dce7fee87b6"
+          },
+          {
+            "name": "derived-69",
+            "gas": 3252731,
+            "resultHash": "0xf026df07b14b4d15874ae71cbe5b302d12eb221f9b44a544013daeabf9d685d2"
+          },
+          {
+            "name": "derived-70",
+            "gas": 3178673,
+            "resultHash": "0x1f6a325081ff247a7d65a79b6dbda84b0008f78ba7a0918c6d1cf7a919efda23"
+          },
+          {
+            "name": "derived-71",
+            "gas": 2395447,
+            "resultHash": "0xbd0360642e1afc823f9952912906d747bfe4c1aab89b1d6727811d93ad9cbb7a"
+          },
+          {
+            "name": "derived-72",
+            "gas": 3401369,
+            "resultHash": "0x264753af3e0783c137b1f3b80b1145e9a8f66daa31027eacb60570a82e4d8f9a"
+          },
+          {
+            "name": "derived-73",
+            "gas": 3108800,
+            "resultHash": "0x6163bffa25c5670ff14d2e42f10626d259c04edc5efc8471f28148e547b663e4"
+          },
+          {
+            "name": "derived-74",
+            "gas": 3621439,
+            "resultHash": "0x9129e36f513e976b8d0ff80a3b315ec26dd58e880a5badfbc1540f555c8944dc"
+          },
+          {
+            "name": "derived-75",
+            "gas": 3051906,
+            "resultHash": "0x5c4027cc3f0fed030df42e9c8bd2373d2295377a2e3641179af159acdf3f5569"
+          },
+          {
+            "name": "derived-76",
+            "gas": 2504065,
+            "resultHash": "0xea07296569166981539ad31e17325855d47a513a1c43a522b12e287dedc59004"
+          },
+          {
+            "name": "derived-77",
+            "gas": 2631608,
+            "resultHash": "0x3e62fc3f47bae2134b047937a744f629662992617eacd01415d1264c89a4681d"
+          },
+          {
+            "name": "derived-78",
+            "gas": 3010466,
+            "resultHash": "0x70ee845dffb794b0b630547cfd16d96852e6c83b65e8e16d20709ccfeba53abb"
+          },
+          {
+            "name": "derived-79",
+            "gas": 2629198,
+            "resultHash": "0x19e5b36fba8cdd8c5027441f8ef26262cef6b2682fdbcb19038bfcde4c6d3cd0"
+          }
+        ]
+      },
+      "monad": {
+        "rpcUrl": "https://testnet-rpc.monad.xyz",
+        "rulesetHash": "0xbb2c9df7e6a29f0c6c54510063905c4652e08e0e987b262484cc77eb46dae876",
+        "runtimeStateOverrides": true,
+        "broadcast": false,
+        "stats": {
+          "count": 80,
+          "mean": 2419787.1125,
+          "min": 1772350,
+          "max": 3853531,
+          "median": 2369876.5
+        },
+        "samples": [
+          {
+            "name": "derived-0",
+            "gas": 2809288,
+            "resultHash": "0xd4f2c7f8385073a18e3d104f8fffc72abca31fe329bc20ac5c3328b0371da9cf"
+          },
+          {
+            "name": "derived-1",
+            "gas": 2350198,
+            "resultHash": "0x0234e2094b9f6ceb28f5bb875af449010f6513fa8e6b75ab923c6d6cf8dc24ec"
+          },
+          {
+            "name": "derived-2",
+            "gas": 2294279,
+            "resultHash": "0x35c5bf4d71dc194120e9f10dd0d42272a3e61cbec2e2b72447e8ee10a3adad2e"
+          },
+          {
+            "name": "derived-3",
+            "gas": 2672696,
+            "resultHash": "0xb8126aa2131a280edf9df2b9caf19020b9f44b088514ae1569fedd7edae9014a"
+          },
+          {
+            "name": "derived-4",
+            "gas": 2047259,
+            "resultHash": "0x1e854678c7db8570cdb20863e3431691adc91eb297c9ef810299be6711c21d10"
+          },
+          {
+            "name": "derived-5",
+            "gas": 2516473,
+            "resultHash": "0x1db39bc3c9d995f105479fbc2c7fa03f684ad9a8ee9b521926695ad5a46b6f51"
+          },
+          {
+            "name": "derived-6",
+            "gas": 2202717,
+            "resultHash": "0xca7e0466604e1a9b669205b46ffcbfa2de4ed795d431179991aae605e94e32b1"
+          },
+          {
+            "name": "derived-7",
+            "gas": 2526577,
+            "resultHash": "0x574e23cde24ed73098d61cbf31f497b0f555937dbf4511bc63b5e746079b5a93"
+          },
+          {
+            "name": "derived-8",
+            "gas": 2735282,
+            "resultHash": "0x63636588593466b45f8f5ef28c2a2ee46c706119010c43078f9eaf453151360f"
+          },
+          {
+            "name": "derived-9",
+            "gas": 2243401,
+            "resultHash": "0x0835e115183e359461b9448978901bc58d5d5e1dac20ebc30e39ca8c20d0eb2e"
+          },
+          {
+            "name": "derived-10",
+            "gas": 2199810,
+            "resultHash": "0x90b7c432d936ae3e49f73b9ebf8f08172b321132907e2f3bc2b840c7d6368a9b"
+          },
+          {
+            "name": "derived-11",
+            "gas": 3064949,
+            "resultHash": "0xb4bdedea2a847ed0a23a7b72b394e00a61c6e42915508efd72f666e1490432f9"
+          },
+          {
+            "name": "derived-12",
+            "gas": 2398877,
+            "resultHash": "0x6e303bcae40c0d4d627a10014825971044cb9ca3d0218c1d157f4e7df468592d"
+          },
+          {
+            "name": "derived-13",
+            "gas": 2181566,
+            "resultHash": "0xf375ed2ba5b94ce1a8793433f3b853f63fd2f7d7db17791d3ba80a41fb26e2a8"
+          },
+          {
+            "name": "derived-14",
+            "gas": 2692959,
+            "resultHash": "0xaa48eb44248139c86b41842aac1e48865d51c90b8cf72db9caaea91aec61d959"
+          },
+          {
+            "name": "derived-15",
+            "gas": 2433455,
+            "resultHash": "0x041d511a259fc8e5e6e16438111512e8431fdd6b791e2f51ea5d27db2324d09b"
+          },
+          {
+            "name": "derived-16",
+            "gas": 2800318,
+            "resultHash": "0x25839bcfa48141c82fc93ba9c010f4234519eb95ced5ae9bf703fbefcdd1f8f5"
+          },
+          {
+            "name": "derived-17",
+            "gas": 2762437,
+            "resultHash": "0xaf84c2c35681f7001efbe6b6b8948d22bfd08e4922f4f0b92765d403944424cc"
+          },
+          {
+            "name": "derived-18",
+            "gas": 2450354,
+            "resultHash": "0x7412731ced1b6c851aaa89c385f8ecff29fe12935db129d85a885fa2044220c5"
+          },
+          {
+            "name": "derived-19",
+            "gas": 2406971,
+            "resultHash": "0xdf4ea29ce0400fbb29facd633d5318970a73a0b783bf20a30c5258d72841cc7a"
+          },
+          {
+            "name": "derived-20",
+            "gas": 2922542,
+            "resultHash": "0xab53009af915763416e826019eb684aea58c80749432541d7252bcac4e4f12ed"
+          },
+          {
+            "name": "derived-21",
+            "gas": 2780422,
+            "resultHash": "0x3cfe653a30b00ec60937908ea0cffaf67e8eeedd6fe1b474865c8af5b3509ebf"
+          },
+          {
+            "name": "derived-22",
+            "gas": 2907721,
+            "resultHash": "0xc10b959c029c9da7a4c758fef49dea71dbc39a0883d4edc5d30684cfd416626f"
+          },
+          {
+            "name": "derived-23",
+            "gas": 1899248,
+            "resultHash": "0xe9d44e7b0022e70906118176be65f6ce1222254404c5e08a48c009323ef9553e"
+          },
+          {
+            "name": "derived-24",
+            "gas": 2170164,
+            "resultHash": "0xddf2f28a8487f43ef91cb7d7f766bfabf4ad0f49c1c12c5bbc0c655f4ad46e37"
+          },
+          {
+            "name": "derived-25",
+            "gas": 2769278,
+            "resultHash": "0x9cdbd540a5ba7670b52f0f95bb0a31e5811936815484deedfcabb214fe0a57c2"
+          },
+          {
+            "name": "derived-26",
+            "gas": 2769341,
+            "resultHash": "0x5b3d49fb934b1eeb07a4a843bf5b0b630a762c483fe0e9cc95da88cc874ea6e5"
+          },
+          {
+            "name": "derived-27",
+            "gas": 2025464,
+            "resultHash": "0xe5ceafa185429acffde3d16e9ed4699b63c0b4110d8105fbad71910a1afc41ee"
+          },
+          {
+            "name": "derived-28",
+            "gas": 2092231,
+            "resultHash": "0x907133c4e342812809a6b932b8120775862fc2b172e06d42100903a1e98044cc"
+          },
+          {
+            "name": "derived-29",
+            "gas": 2369576,
+            "resultHash": "0x3dab847d5325e84c22a88df514405622f87875fba5aa5492b5bd7d5ffea963f8"
+          },
+          {
+            "name": "derived-30",
+            "gas": 2120189,
+            "resultHash": "0xe791b78db05fcab3dd9c6ec61ffdda26f6804dcd2a29ba8e4e13d5c79a45c488"
+          },
+          {
+            "name": "derived-31",
+            "gas": 2075638,
+            "resultHash": "0xb64bca751a5d53753d160a6297513b2d8334c14cff734a6c6840c079e1878394"
+          },
+          {
+            "name": "derived-32",
+            "gas": 1926124,
+            "resultHash": "0xcadf5e080fc93d1f089e8037578879761ef575d3a51696563915fdf42f39d5a9"
+          },
+          {
+            "name": "derived-33",
+            "gas": 2197185,
+            "resultHash": "0x675f350c637eb9739408ef5e14b75d0da98b8e09285f4814cf066164eb660378"
+          },
+          {
+            "name": "derived-34",
+            "gas": 2205649,
+            "resultHash": "0x388e4e47605f65b4665d4b690e85944ff77e2eb21a87e03110ed719111fe7d1d"
+          },
+          {
+            "name": "derived-35",
+            "gas": 2130450,
+            "resultHash": "0xf2f99bec9b00e7b8ac5b2795706604928d7cc510c0673aa85bfecd20c68645b3"
+          },
+          {
+            "name": "derived-36",
+            "gas": 2969725,
+            "resultHash": "0x2b2e0af0ab2d0c5e2d1f8afaeb5e30581c66a7826d5cc7443a89f093c1648dbc"
+          },
+          {
+            "name": "derived-37",
+            "gas": 2056403,
+            "resultHash": "0x5914248a776a558597b65637d571bdc88a4e130b5ea95b4b3609530c8e8b5be4"
+          },
+          {
+            "name": "derived-38",
+            "gas": 2374415,
+            "resultHash": "0xb7a519f8c85edd081522e42130367045eaab7c88d84b3dca1e384d21e12a5bc3"
+          },
+          {
+            "name": "derived-39",
+            "gas": 3077400,
+            "resultHash": "0x1e7ba1a57762495e715cbef8513340776b32e49d9cc4164a76f4d7b0f6244b9e"
+          },
+          {
+            "name": "derived-40",
+            "gas": 3174201,
+            "resultHash": "0x7079fa69174201858f501f289c5664a1830193ffde631f29e8a7f46d68d16519"
+          },
+          {
+            "name": "derived-41",
+            "gas": 2840843,
+            "resultHash": "0x8f7b577d840ea02d5ba32a571b2066a857f868d207a18d29fd9cec0fc9e3787e"
+          },
+          {
+            "name": "derived-42",
+            "gas": 1876542,
+            "resultHash": "0x7d981d958a408e19d1c89ea5459f3f3055da309e7cb16ead7995f19a5183555e"
+          },
+          {
+            "name": "derived-43",
+            "gas": 2803704,
+            "resultHash": "0x7a1b069956c977c072c72dee6a2afa56cb65a1094f4c506f9d2c4cfbb8efd696"
+          },
+          {
+            "name": "derived-44",
+            "gas": 2214751,
+            "resultHash": "0x3136d36cd0fb8a6ccdab077f257f7ec05a87c71d8f69db73d02d900bb4ade0c9"
+          },
+          {
+            "name": "derived-45",
+            "gas": 2407141,
+            "resultHash": "0x5e2a11b812b590c7e83f0737bedbb17e680907473395bc6de1142181ae66290d"
+          },
+          {
+            "name": "derived-46",
+            "gas": 2182827,
+            "resultHash": "0x64bc5e17ace6d965d8a49d349b03c33daaf5f401697e178f04e0073701da63ad"
+          },
+          {
+            "name": "derived-47",
+            "gas": 1887671,
+            "resultHash": "0x688e6b77e4e5fcbed464e81fcf2ed211db7a657a3ab8c8813fcb9ced27a04a72"
+          },
+          {
+            "name": "derived-48",
+            "gas": 2083539,
+            "resultHash": "0x28d954b0c9d4bee23f4bf19f6af1b99deb1f1aea2d03744c69aa3f76e4cdf1a8"
+          },
+          {
+            "name": "derived-49",
+            "gas": 2864457,
+            "resultHash": "0x6cace40baff37e4cbbfc7e7cfe6bdc3479191fd0d6816d64bd9d7e2d7f5563e9"
+          },
+          {
+            "name": "derived-50",
+            "gas": 2761305,
+            "resultHash": "0xd8e9afcdf1f074c8160d42d11786684e2a608130b03d0cc608c3607716518118"
+          },
+          {
+            "name": "derived-51",
+            "gas": 1926513,
+            "resultHash": "0x7b135a948ca1ecf81d0a880ba1eb07c54f0eed886d6a007c3de564de32d3bc8a"
+          },
+          {
+            "name": "derived-52",
+            "gas": 2059606,
+            "resultHash": "0x5444134a4899cdd90be58213a2f156e299a58eff3dd11491aadd5f0fb5698ff0"
+          },
+          {
+            "name": "derived-53",
+            "gas": 2225914,
+            "resultHash": "0x2817afb80d79b67f1cc6ce9fd26eff2391f814b19535cf1b457499abb08e16a2"
+          },
+          {
+            "name": "derived-54",
+            "gas": 2446567,
+            "resultHash": "0x90ee178714c835a093e3318eb72fdfef56270b385b687b38beb4fd6d2b74fa09"
+          },
+          {
+            "name": "derived-55",
+            "gas": 2801299,
+            "resultHash": "0xea62a07333d412b5a12855978ddda7ab77dbd92a3bdb03bcbb3c5d77283044c6"
+          },
+          {
+            "name": "derived-56",
+            "gas": 2325741,
+            "resultHash": "0x45719ab495ca5da59116c5ca7cde777aa9f111ccd8bda046b92e9722e563d095"
+          },
+          {
+            "name": "derived-57",
+            "gas": 1772350,
+            "resultHash": "0x735108abc7227c379b6aedb262e5dd55c72150a02b09df9e256356dd707db00f"
+          },
+          {
+            "name": "derived-58",
+            "gas": 3853531,
+            "resultHash": "0x263904b7e4d4164aa65f5c317b38cc880a19b3960b70b302e2ed5da4d35e9240"
+          },
+          {
+            "name": "derived-59",
+            "gas": 2165329,
+            "resultHash": "0xfcf2cf964a5adf82909081ac60641120ddb9f68415d258158565fd2d551fab34"
+          },
+          {
+            "name": "derived-60",
+            "gas": 2151795,
+            "resultHash": "0x82a2d6ac597122f1ae58882be228df3e7585cf8d0879130070accef43aa89268"
+          },
+          {
+            "name": "derived-61",
+            "gas": 2494553,
+            "resultHash": "0x8dea7d399c67912a4c5cea158335135e3c21b5c1102e65e73778b5e78e9e7d84"
+          },
+          {
+            "name": "derived-62",
+            "gas": 2044895,
+            "resultHash": "0x6ee4934193eee4f9fea3f1427953d0c22163ad36b4e49f9c045e3e59cb51d3d8"
+          },
+          {
+            "name": "derived-63",
+            "gas": 2441937,
+            "resultHash": "0xc92794b6c6511d9160986a5c9bea0f3c24785d4a041ced25d9f4acea270ec09e"
+          },
+          {
+            "name": "derived-64",
+            "gas": 1936005,
+            "resultHash": "0x9277af994a6f9dfdf6df8789464fe6f787e8d9fa5f7d89e799ee7aa193dc4311"
+          },
+          {
+            "name": "derived-65",
+            "gas": 1894124,
+            "resultHash": "0xe096a33695ab913af466aec82e71576b196f33526718fcb6b5a86d80343e3cfe"
+          },
+          {
+            "name": "derived-66",
+            "gas": 2888576,
+            "resultHash": "0xc81426dc672badab2757b287bfc62a919f0d4404ef1387f6f0d126f9e9740e45"
+          },
+          {
+            "name": "derived-67",
+            "gas": 2144126,
+            "resultHash": "0x6df3d1db97aefa4078e142a3da9a6497afcb3134f2d88e04eca89f81b36364a8"
+          },
+          {
+            "name": "derived-68",
+            "gas": 2370177,
+            "resultHash": "0xe36883af51e58f3dbd02b62dd0b20c5d08b89e1e31a14e0850885dce7fee87b6"
+          },
+          {
+            "name": "derived-69",
+            "gas": 2745047,
+            "resultHash": "0xf026df07b14b4d15874ae71cbe5b302d12eb221f9b44a544013daeabf9d685d2"
+          },
+          {
+            "name": "derived-70",
+            "gas": 2648118,
+            "resultHash": "0x1f6a325081ff247a7d65a79b6dbda84b0008f78ba7a0918c6d1cf7a919efda23"
+          },
+          {
+            "name": "derived-71",
+            "gas": 2001994,
+            "resultHash": "0xbd0360642e1afc823f9952912906d747bfe4c1aab89b1d6727811d93ad9cbb7a"
+          },
+          {
+            "name": "derived-72",
+            "gas": 2779993,
+            "resultHash": "0x264753af3e0783c137b1f3b80b1145e9a8f66daa31027eacb60570a82e4d8f9a"
+          },
+          {
+            "name": "derived-73",
+            "gas": 2547325,
+            "resultHash": "0x6163bffa25c5670ff14d2e42f10626d259c04edc5efc8471f28148e547b663e4"
+          },
+          {
+            "name": "derived-74",
+            "gas": 2899179,
+            "resultHash": "0x9129e36f513e976b8d0ff80a3b315ec26dd58e880a5badfbc1540f555c8944dc"
+          },
+          {
+            "name": "derived-75",
+            "gas": 2578140,
+            "resultHash": "0x5c4027cc3f0fed030df42e9c8bd2373d2295377a2e3641179af159acdf3f5569"
+          },
+          {
+            "name": "derived-76",
+            "gas": 2076443,
+            "resultHash": "0xea07296569166981539ad31e17325855d47a513a1c43a522b12e287dedc59004"
+          },
+          {
+            "name": "derived-77",
+            "gas": 2228915,
+            "resultHash": "0x3e62fc3f47bae2134b047937a744f629662992617eacd01415d1264c89a4681d"
+          },
+          {
+            "name": "derived-78",
+            "gas": 2283530,
+            "resultHash": "0x70ee845dffb794b0b630547cfd16d96852e6c83b65e8e16d20709ccfeba53abb"
+          },
+          {
+            "name": "derived-79",
+            "gas": 2125235,
+            "resultHash": "0x19e5b36fba8cdd8c5027441f8ef26262cef6b2682fdbcb19038bfcde4c6d3cd0"
+          }
+        ],
+        "adversarial": {
+          "name": "worst-gas-adversarial-climb",
+          "kind": "diagnostic kernel",
+          "gas": 3598543,
+          "resultHash": "0xb20428793ffa4150c8ed7b150570318402b3069325d66c317769495324d75b50"
+        }
+      },
+      "validation": {
+        "foundryTestsPassed": 115,
+        "foundryTestsFailed": 0,
+        "crossLanguageVectors": 355,
+        "fullDeploySimulation": "passed, not broadcast",
+        "localDeployerNonceAfter": 0,
+        "localScriptGasEstimate": 15101771
+      },
+      "monadSolverCreationGasEstimate": 7684715
+    }
+  },
+  "comparison": {
+    "productionResultParity": 80,
+    "diagnosticAdversarialResultParity": true,
+    "monadAll80GasLower": true,
+    "monadMeanDeltaPercent": -3.687124996014801,
+    "monadMaxDeltaPercent": -2.57637712941019,
+    "foundryMeanDeltaPercent": 5.454271318516701,
+    "foundryMaxDeltaPercent": 6.0711014820348685,
+    "creationGasDeltaPercent": -15.472950506009674,
+    "deployedSolverGroupBytesSaved": 6292
+  },
+  "oracleFingerprints": {
+    "tests/vectors/paid-race-v4.json": "db8c9f08f4571c586a802fbe3269aed2f7a1d7712fd0610e28c82cee304772be",
+    "src/race/paid/cardRules.ts": "bb935b1f1eb7f587be0c81cf5a9d51a5ee37af8f799f769a1333c472984d5617"
+  },
+  "vectorCount": 355
+}
