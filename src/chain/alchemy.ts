@@ -104,7 +104,7 @@ export class AlchemyAccount implements CallAccount {
       key: { publicKey: sessionKey, type: 'secp256k1' },
       permissions: [{
         type: 'functions-on-contract',
-        data: { address: game, functions: [toFunctionSelector('openAgentSession(uint8,uint256)')] },
+        data: { address: game, functions: [toFunctionSelector('openAgentSession(uint8,uint256,uint8[5])')] },
       }],
     })
     return result.context

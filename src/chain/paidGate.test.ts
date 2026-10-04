@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import type { Address, Hex } from 'viem'
 import { PONY_GAME_ADDRESS, PONY_VAULT_ADDRESS } from './network.ts'
+import { PAID_RULESET_HASH, LEGACY_PAID_RULESET_HASH } from '../race/paid/cardRules.ts'
 import {
   PAID_RACE_DEV_OVERRIDE, PAID_RACE_FEATURE, PRACTICE_TIER, isPaidRaceAvailable, isTierPlayable, paidContractsDeployed,
   paidEntry, paidRaceAvailable,
@@ -15,6 +16,14 @@ function codeReader(codes: Partial<Record<Address, Hex | undefined>>) {
 }
 
 describe('paid race gate', () => {
+  test('legacy contracts remain recoverable but cannot open new roster races', async () => {
+    expect(paidEntry(true, 'unsupported', true)).toEqual({ open: false, hint: 'select.paidRulesMismatch' })
+    const { paidRulesCompatible } = await import('./paidGate.ts')
+    const current = { readContract: async () => PAID_RULESET_HASH }
+    const legacy = { readContract: async () => LEGACY_PAID_RULESET_HASH }
+    expect(await paidRulesCompatible(current as never, GAME)).toBe(true)
+    expect(await paidRulesCompatible(legacy as never, GAME)).toBe(false)
+  })
   test('feature switch is on; the build gate then follows the configured addresses alone', () => {
     expect(PAID_RACE_FEATURE).toBe(true)
     // the dev override needs a Vite dev build; a test or production runtime never sees DEV === true

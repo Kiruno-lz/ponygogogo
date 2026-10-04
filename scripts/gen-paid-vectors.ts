@@ -15,7 +15,7 @@ import {
   EV_BOMB_PLACE, EV_CHOICE_INVALID, INVALID_AFTER_FINISH, INVALID_AUTO, INVALID_BAD_SLOT, INVALID_CUT, INVALID_EARLY,
   INVALID_LATE, INVALID_NO_CREDIT, INVALID_NOT_OFFERED, INVALID_NOT_OPENED, PAID_CHOICE_INVALID_NAMES, PAID_EVENT_NAMES,
 } from '../src/race/paid/events.ts'
-import { PAID_RULESET_HASH } from '../src/race/paid/constants.ts'
+import { LEGACY_PAID_RULESET_HASH } from '../src/race/paid/cardRules.ts'
 import { derivePaidCoreInput } from '../src/race/paid/race.ts'
 import { solvePaidCore, type PaidChoiceSlot, type PaidCoreInput, type PaidCoreProfile } from '../src/race/paid/solver.ts'
 import {
@@ -363,7 +363,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
 
 function render(cases: PaidVectorCase[]): string {
   const meta = {
-    rulesetHash: PAID_RULESET_HASH,
+    rulesetHash: LEGACY_PAID_RULESET_HASH,
     generator: `scripts/gen-paid-vectors.ts (${GENERATOR_LABEL})`,
     fixtureSeed: FIXTURE_SEED,
     units: 'tau/wall ms; pos/dist µu (L = 1e11); b mu/s; stamina µ (cap 1e9); bigints are decimal strings',

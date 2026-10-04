@@ -41,6 +41,12 @@ import {
   buildPaidSnapshot, demoPos, eventsUpTo, idlePaidState, paidCardNumber, tickOf, toRaceEvent, type PaidPanelView,
 } from './paidSnapshot.ts'
 import type { RaceScreenDriver } from './raceView.ts'
+import { normalizeRoster } from './core/roster.ts'
+
+function sameRoster(a: readonly number[] | undefined, b: readonly number[] | undefined): boolean {
+  if (!a || !b) return a === b
+  return a.length === b.length && a.every((id, h) => id === b[h])
+}
 
 const PLACEHOLDER_ANCHOR: Hex = `0x${'00'.repeat(32)}`
 const SNAP_MS = 5000
@@ -98,6 +104,7 @@ export type SubmitChoice = (
 
 export type PaidDriverOptions = {
   playerHorseId: number
+  roster?: readonly number[]
   stakeTier: 1 | 2 | 3 | 4
   clock: { estimate(localMs: number): ClockEstimate }
   timing: ChoiceTiming
@@ -124,7 +131,7 @@ export class PaidRaceDriver implements RaceScreenDriver {
   countdownLeft: number
   choiceLeftMs = -1
 
-  private readonly opts: Required<Omit<PaidDriverOptions, 'submitChoice' | 'clock' | 'timing'>> & PaidDriverOptions
+  private readonly opts: Required<Omit<PaidDriverOptions, 'submitChoice' | 'clock' | 'timing' | 'roster'>> & PaidDriverOptions
   private readonly latency: LatencyEstimator
   private facts: PaidSessionFacts | null = null
   private core: PaidCoreInput | null = null
@@ -157,10 +164,10 @@ export class PaidRaceDriver implements RaceScreenDriver {
   private entryFailed = false
 
   constructor(opts: PaidDriverOptions) {
-    this.opts = { countdownMs: 3000, correctionMs: 700, ...opts }
+    this.opts = { countdownMs: 3000, correctionMs: 700, ...opts, roster: opts.roster ? normalizeRoster(opts.roster) : undefined }
     this.latency = new LatencyEstimator(opts.timing.latencyMs)
     this.countdownLeft = this.opts.countdownMs
-    this.snapshot = idlePaidState(opts.playerHorseId, opts.stakeTier)
+    this.snapshot = idlePaidState(opts.playerHorseId, opts.stakeTier, opts.roster)
   }
 
   // ------------------------------------------------------------------------------------------ public
@@ -204,9 +211,11 @@ export class PaidRaceDriver implements RaceScreenDriver {
   /** 开场入块（或刷新恢复）后调用；resume 跳过倒计时、直接落到当前规范时刻，不回放已过去的事件。 */
   open(facts: PaidSessionFacts, opts: { resume?: boolean } = {}): void {
     if (facts.horseId !== this.opts.playerHorseId || facts.stakeTier !== this.opts.stakeTier) throw new Error('PAID_DRIVER_MISMATCH')
+    if (this.opts.roster && !sameRoster(this.opts.roster, facts.roster)) throw new Error('PAID_DRIVER_MISMATCH')
     this.facts = facts
     this.core = derivePaidCoreInput({
       seed: facts.seed, openAnchor: facts.openAnchor, stakeTier: facts.stakeTier, playerHorseId: facts.horseId,
+      ...(facts.roster ? { roster: facts.roster } : {}),
       choices: [null, null, null],
     })
     this.confirmed = facts.choices.map((c) => (c ? slotOf(c) : null))
@@ -221,6 +230,7 @@ export class PaidRaceDriver implements RaceScreenDriver {
   /** 用链上最新事实校正（恢复、未确认的选择、结算前的核对）。 */
   reconcile(facts: PaidSessionFacts): void {
     if (!this.facts || facts.sessionId !== this.facts.sessionId) return
+    if (!sameRoster(this.core?.roster, facts.roster)) throw new Error('PAID_DRIVER_MISMATCH')
     this.facts = facts
     this.confirmed = facts.choices.map((c) => (c ? slotOf(c) : null))
     if (this.optimistic && this.confirmed[this.optimistic.k - 1]) this.optimistic = null
@@ -333,6 +343,7 @@ export class PaidRaceDriver implements RaceScreenDriver {
     this.snapshot = buildPaidSnapshot({
       trace: this.trace, tau: this.displayTau, playerHorseId: this.opts.playerHorseId, stakeTier: this.opts.stakeTier,
       seed: this.facts.seed, posOffset: this.currentOffsets(nowMs), panel: this.panel, draw: this.panelInfo?.draw ?? null,
+      ...(this.facts.roster ? { roster: this.facts.roster } : {}),
       playerDeck: this.core!.playerDeck, finishTime, raceOver, versionAnswer: this.solved.versionAnswer,
     })
     this.phase = counting ? 'countdown' : raceOver ? 'done' : this.snapshot.playerFinished ? 'tail' : 'racing'

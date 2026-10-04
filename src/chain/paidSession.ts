@@ -28,10 +28,13 @@ import { isSponsorQuotaError, type CallAccount, type CallProgress } from './alch
 import type { ChainClock } from './chainClock.ts'
 import { trackCall, type TrackOptions } from './funds.ts'
 import {
-  chooseCardCall, openSessionCall, ponyGameAbi, SESSION_STATE, settleSessionCall,
+  chooseCardCall, openSessionCall, ponyGameAbi, legacyPonyGameAbi, SESSION_STATE, settleSessionCall,
 } from './paidCalls.ts'
 import { paidTierForStake } from './paidStakes.ts'
 import { settleDeadline, type SettleDeadline } from './settleDeadline.ts'
+import { collectibleGrantFromLogs, readRewardsAddress, type CollectibleGrant } from './rewards.ts'
+import { LEGACY_PAID_RULESET_HASH, PAID_RULESET_HASH } from '../race/paid/cardRules.ts'
+import { DEFAULT_ROSTER, normalizeRoster, type PonyRoster } from '../race/core/roster.ts'
 
 const ZERO_HASH = `0x${'00'.repeat(32)}` as Hex
 
@@ -64,6 +67,8 @@ export type PaidSessionFacts = {
   openedBlock: bigint
   openAnchor: Hex
   choices: PaidChoiceFacts
+  /** Absent only for a legacy Game, whose participants and abilities retain their previous rules. */
+  roster?: PonyRoster
 }
 
 export type PaidSettlementFacts = {
@@ -79,6 +84,10 @@ export type PaidSettlementFacts = {
   acquired: number[]
   hash: Hex | null
   blockNumber: bigint | null
+  /** Only the registered reward ledger's event in this settlement transaction. Legacy games have no grant. */
+  grant?: CollectibleGrant | null
+  /** Missing reward information does not invalidate a confirmed payout. undefined grant means unread. */
+  grantError?: string | null
 }
 
 /** 界面显示的交易阶段：已提交 / 已入块 / 失败 / 未确认（等满仍无结果）。 */
@@ -103,6 +112,7 @@ export type PaidSessionErrorCode =
   | 'house-liquidity'
   /** Alchemy 赞助策略的额度用完：重发只会再被拒 */
   | 'sponsor-quota'
+  | 'ruleset-mismatch'
 
 export class PaidSessionError extends Error {
   readonly code: PaidSessionErrorCode
@@ -128,6 +138,8 @@ export type PaidChainDeps = {
   /** 回执里的区块时间戳喂给时钟作下界；`now` 与时钟同一条本地时间轴 */
   clock?: ChainClock
   now?: () => number
+  /** False after logout, account replacement, or abandoning the driver; checked immediately before send. */
+  isCurrent?: () => boolean
   /** eth_getLogs 单次最多跨多少块（Monad 公共 RPC 有上限） */
   logChunk?: bigint
 }
@@ -138,6 +150,7 @@ type ReceiptLike = { status: 'success' | 'reverted'; blockHash: Hex; blockNumber
 
 type OpenedArgs = {
   sessionId: Hex; player: Address; horseId: number; stake: bigint; seed: Hex; openedAt: bigint; openedBlock: bigint
+  roster?: readonly number[]
 }
 type ChosenArgs = {
   sessionId: Hex; player: Address; checkpoint: number; cardId: number; refreshSlots: readonly number[]; txSec: number
@@ -153,11 +166,13 @@ function gameEvents<T>(logs: readonly Log[], game: Address, eventName: string): 
   const out: T[] = []
   for (const log of logs) {
     if (!isAddressEqual(log.address, game)) continue
-    try {
-      const decoded = decodeEventLog({ abi: ponyGameAbi, data: log.data, topics: log.topics })
-      if (decoded.eventName === eventName) out.push(decoded.args as T)
-    } catch {
-      // 同一笔批量交易里别的合约的日志
+    for (const abi of [ponyGameAbi, legacyPonyGameAbi]) {
+      try {
+        const decoded = decodeEventLog({ abi, data: log.data, topics: log.topics })
+        if (decoded.eventName === eventName) { out.push(decoded.args as T); break }
+      } catch {
+        // Try the legacy opening event or skip unrelated events in the bundle.
+      }
     }
   }
   return out
@@ -180,6 +195,7 @@ export function parseSessionOpened(receipt: ReceiptLike, game: Address, player: 
     openedBlock: opened.openedBlock,
     openAnchor: receipt.blockHash,
     choices: [null, null, null],
+    ...(opened.roster ? { roster: normalizeRoster(opened.roster) } : {}),
   }
 }
 
@@ -200,6 +216,7 @@ export function parseCardChosen(receipt: ReceiptLike, game: Address, sessionId: 
 
 export function parseSessionSettled(
   logs: readonly Log[], game: Address, sessionId: Hex, hash: Hex | null, blockNumber: bigint | null,
+  ledger: Address | null = null,
 ): PaidSettlementFacts | null {
   const settled = gameEvents<SettledArgs>(logs, game, 'SessionSettled')
     .find((e) => e.sessionId.toLowerCase() === sessionId.toLowerCase())
@@ -216,7 +233,25 @@ export function parseSessionSettled(
     acquired: [...settled.acquired],
     hash,
     blockNumber,
+    grant: ledger ? collectibleGrantFromLogs(logs, ledger, sessionId, settled.player) : null,
   }
+}
+
+/** Do not turn an RPC failure into a no-grant fact. Closed sessions must be recovered, never sent again. */
+export async function refreshSettlementReward(client: SessionReader, game: Address, settlement: PaidSettlementFacts, logs?: readonly Log[]): Promise<PaidSettlementFacts> {
+  const rules = await client.readContract({ address: game, abi: ponyGameAbi, functionName: 'rulesetHash' })
+  if (rules.toLowerCase() === LEGACY_PAID_RULESET_HASH.toLowerCase()) return { ...settlement, grant: null, grantError: null }
+  const ledger = await readRewardsAddress(client, game)
+  if (!logs) {
+    if (!settlement.hash) throw new PaidSessionError('missing-event', 'SETTLEMENT_TRANSACTION_MISSING', settlement.sessionId)
+    logs = (await client.getTransactionReceipt({ hash: settlement.hash })).logs
+  }
+  return { ...settlement, grant: collectibleGrantFromLogs(logs, ledger, settlement.sessionId, settlement.player), grantError: null }
+}
+
+async function settlementReward(client: SessionReader, game: Address, settlement: PaidSettlementFacts, logs?: readonly Log[]): Promise<PaidSettlementFacts> {
+  try { return await refreshSettlementReward(client, game, settlement, logs) }
+  catch (error) { return { ...settlement, grant: undefined, grantError: errorReason(error) } }
 }
 
 /**
@@ -291,6 +326,7 @@ type ChoiceView = {
 type SessionView = {
   player: Address; state: number; playerHorseId: number; stakeTier: number; stake: bigint; openedAt: bigint
   openedBlock: bigint; seed: Hex; openAnchor: Hex; lastCheckpoint: number; choices: readonly ChoiceView[]
+  roster?: readonly number[]
 }
 
 export async function readSessionOf(client: SessionReader, game: Address, player: Address): Promise<Hex> {
@@ -298,9 +334,14 @@ export async function readSessionOf(client: SessionReader, game: Address, player
 }
 
 export async function readSessionView(client: SessionReader, game: Address, sessionId: Hex): Promise<SessionView> {
-  return await client.readContract({
-    address: game, abi: ponyGameAbi, functionName: 'getSession', args: [sessionId],
+  const rules = await client.readContract({ address: game, abi: ponyGameAbi, functionName: 'rulesetHash' })
+  const legacy = rules.toLowerCase() === LEGACY_PAID_RULESET_HASH.toLowerCase()
+  if (!legacy && rules.toLowerCase() !== PAID_RULESET_HASH.toLowerCase()) throw new PaidSessionError('ruleset-mismatch')
+  const view = await client.readContract({
+    address: game, abi: legacy ? legacyPonyGameAbi : ponyGameAbi, functionName: 'getSession', args: [sessionId],
   }) as unknown as SessionView
+  if (!legacy && view.state !== SESSION_STATE.none && !Array.isArray(view.roster)) throw new PaidSessionError('missing-event', 'INVALID_SESSION_ROSTER')
+  return legacy ? { ...view, roster: undefined } : view
 }
 
 async function blockHash(client: SessionReader, blockNumber: bigint): Promise<Hex> {
@@ -354,6 +395,7 @@ export async function readSessionFacts(client: SessionReader, game: Address, ses
     openedBlock: view.openedBlock,
     openAnchor,
     choices,
+    ...(view.roster ? { roster: normalizeRoster(view.roster) } : {}),
   }
 }
 
@@ -379,7 +421,7 @@ export async function findSettlement(
     const found = logs.length > 0
       ? parseSessionSettled(logs, game, sessionId, logs[0]!.transactionHash ?? null, logs[0]!.blockNumber ?? null)
       : null
-    if (found) return found
+    if (found) return settlementReward(client, game, found)
   }
   return null
 }
@@ -420,8 +462,10 @@ function lastHash(progress: Tracked | null): Hex | null {
 type Submitted = { progress: Tracked | null; sendError: unknown; submittedAt: number }
 
 async function submit(deps: PaidChainDeps, calls: Parameters<CallAccount['send']>[0], onStep?: (s: PaidTxStep) => void): Promise<Submitted> {
+  if (deps.isCurrent && !deps.isCurrent()) throw new PaidSessionError('account-not-resolved')
   const now = deps.now ?? (() => performance.now())
   onStep?.({ phase: 'signing' })
+  if (deps.isCurrent && !deps.isCurrent()) throw new PaidSessionError('account-not-resolved')
   const submittedAt = now()
   let callId: string
   try {
@@ -464,14 +508,17 @@ const OPEN_ERRORS: Readonly<Record<string, PaidSessionErrorCode>> = {
  */
 export async function openPaidSession(
   deps: PaidChainDeps, horseId: number, stake: bigint, onStep?: (s: PaidTxStep) => void,
+  roster: readonly number[] = DEFAULT_ROSTER,
 ): Promise<OpenResult> {
   const player = requirePlayer(deps.account)
   paidTierForStake(stake)
   const existing = await readSessionOf(deps.client, deps.game, player)
   if (existing !== ZERO_HASH) throw new PaidSessionError('active-session', '', existing)
+  const rules = await deps.client.readContract({ address: deps.game, abi: ponyGameAbi, functionName: 'rulesetHash' })
+  if (rules.toLowerCase() !== PAID_RULESET_HASH.toLowerCase()) throw new PaidSessionError('ruleset-mismatch')
   const balance = await deps.client.getBalance({ address: player })
   if (balance < stake) throw new PaidSessionError('insufficient-wallet', `${stake}`)
-  const calls = [openSessionCall(deps.game, horseId, stake)]
+  const calls = [openSessionCall(deps.game, horseId, stake, roster)]
   const { progress, sendError, submittedAt } = await submit(deps, calls, onStep)
 
   if (progress?.state === 'included') {
@@ -572,7 +619,7 @@ export type SettleOutcome =
 export async function settlePaidSession(
   deps: PaidChainDeps, facts: Pick<PaidSessionFacts, 'sessionId' | 'openedBlock'>, onStep?: (s: PaidTxStep) => void,
 ): Promise<SettleOutcome> {
-  const settledAlready = await settledFromChain(deps, facts).catch(() => null)
+  const settledAlready = await settledFromChain(deps, facts)
   if (settledAlready) return settledAlready
   const { progress, sendError } = await submit(deps, [settleSessionCall(deps.game, facts.sessionId)], onStep)
   if (progress?.state === 'included') {
@@ -581,12 +628,13 @@ export async function settlePaidSession(
         receipt.logs, deps.game, facts.sessionId, progress.transactionHashes[i] ?? null, receipt.blockNumber,
       )
       if (settlement) {
+        const confirmed = await settlementReward(deps.client, deps.game, settlement, receipt.logs)
         onStep?.({ phase: 'included', hash: settlement.hash })
-        return { state: 'settled', settlement }
+        return { state: 'settled', settlement: confirmed }
       }
     }
   }
-  const after = await settledFromChain(deps, facts).catch(() => null)
+  const after = await settledFromChain(deps, facts)
   if (after) {
     if (after.state === 'settled') onStep?.({ phase: 'included', hash: after.settlement.hash })
     return after

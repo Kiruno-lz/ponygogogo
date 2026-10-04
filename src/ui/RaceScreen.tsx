@@ -13,7 +13,7 @@ import type { AudioManager } from '../assets/audio.ts'
 import { CardChoicePanel } from '../cards/CardChoicePanel.tsx'
 import { DESIGN_H, DESIGN_W } from '../game/layout.ts'
 import { RaceScene } from '../game/RaceScene.ts'
-import { HORSE_PROFILES } from '../game/horses.ts'
+import { normalizeRoster, ponyById } from '../game/ponyCatalog.ts'
 import { preparePonyImages } from '../game/pony.ts'
 import { prepareSceneImages } from '../game/sceneArt.ts'
 import { paidCardDef } from '../race/cards/paidCards.ts'
@@ -25,6 +25,7 @@ import { Hud } from './Hud.tsx'
 import { t, type Lang } from './i18n.ts'
 import { paidChoiceText, paidReasonText } from './paidText.ts'
 import { finishJingle, raceEventSounds } from './raceEventAudio.ts'
+import { TierGate } from './TierGate.tsx'
 
 /** 有奖比赛的附加信息；免费试玩不传 */
 export interface PaidRaceProps {
@@ -58,13 +59,16 @@ export function RaceScreen(p: RaceScreenProps) {
   const lastCount = useRef(-1)
   const lastHud = useRef(0)
   const startedBgm = useRef(false)
+  const [sceneError, setSceneError] = useState<string | null>(null)
+  const [sceneAttempt, setSceneAttempt] = useState(0)
 
   // Phaser 生命周期
   useEffect(() => {
     if (!hostRef.current || gameRef.current) return
     let disposed = false
     let game: Phaser.Game | null = null
-    void Promise.all([preparePonyImages(HORSE_PROFILES), prepareSceneImages(p.urls)]).then(([ponyImages, sceneImages]) => {
+    const profiles = normalizeRoster(p.driver.state.roster).map(ponyById)
+    void Promise.all([preparePonyImages(profiles, p.urls), prepareSceneImages(p.urls)]).then(([ponyImages, sceneImages]) => {
       if (disposed || !hostRef.current || gameRef.current) return
       game = new Phaser.Game({
         type: Phaser.AUTO,
@@ -92,6 +96,8 @@ export function RaceScreen(p: RaceScreenProps) {
           p.onSceneReady?.()
         },
       })
+    }).catch(error => {
+      if (!disposed) setSceneError(error instanceof Error ? error.message : String(error))
     })
     return () => {
       disposed = true
@@ -100,7 +106,7 @@ export function RaceScreen(p: RaceScreenProps) {
       game?.destroy(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [sceneAttempt])
 
   useEffect(() => {
     sceneRef.current?.setReducedMotion(p.reducedMotion)
@@ -111,6 +117,7 @@ export function RaceScreen(p: RaceScreenProps) {
     let raf = 0
     const loop = (now: number): void => {
       raf = requestAnimationFrame(loop)
+      if (!sceneRef.current) return
       const events = p.driver.update(now)
       if (events.length > 0) {
         sceneRef.current?.handleEvents(events)
@@ -329,6 +336,11 @@ export function RaceScreen(p: RaceScreenProps) {
           style={{ fontSize: 16, padding: '6px 14px' }}
         />
       </div>
+
+      {sceneError && <TierGate lang={p.lang} waiting={false}
+        progress={{ total: 1, done: 0, current: null, failures: [{ key: 'race artwork', message: sceneError }] }}
+        onRetry={() => { setSceneError(null); setSceneAttempt(attempt => attempt + 1) }}
+        onCancel={p.paid ? p.paid.onLeave : p.onQuit} />}
 
       {confirmQuit && (
         <div

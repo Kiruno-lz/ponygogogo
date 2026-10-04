@@ -9,6 +9,7 @@ import {PaidProfiles} from "./PaidProfiles.sol";
 import {PaidRaceMotion} from "./PaidRaceMotion.sol";
 import {PaidRaceCold} from "./PaidRaceCold.sol";
 import {PaidSwap} from "./PaidSwap.sol";
+import {PonyRules} from "./PonyRules.sol";
 import {RaceEntropy} from "./RaceEntropy.sol";
 
 /// @notice Solidity port of the paid ruleset v4 reference solver (src/race/paid/solver.ts). The TS solver is the
@@ -120,6 +121,8 @@ library PaidRaceEngine {
     uint256 internal constant KIND_BONUS = 4;
     uint256 internal constant KIND_WATCH = 5;
     uint256 internal constant KIND_FIXED = 6;
+    uint256 internal constant KIND_TRAIT = 7;
+    uint256 internal constant EV_PONY = 35;
 
     uint256 internal constant MODE_NONE = 0;
     uint256 internal constant MODE_MANUAL = 1;
@@ -141,6 +144,12 @@ library PaidRaceEngine {
     uint256 private constant STATUS_RUNNING = 3;
 
     uint256 private constant CLS_NONE = 7;
+    uint256 private constant SIMPLE_BUFF_EFFECTS = (uint256(1) << PaidCardRules.EFFECT_AIRBORNE_SPEED)
+        | (uint256(1) << PaidCardRules.EFFECT_SPEED_DEATH) | (uint256(1) << PaidCardRules.EFFECT_DRAW_CUT)
+        | (uint256(1) << PaidCardRules.EFFECT_REGEN) | (uint256(1) << PaidCardRules.EFFECT_WIRED);
+    uint256 private constant EQUIPMENT_EFFECTS = (uint256(1) << PaidCardRules.EFFECT_ROCKET)
+        | (uint256(1) << PaidCardRules.EFFECT_RAINBOW) | (uint256(1) << PaidCardRules.EFFECT_GRAVITY)
+        | (uint256(1) << PaidCardRules.EFFECT_WHEEL);
 
     // ------------------------------------------------------------ input and output
 
@@ -153,6 +162,9 @@ library PaidRaceEngine {
         bytes32 seed;
         bytes32 openAnchor;
         IPaidRaceSolver.ChoiceInput[3] choices;
+        /// @dev Diagnostics without a roster retain the previous rules. Production will always enable this.
+        bool ponyAbilities;
+        uint8[5] roster;
     }
 
     /// @notice PaidSolveOptions: stopAtPanel 0 = none; untilWall only when hasUntilWall; logEvents keeps the event list.
@@ -316,6 +328,9 @@ library PaidRaceEngine {
         PanelView stopPanel;
         bool hasUntilWall;
         uint256 untilWall;
+        uint256[5] ponyWords;
+        uint8[5] seenFunctions;
+        int256[5] ponyPassive;
     }
 
     // ------------------------------------------------------------ entry points
@@ -443,18 +458,9 @@ library PaidRaceEngine {
     function _createState(CoreInput memory input) private pure returns (State memory st) {
         st.input = input;
         st.player = input.playerHorseId;
+        if (input.ponyAbilities) st.ponyWords = PaidRaceCold.ponyWords(input.roster);
         _loadParams(st);
-        for (uint256 h; h < HORSES; ++h) {
-            PaidRaceMotion.Horse memory horse = st.horses[h];
-            PaidProfiles.Profile memory p = input.profiles[h];
-            horse.accel = p.acceleration;
-            horse.capMilli = uint256(p.cap) * 1000;
-            horse.b = uint256(p.base) * 1000;
-            horse.s = STAMINA_CAPACITY;
-            horse.lane = h;
-            horse.finishTime = UNFINISHED_TAU;
-            horse.finishWall = NEVER;
-        }
+        PaidRaceMotion.initHorses(st.horses, input.profiles, st.ponyWords, UNFINISHED_TAU);
         for (uint256 i; i < MAX_INSTANCES; ++i) {
             st.instNext[i] = NEVER;
         }
@@ -488,7 +494,7 @@ library PaidRaceEngine {
         uint256 count = st.eventCount;
         if (count >= MAX_EVENTS) revert EventLimit();
         bytes32 digest = st.digest;
-        // code <= 34, tau <= 600000 and horse <= 4 already fit uint8/uint32/uint8, so the words equal abi.encode.
+        // code <= 35, tau <= 600000 and horse <= 4 already fit uint8/uint32/uint8, so the words equal abi.encode.
         assembly ("memory-safe") {
             let p := mload(0x40)
             mstore(p, digest)
@@ -500,10 +506,18 @@ library PaidRaceEngine {
         }
         st.digest = digest;
         if (st.logEvents) {
-            st.eventMeta[count] = code | (tau << 8) | (horse << 40);
-            st.eventArgs[count] = arg;
+            // Both diagnostic arrays have MAX_EVENTS entries, and count was checked above.
+            uint256[] memory meta = st.eventMeta;
+            int256[] memory args = st.eventArgs;
+            assembly ("memory-safe") {
+                let offset := add(0x20, shl(5, count))
+                mstore(add(meta, offset), or(code, or(shl(8, tau), shl(40, horse))))
+                mstore(add(args, offset), arg)
+            }
         }
-        st.eventCount = count + 1;
+        unchecked {
+            st.eventCount = count + 1; // count < MAX_EVENTS
+        }
     }
 
     function _wallAt(State memory st, uint256 tau) private pure returns (uint256) {
@@ -527,8 +541,10 @@ library PaidRaceEngine {
     {
         uint256 index = st.instanceCount;
         if (index >= MAX_INSTANCES) revert InstanceLimit();
-        st.instanceCount = index + 1;
-        id = index + 1;
+        unchecked {
+            id = index + 1; // index < MAX_INSTANCES
+        }
+        st.instanceCount = id;
         inst = st.instances[index];
         inst.owner = owner;
         inst.cardId = cardId;
@@ -725,7 +741,7 @@ library PaidRaceEngine {
         uint256 id = index + 1;
         _endInstance(st, inst, id);
         if (inst.kind == KIND_EQUIP) {
-            _log(st, EV_EQUIP_OFF, tau, inst.owner, int256(id * 4 + OFF_EXPIRED));
+            _log(st, EV_EQUIP_OFF, tau, inst.owner, int256(id << 2 | OFF_EXPIRED));
         } else if (inst.kind == KIND_RESPAWN) {
             _log(st, EV_RESPAWN_END, tau, inst.owner, int256(id));
         } else {
@@ -778,7 +794,15 @@ library PaidRaceEngine {
                 _setBuff(st, inst, int256(uint256(r.bonusBps)), 0);
             } else if (inst.cardId == 24) {
                 _endInstance(st, inst, index + 1);
+                uint256 before = st.horses[inst.owner].s;
                 _recover(st, inst.owner, r.staminaMicro, tau);
+                if (
+                    inst.start == tau && st.horses[inst.owner].s > before
+                        && uint8(st.ponyWords[inst.owner] >> 128) == PonyRules.FOOD
+                ) {
+                    _recover(st, inst.owner, uint32(st.ponyWords[inst.owner]), tau);
+                    _ponyTrigger(st, inst.owner, 24, tau);
+                }
             } else if (inst.cardId == 40) {
                 inst.nextDist += r.radiusMicro;
                 st.horses[inst.owner].fixedK += r.triggerFixedSpeed;
@@ -855,7 +879,7 @@ library PaidRaceEngine {
         uint256 eventIndex = inst.eventBase * SWAP_EVENT_STRIDE + attempt;
         (PaidSwap.Horse[5] memory next, uint8 target, bool swapped) =
             PaidSwap.swap(view_, uint8(inst.owner), st.input.seed, inst.anchor, uint8(inst.checkpoint), eventIndex);
-        int256 arg = int256(attempt * 8 + target);
+        int256 arg = int256(attempt << 3 | target);
         if (!swapped) {
             _log(st, EV_SWAP_BLOCKED, tau, inst.owner, arg);
             return;
@@ -893,7 +917,7 @@ library PaidRaceEngine {
         _finishRecord(st.records[panel.k - 1], stamp, tau);
         panel.open = false;
         _setMapping(st, tau, stamp, false);
-        _log(st, EV_PANEL_CLOSE, tau, h, int256(panel.k * 16 + CLOSE_FINISHED));
+        _log(st, EV_PANEL_CLOSE, tau, h, int256(panel.k << 4 | CLOSE_FINISHED));
         // The player reached the line before txSec (txSec·1000 >= finishWall): the choice never took effect.
         if (panel.hasSlot) _invalidChoice(st, panel.k, tau, INVALID_AFTER_FINISH);
     }
@@ -932,14 +956,11 @@ library PaidRaceEngine {
     function _applyCard(State memory st, uint256 h, uint256 cardId, CardSource memory src, uint256 tau) private pure {
         PaidRaceMotion.Horse memory horse = st.horses[h];
         PaidCardRules.Rule memory rule = _rule(st, uint8(cardId));
+        uint256 staminaBefore = horse.s;
         _log(st, EV_CARD, tau, h, int256(cardId));
         uint256 lootMs;
         uint8 effect = rule.effect;
-        if (
-            effect == PaidCardRules.EFFECT_AIRBORNE_SPEED || effect == PaidCardRules.EFFECT_SPEED_DEATH
-                || effect == PaidCardRules.EFFECT_DRAW_CUT || effect == PaidCardRules.EFFECT_REGEN
-                || effect == PaidCardRules.EFFECT_WIRED
-        ) {
+        if (SIMPLE_BUFF_EFFECTS & (uint256(1) << effect) != 0) {
             // Timed buffs; each effect reads only the table field the reference reads for it.
             (Instance memory inst, uint256 id) = _addInstance(st, tau, h, cardId, KIND_BUFF, rule.durationMs);
             if (effect == PaidCardRules.EFFECT_REGEN) inst.regenBps = rule.regenBonusBps;
@@ -956,11 +977,16 @@ library PaidRaceEngine {
             }
         } else if (effect == PaidCardRules.EFFECT_BOMB) {
             _placeBombs(st, h, tau);
-        } else if (
-            effect == PaidCardRules.EFFECT_ROCKET || effect == PaidCardRules.EFFECT_RAINBOW
-                || effect == PaidCardRules.EFFECT_GRAVITY || effect == PaidCardRules.EFFECT_WHEEL
-        ) {
-            _equip(st, h, rule, tau);
+        } else if (EQUIPMENT_EFFECTS & (uint256(1) << effect) != 0) {
+            uint256 duration = rule.durationMs;
+            uint256 word = st.ponyWords[h];
+            // Table duration is uint32 and the extension factor uint16, so the product is below 2^48.
+            if (uint8(word >> 128) == PonyRules.LONG_EQUIPMENT) {
+                unchecked {
+                    duration = duration * uint16(word >> 64) / BPS;
+                }
+            }
+            _equip(st, h, rule, tau, duration);
         } else if (effect == PaidCardRules.EFFECT_SWAP) {
             (Instance memory inst, uint256 id) = _addInstance(st, tau, h, cardId, KIND_ABILITY, rule.durationMs);
             inst.anchor = src.anchor;
@@ -986,21 +1012,77 @@ library PaidRaceEngine {
         } else if (effect >= PaidCardRules.EFFECT_PAY) {
             lootMs = _newCard(st, h, rule, tau);
         }
-        if (horse.bonus) {
-            (Instance memory bonus, uint256 id) =
-                _addInstance(st, tau, h, cardId, KIND_BONUS, _bonusDuration(rule, lootMs));
-            bonus.pBps = st.params.bonusBps;
-            _activate(st, bonus, id);
-        }
+        if (horse.bonus) _buff(st, h, cardId, tau, _bonusDuration(rule, lootMs), st.params.bonusBps, KIND_BONUS);
         if (effect == PaidCardRules.EFFECT_DRAW_AUTO) horse.bonus = true;
+        _onPonyCard(st, h, cardId, staminaBefore, lootMs, tau);
+    }
+
+    function _onPonyCard(State memory st, uint256 h, uint256 card, uint256 before, uint256 lootMs, uint256 tau)
+        private
+        pure
+    {
+        // h comes from the five-horse due loop or the validated player slot; memory arrays use one word per item.
+        uint256[5] memory words = st.ponyWords;
+        uint8[5] memory seen = st.seenFunctions;
+        uint256 word;
+        uint256 prior;
+        assembly ("memory-safe") {
+            word := mload(add(words, shl(5, h)))
+            prior := mload(add(seen, shl(5, h)))
+        }
+        if (word == 0) return;
+        uint256 context = prior | lootMs << 8 | (st.horses[h].s > before ? 1 << 40 : 0);
+        uint256 action = _ponyAcquisition(st, word, uint8(card), context);
+        assembly ("memory-safe") { mstore(add(seen, shl(5, h)), and(shr(56, action), 0xff)) }
+        if (uint8(action >> 48) != 0) _ponySpeed(st, h, card, tau, action);
+        uint256 food = uint32(action >> 64);
+        if (food != 0) {
+            _recover(st, h, food, tau);
+            _ponyTrigger(st, h, card, tau);
+        }
+    }
+
+    /// @dev Context: seen:u8, lootMs:u32, gained:u1. Action: percent:u16, duration:u32, kind:u8, seen:u8, food:u32.
+    function _ponyAcquisition(State memory st, uint256 word, uint8 card, uint256 context)
+        private
+        pure
+        returns (uint256 action)
+    {
+        uint8 ability = uint8(word >> 128);
+        uint8 bit = uint8(1 << PaidCardRules.mainFunction(card));
+        uint8 seen = uint8(context);
+        action = uint256(seen | bit) << 56;
+        PaidCardRules.Rule memory r = _rule(st, card);
+        uint256 duration = uint32(word >> 80);
+        uint256 kind = KIND_TRAIT;
+        bool grant;
+        if (ability == PonyRules.RARE_SPECIALIST && r.rare) {
+            grant = true;
+            kind = KIND_BONUS;
+            if (r.bonusMode == 0) duration = r.durationMs;
+            else if (r.bonusMode == 1) duration = NEVER;
+            else if (r.bonusMode == 3 && uint32(context >> 8) > 0) duration = uint32(context >> 8);
+            else duration = PaidCardRules.BONUS_DEFAULT_MS;
+        } else if (ability == PonyRules.DIVERSE) {
+            grant = seen & bit == 0;
+        } else if (ability == PonyRules.REPEAT) {
+            grant = seen & bit != 0;
+        }
+        if (grant) action |= uint16(word >> 112) | duration << 16 | kind << 48;
+        if (ability == PonyRules.FOOD && bit == 1 << PaidCardRules.MAIN_SUPPLY && context & (1 << 40) != 0) {
+            action |= uint256(uint32(word)) << 64;
+        }
     }
 
     function _cost(PaidRaceMotion.Horse memory h) private pure returns (uint256) {
-        int256 factor = int256(BPS) + h.aggCost;
-        if (factor < int256(uint256(PaidCardRules.MIN_COST_FACTOR_BPS))) {
-            factor = int256(uint256(PaidCardRules.MIN_COST_FACTOR_BPS));
+        // At most 96 deltas from 16-bit table parameters plus one uint16 role delta; scaled costs fit far below uint256.
+        unchecked {
+            int256 factor = int256(BPS) + h.aggCost;
+            if (factor < int256(uint256(PaidCardRules.MIN_COST_FACTOR_BPS))) {
+                factor = int256(uint256(PaidCardRules.MIN_COST_FACTOR_BPS));
+            }
+            return COST_PER_MS * uint256(factor) / BPS;
         }
-        return COST_PER_MS * uint256(factor) / BPS;
     }
 
     function _setBuff(State memory st, Instance memory inst, int256 p, uint256 regen) private pure {
@@ -1012,9 +1094,8 @@ library PaidRaceEngine {
     }
 
     function _syncNew(State memory st) private pure {
-        for (uint256 h; h < HORSES; ++h) {
-            st.horses[h].nextDist = 0;
-        }
+        // Zeroes every horse's nextDist and re-applies the roster's passive percentage in one pass.
+        PaidRaceMotion.syncPonyPassives(st.horses, st.ponyWords, st.ponyPassive);
         for (uint256 i; i < st.instanceCount; ++i) {
             Instance memory inst = st.instances[i];
             if (!inst.active) continue;
@@ -1059,23 +1140,29 @@ library PaidRaceEngine {
         }
     }
 
-    function _buff(State memory st, uint256 h, uint256 card, uint256 tau, uint256 duration, int256 p) private pure {
-        (Instance memory inst, uint256 id) = _addInstance(st, tau, h, card, KIND_BUFF, duration);
+    function _buff(State memory st, uint256 h, uint256 card, uint256 tau, uint256 duration, int256 p, uint256 kind)
+        private
+        pure
+    {
+        (Instance memory inst, uint256 id) = _addInstance(st, tau, h, card, kind, duration);
         inst.pBps = p;
         _activate(st, inst, id);
     }
 
     function _recover(State memory st, uint256 h, uint256 amount, uint256 tau) private pure {
         PaidRaceMotion.Horse memory horse = st.horses[h];
-        uint256 room = horse.s < STAMINA_CAPACITY ? STAMINA_CAPACITY - horse.s : 0;
-        uint256 gain = amount < room ? amount : room;
-        horse.s += gain;
-        _log(st, EV_RESOURCE, tau, h, int256(gain));
+        // An over-cap horse gains zero; otherwise s + gain is bounded by STAMINA_CAPACITY.
+        unchecked {
+            uint256 room = horse.s < STAMINA_CAPACITY ? STAMINA_CAPACITY - horse.s : 0;
+            uint256 gain = amount < room ? amount : room;
+            horse.s += gain;
+            _log(st, EV_RESOURCE, tau, h, int256(gain));
+        }
     }
 
     function _triggerLog(State memory st, Instance memory inst, uint256 tau) private pure {
         inst.count += 1;
-        _log(st, EV_TRIGGER, tau, inst.owner, int256(inst.cardId * 256 + inst.count));
+        _log(st, EV_TRIGGER, tau, inst.owner, int256(inst.cardId << 8 | inst.count));
     }
 
     function _onEquipment(State memory st, uint256 h, uint256 tau) private pure {
@@ -1085,11 +1172,17 @@ library PaidRaceEngine {
             if (!inst.active || inst.owner != h || inst.kind != KIND_WATCH || inst.cardId != 31) continue;
             PaidCardRules.Rule memory r = _rule(st, 31);
             _triggerLog(st, inst, tau);
-            _buff(st, h, 31, tau, r.triggerDurationMs, int256(uint256(r.bonusBps)));
+            _buff(st, h, 31, tau, r.triggerDurationMs, int256(uint256(r.bonusBps)), KIND_BUFF);
         }
     }
 
     function _onForfeit(State memory st, uint256 tau) private pure {
+        uint256 word = st.ponyWords[st.player];
+        if (uint8(word >> 128) == PonyRules.FORFEIT) {
+            _ponySpeed(
+                st, st.player, 0, tau, uint16(word >> 112) | uint256(uint32(word >> 80)) << 16 | KIND_TRAIT << 48
+            );
+        }
         for (uint256 i; i < st.instanceCount; ++i) {
             Instance memory inst = st.instances[i];
             if (
@@ -1100,7 +1193,7 @@ library PaidRaceEngine {
             _endInstance(st, inst, i + 1);
             _triggerLog(st, inst, tau);
             _recover(st, st.player, r.staminaMicro, tau);
-            _buff(st, st.player, 39, tau, r.triggerDurationMs, int256(uint256(r.bonusBps)));
+            _buff(st, st.player, 39, tau, r.triggerDurationMs, int256(uint256(r.bonusBps)), KIND_BUFF);
             break;
         }
     }
@@ -1138,7 +1231,7 @@ library PaidRaceEngine {
             } else if (a.kind == PaidRaceCardPlan.RECYCLE) {
                 uint256 id = uint256(a.value);
                 _endInstance(st, st.instances[id - 1], id);
-                _log(st, EV_EQUIP_OFF, tau, h, int256(id * 4 + OFF_RECYCLED));
+                _log(st, EV_EQUIP_OFF, tau, h, int256(id << 2 | OFF_RECYCLED));
             } else if (a.kind == PaidRaceCardPlan.RENEW) {
                 uint256 id = uint256(a.value);
                 Instance memory inst = st.instances[id - 1];
@@ -1183,18 +1276,17 @@ library PaidRaceEngine {
     }
 
     /// @notice equip: replaces the slot's instance and returns the new instance's full duration.
-    function _equip(State memory st, uint256 h, PaidCardRules.Rule memory rule, uint256 tau)
+    function _equip(State memory st, uint256 h, PaidCardRules.Rule memory rule, uint256 tau, uint256 duration)
         private
         pure
-        returns (uint256 duration)
+        returns (uint256)
     {
         PaidRaceMotion.Horse memory horse = st.horses[h];
         uint256 slot = rule.slot;
-        duration = rule.durationMs;
         uint256 oldId = horse.equipOf(slot);
         if (oldId != 0) {
             _endInstance(st, st.instances[oldId - 1], oldId);
-            _log(st, EV_EQUIP_OFF, tau, h, int256(oldId * 4 + OFF_REPLACED));
+            _log(st, EV_EQUIP_OFF, tau, h, int256(oldId << 2 | OFF_REPLACED));
         }
         (Instance memory inst, uint256 id) = _addInstance(st, tau, h, rule.id, KIND_EQUIP, duration);
         inst.slot = slot;
@@ -1210,6 +1302,7 @@ library PaidRaceEngine {
         horse.setEquip(slot, id);
         _log(st, EV_EQUIP_ON, tau, h, int256(id));
         _onEquipment(st, h, tau);
+        return duration;
     }
 
     function _placeBombs(State memory st, uint256 h, uint256 tau) private pure {
@@ -1225,7 +1318,7 @@ library PaidRaceEngine {
             bomb.placer = h;
             bomb.live = true;
             st.laneLive[lane] |= uint256(1) << id;
-            _log(st, EV_BOMB_PLACE, tau, h, int256(placer.pos * 8 + lane));
+            _log(st, EV_BOMB_PLACE, tau, h, int256(placer.pos << 3 | lane));
         }
     }
 
@@ -1250,17 +1343,27 @@ library PaidRaceEngine {
         Instance memory loot = st.instances[lootId - 1];
         _log(st, EV_STEAL, tau, h, int256(lootId));
         _endInstance(st, loot, lootId);
-        _log(st, EV_EQUIP_OFF, tau, loot.owner, int256(lootId * 4 + OFF_STOLEN));
-        return _equip(st, h, _rule(st, uint8(loot.cardId)), tau);
+        _log(st, EV_EQUIP_OFF, tau, loot.owner, int256(lootId << 2 | OFF_STOLEN));
+        PaidCardRules.Rule memory rule = _rule(st, uint8(loot.cardId));
+        return _equip(st, h, rule, tau, st.input.ponyAbilities ? loot.end - tau : rule.durationMs);
+    }
+
+    function _ponyTrigger(State memory st, uint256 h, uint256 card, uint256 tau) private pure {
+        _log(st, EV_PONY, tau, h, int256(uint256(st.input.roster[h]) << 16 | card << 8 | 1));
+    }
+
+    function _ponySpeed(State memory st, uint256 h, uint256 card, uint256 tau, uint256 action) private pure {
+        _buff(st, h, card, tau, uint32(action >> 16), int256(uint256(uint16(action))), uint8(action >> 48));
+        _ponyTrigger(st, h, card, tau);
     }
 
     // ------------------------------------------------------------ panels
 
     function _candidatesAt(State memory st) private pure returns (uint8[3] memory offer) {
         uint256 cursor = st.draw.cursor;
-        for (uint256 i; i < 3; ++i) {
-            offer[i] = st.input.playerDeck[cursor + i];
-        }
+        uint8[14] memory deck = st.input.playerDeck;
+        // Only three panels exist, so their opening cursor is 0/3/6; each memory uint8 occupies a word.
+        assembly ("memory-safe") { mcopy(offer, add(deck, shl(5, cursor)), 0x60) }
     }
 
     function _panelView(State memory st, Panel memory panel) private pure returns (PanelView memory v) {
@@ -1282,7 +1385,7 @@ library PaidRaceEngine {
     /// @notice invalidChoice: the stored choice for checkpoint k counts as no transaction (有奖规则 v3).
     function _invalidChoice(State memory st, uint256 k, uint256 tau, uint256 reason) private pure {
         st.records[k - 1].invalidReason = reason;
-        _log(st, EV_CHOICE_INVALID, tau, st.player, int256(k * 16 + reason));
+        _log(st, EV_CHOICE_INVALID, tau, st.player, int256(k << 4 | reason));
     }
 
     /// @notice openPanel. A stored choice is judged here, before the close time is fixed: cut, auto, outside
@@ -1391,7 +1494,7 @@ library PaidRaceEngine {
         rec.candidates = offer;
         panel.open = false;
         _setMapping(st, tau, panel.closeWall, false);
-        _log(st, EV_PANEL_CLOSE, tau, st.player, int256(k * 16 + code));
+        _log(st, EV_PANEL_CLOSE, tau, st.player, int256(k << 4 | code));
         if (cardId != 0) _applyCard(st, st.player, cardId, src, tau);
         if (reason == REASON_FORFEIT_TX) _onForfeit(st, tau);
         _openDeferred(st, tau);

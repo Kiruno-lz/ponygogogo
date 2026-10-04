@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react'
 import { formatMon, formatMonTrim } from '../chain/amount.ts'
 import { fetchRecentSessions, type HistoryResult, type HistorySession } from '../chain/history.ts'
-import { HORSE_PROFILES } from '../game/horses.ts'
+import { ponyById, ponyIdAt } from '../game/ponyCatalog.ts'
 import { t, type Lang } from './i18n.ts'
 
 const ROWS = 5
@@ -45,7 +45,7 @@ export function RecentRacesView({ lang, result }: { lang: Lang; result: HistoryR
           {result.sessions.slice(0, ROWS).map((s) => (
             <li key={s.sessionId} data-testid="wallet-history-row" data-state={s.state}>
               <span className="mono">{when(s.openedAt)}</span>
-              <span>{HORSE_PROFILES[s.horseId]?.name ?? `#${s.horseId + 1}`}</span>
+              <span>{ponyById(ponyIdAt(s.roster, s.horseId)).name}</span>
               <span className="mono">{formatMonTrim(s.stake)} MON</span>
               <span>{outcome(lang, s)}</span>
               <span className="mono">{net(s)}</span>

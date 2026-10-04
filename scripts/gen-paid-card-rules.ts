@@ -3,8 +3,8 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { encodeAbiParameters, keccak256 } from 'viem'
 import {
-  CARD_EFFECT, PAID_CARD_GLOBALS, PAID_CARD_RULES, PAID_CARD_RULES_HASH, PAID_CPU_MASK, PAID_RARE_MASK,
-  PAID_RULESET_HASH, paidCardRuleTuple,
+  CARD_EFFECT, CARD_MAIN_FUNCTION, PAID_CARD_GLOBALS, PAID_CARD_RULES, PAID_CARD_RULES_HASH, PAID_CPU_MASK, PAID_RARE_MASK,
+  PAID_RULESET_HASH, LEGACY_PAID_RULESET_HASH, paidCardRuleTuple,
 } from '../src/race/paid/cardRules.ts'
 
 const target = fileURLToPath(new URL('../contracts/libraries/PaidCardRules.sol', import.meta.url))
@@ -59,6 +59,9 @@ function packWord(values: number[], fieldWidths: number[]): bigint {
 const hex = (value: bigint, bytes: number) => `0x${value.toString(16).padStart(bytes * 2, '0')}`
 const packed = PAID_CARD_RULES.map((card) => {
   const tuple = paidCardRuleTuple(card)
+  // RGB needs 24 bits; the unused high byte holds the frozen main-function classification.
+  if (tuple[19]! > 0xffffff) throw new Error('COAT_RGB_OUT_OF_RANGE')
+  tuple[19] = tuple[19]! + CARD_MAIN_FUNCTION[card.mainFunction] * 0x1000000
   return hex(packWord(tuple.slice(0, HI_FIELDS), widths.slice(0, HI_FIELDS)), WORD_BYTES[0]!).slice(2)
     + hex(packWord(tuple.slice(HI_FIELDS), widths.slice(HI_FIELDS)), WORD_BYTES[1]!).slice(2)
 }).join('')
@@ -72,7 +75,7 @@ const decode = '        assembly ("memory-safe") {\n' + fields.map((field, i) =>
   const width = widths[i]!
   if (types[i] === 'bool') value = `iszero(iszero(and(${value}, 255)))`
   else if (types[i]!.startsWith('int')) value = `signextend(${width - 1}, ${value})`
-  else value = `and(${value}, 0x${((1n << BigInt(width * 8)) - 1n).toString(16)})`
+  else value = `and(${value}, 0x${((1n << BigInt(field === 'coatRgb' ? 24 : width * 8)) - 1n).toString(16)})`
   return `            mstore(add(rule, ${i * 32}), ${value}) // ${field}`
 }).join('\n') + '\n        }'
 
@@ -96,11 +99,13 @@ library PaidCardRules {
 
     bytes32 internal constant TABLE_HASH = ${PAID_CARD_RULES_HASH};
     bytes32 internal constant RULESET_HASH = ${PAID_RULESET_HASH};
+    bytes32 internal constant LEGACY_RULESET_HASH = ${LEGACY_PAID_RULESET_HASH};
     uint256 internal constant RARE_MASK = 0x${PAID_RARE_MASK.toString(16)};
     uint256 internal constant CPU_MASK = 0x${PAID_CPU_MASK.toString(16)};
     uint32 internal constant PERMANENT_MS = type(uint32).max;
     uint8 internal constant CARD_COUNT = ${PAID_CARD_RULES.length};
     uint16 internal constant MIN_COST_FACTOR_BPS = ${PAID_CARD_GLOBALS.minCostFactorBps};
+${Object.entries(CARD_MAIN_FUNCTION).map(([key, value]) => `    uint8 internal constant MAIN_${key.toUpperCase()} = ${value};`).join('\n')}
     uint32 internal constant BONUS_DEFAULT_MS = ${PAID_CARD_GLOBALS.bonusDefaultMs};
     uint256 internal constant RK_STEP_MS = ${PAID_CARD_GLOBALS.rkStepMs};
 ${effects}
@@ -115,6 +120,11 @@ ${fields.map((field, i) => `        ${types[i]} ${field};`).join('\n')}
     function get(uint8 id) internal pure returns (Rule memory rule) {
         (uint256 hi, uint256 lo) = packed(id);
         return decode(hi, lo);
+    }
+
+    function mainFunction(uint8 id) internal pure returns (uint8) {
+        (, uint256 lo) = packed(id);
+        return uint8(lo >> 152);
     }
 
     function decode(uint256 hi, uint256 lo) internal pure returns (Rule memory rule) {

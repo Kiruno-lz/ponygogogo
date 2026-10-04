@@ -12,6 +12,11 @@ interface FundingVm {
     function setBlockhash(uint256, bytes32) external;
 }
 
+/// @dev Solidity has no constant fixed-size arrays; the default roster is built on demand.
+function defaultRoster() pure returns (uint8[5] memory) {
+    return [uint8(0), 1, 2, 3, 4];
+}
+
 contract FundingAccount {
     PonyGame public game;
     bytes32 public sessionId;
@@ -21,7 +26,7 @@ contract FundingAccount {
 
     function open(PonyGame game_) external {
         game = game_;
-        sessionId = game_.openSession{value: 0.3 ether}(0, 0.3 ether);
+        sessionId = game_.openSession{value: 0.3 ether}(0, 0.3 ether, defaultRoster());
     }
 
     function configure(bool reject_, bool attack_) external {
@@ -32,7 +37,8 @@ contract FundingAccount {
     receive() external payable {
         require(!reject, "declined payout");
         if (attack) {
-            (reentered,) = address(game).call{value: 0.3 ether}(abi.encodeCall(game.openSession, (0, 0.3 ether)));
+            (reentered,) =
+                address(game).call{value: 0.3 ether}(abi.encodeCall(game.openSession, (0, 0.3 ether, defaultRoster())));
         }
     }
 }
@@ -61,7 +67,7 @@ contract DirectFundingTest {
     function testOpeningAcceptsStakeWithoutPlayerDeposit() public {
         uint256 before_ = address(vault).balance;
         (bool ok,) =
-            address(game).call{value: 0.3 ether}(abi.encodeWithSignature("openSession(uint8,uint256)", 0, 0.3 ether));
+            address(game).call{value: 0.3 ether}(abi.encodeCall(game.openSession, (0, 0.3 ether, defaultRoster())));
         require(ok, "opening must accept stake without player deposit");
         require(
             address(game).balance == 0 && address(vault).balance == before_ + 0.3 ether,
@@ -110,14 +116,58 @@ contract DirectFundingTest {
 
     function testWrongValueAndPausedVaultLeaveNoSessionOrMoneyInGame() public {
         uint256 before_ = address(this).balance;
-        (bool mismatch,) = address(game).call{value: 0.2 ether}(abi.encodeCall(game.openSession, (0, 0.3 ether)));
+        (bool mismatch,) =
+            address(game).call{value: 0.2 ether}(abi.encodeCall(game.openSession, (0, 0.3 ether, defaultRoster())));
         require(!mismatch, "value mismatch accepted");
         vault.setEntryPaused(true);
-        (bool paused,) = address(game).call{value: 0.3 ether}(abi.encodeCall(game.openSession, (0, 0.3 ether)));
+        (bool paused,) =
+            address(game).call{value: 0.3 ether}(abi.encodeCall(game.openSession, (0, 0.3 ether, defaultRoster())));
         require(!paused && game.nonces(address(this)) == 0 && game.sessionOf(address(this)) == 0, "partial open");
         require(
             address(this).balance == before_ && address(game).balance == 0 && address(vault).balance == 50 ether,
             "partial transfer"
         );
+    }
+
+    /// @notice Direct funding × roster cross cases (plan §4.3 item 4). Each axis must reject on its own: a legal
+    /// roster does not excuse a wrong `msg.value`, and the exact stake does not excuse an illegal roster. Neither
+    /// may lock a stake in the Vault nor advance the opener's nonce.
+    function testDirectFundingAndRosterRejectIndependently() public {
+        uint256 callerBefore = address(this).balance;
+        uint256 vaultBefore = address(vault).balance;
+
+        // Valid roster, wrong value — both directions.
+        (bool under, bytes memory underData) =
+            address(game).call{value: 0.2 ether}(abi.encodeCall(game.openSession, (0, 0.3 ether, defaultRoster())));
+        require(!under && bytes4(underData) == PonyGame.StakeValueMismatch.selector, "underpaid stake accepted");
+        (bool over, bytes memory overData) =
+            address(game).call{value: 0.4 ether}(abi.encodeCall(game.openSession, (0, 0.3 ether, defaultRoster())));
+        require(!over && bytes4(overData) == PonyGame.StakeValueMismatch.selector, "overpaid stake accepted");
+        (bool none, bytes memory noneData) =
+            address(game).call(abi.encodeCall(game.openSession, (0, 0.3 ether, defaultRoster())));
+        require(!none && bytes4(noneData) == PonyGame.StakeValueMismatch.selector, "unfunded open accepted");
+
+        // Exact value, illegal roster: a duplicate, an unknown id and the 0xff sentinel.
+        uint8[5][3] memory bad = [[uint8(0), 1, 2, 3, 3], [uint8(0), 1, 2, 3, 9], [uint8(0), 1, 2, 3, 255]];
+        for (uint256 i; i < bad.length; ++i) {
+            (bool ok, bytes memory data) =
+                address(game).call{value: 0.3 ether}(abi.encodeCall(game.openSession, (0, 0.3 ether, bad[i])));
+            require(!ok && bytes4(data) == PonyGame.InvalidEntry.selector, "illegal roster accepted with exact stake");
+        }
+        // The same cross on the agent path, which spends budget before `_open` runs.
+        game.configureAgentBudget(uint64(block.timestamp + 1 days), 1 ether);
+        (bool agentValue,) =
+            address(game).call{value: 0.2 ether}(abi.encodeCall(game.openAgentSession, (0, 0.3 ether, defaultRoster())));
+        (bool agentRoster,) = address(game).call{value: 0.3 ether}(
+            abi.encodeCall(game.openAgentSession, (0, 0.3 ether, [uint8(0), 1, 2, 3, 3]))
+        );
+        require(!agentValue && !agentRoster, "agent path accepted a bad value or roster");
+        (,, uint256 spent) = game.agentBudgets(address(this));
+        require(spent == 0, "failed agent open consumed budget");
+
+        require(address(this).balance == callerBefore, "a rejected open kept the caller's money");
+        require(address(game).balance == 0, "a rejected open left money in the Game");
+        require(address(vault).balance == vaultBefore && vault.totalLocked() == 0, "a rejected open locked a stake");
+        require(game.nonces(address(this)) == 0 && game.sessionOf(address(this)) == 0, "a rejected open bumped nonce");
     }
 }

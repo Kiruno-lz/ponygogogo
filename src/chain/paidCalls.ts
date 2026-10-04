@@ -9,12 +9,13 @@ import { PAID_CARD_COUNT } from '../race/paid/cardRules.ts'
 import { encodeFunctionData, isAddress, isAddressEqual, parseAbi, zeroAddress, type Address, type Hex } from 'viem'
 import type { ContractCall } from './alchemy.ts'
 import { paidTierForStake } from './paidStakes.ts'
+import { DEFAULT_ROSTER, normalizeRoster } from '../race/core/roster.ts'
 
 export const ponyGameAbi = parseAbi([
   'struct ChoiceView { bool present; uint32 txSec; uint64 blockNumber; uint8 cardId; uint8[] refreshSlots; bytes32 anchor; }',
-  'struct SessionView { address player; uint8 state; uint8 playerHorseId; uint8 stakeTier; uint256 stake; uint64 openedAt; uint64 openedBlock; bytes32 seed; bytes32 openAnchor; uint8 lastCheckpoint; ChoiceView[3] choices; }',
+  'struct SessionView { address player; uint8 state; uint8 playerHorseId; uint8 stakeTier; uint256 stake; uint64 openedAt; uint64 openedBlock; bytes32 seed; bytes32 openAnchor; uint8 lastCheckpoint; ChoiceView[3] choices; uint8[5] roster; }',
   'struct RaceResult { uint32[5] finishTime; uint32[5] finishWall; uint8[5] rawOrder; uint8[5] settlementOrder; uint8 playerRawRank; uint8 playerSettlementRank; uint8[3] acquired; uint32 eventCount; bytes32 digest; }',
-  'function openSession(uint8 horseId, uint256 stake) payable returns (bytes32 sessionId)',
+  'function openSession(uint8 horseId, uint256 stake, uint8[5] roster) payable returns (bytes32 sessionId)',
   'function chooseCard(bytes32 sessionId, uint8 checkpoint, uint8 cardId, uint8[] refreshSlots)',
   'function settleSession(bytes32 sessionId) returns (uint256 payout)',
   'function forfeitSession(bytes32 sessionId)',
@@ -26,7 +27,8 @@ export const ponyGameAbi = parseAbi([
   'function entryPaused() view returns (bool)',
   'function rulesetHash() view returns (bytes32)',
   'function vault() view returns (address)',
-  'event SessionOpened(bytes32 indexed sessionId, address indexed player, uint8 horseId, uint256 stake, bytes32 seed, uint64 openedAt, uint64 openedBlock, bytes32 rulesetHash)',
+  'event RewardsBound(address indexed rewards)',
+  'event SessionOpened(bytes32 indexed sessionId, address indexed player, uint8 horseId, uint256 stake, bytes32 seed, uint64 openedAt, uint64 openedBlock, bytes32 rulesetHash, uint8[5] roster)',
   'event CardChosen(bytes32 indexed sessionId, address indexed player, uint8 checkpoint, uint8 cardId, uint8[] refreshSlots, uint32 txSec, uint64 blockNumber)',
   'event RandomAnchorSealed(bytes32 indexed sessionId, uint64 sourceBlock, bytes32 anchor)',
   'event SessionSettled(bytes32 indexed sessionId, address indexed player, uint32[5] finishTime, uint8[5] rawOrder, uint8[5] settlementOrder, uint8 playerSettlementRank, uint256 payout, bytes32 digest, uint8[3] acquired)',
@@ -50,6 +52,14 @@ export const ponyGameAbi = parseAbi([
   'error UnknownSession()',
 ])
 
+/** Read-only compatibility for pre-roster games; new entry always uses the required-roster ABI above. */
+export const legacyPonyGameAbi = parseAbi([
+  'struct ChoiceView { bool present; uint32 txSec; uint64 blockNumber; uint8 cardId; uint8[] refreshSlots; bytes32 anchor; }',
+  'struct SessionView { address player; uint8 state; uint8 playerHorseId; uint8 stakeTier; uint256 stake; uint64 openedAt; uint64 openedBlock; bytes32 seed; bytes32 openAnchor; uint8 lastCheckpoint; ChoiceView[3] choices; }',
+  'function getSession(bytes32 sessionId) view returns (SessionView view_)',
+  'event SessionOpened(bytes32 indexed sessionId, address indexed player, uint8 horseId, uint256 stake, bytes32 seed, uint64 openedAt, uint64 openedBlock, bytes32 rulesetHash)',
+])
+
 /** PonyGame 的会话状态码（STATE_*）。 */
 export const SESSION_STATE = { none: 0, open: 1, settled: 2, forfeited: 3 } as const
 /** `SessionForfeited.reason` / `canForfeit` 的原因码（FORFEIT_*）：1 = 所需锚过窗丢失（任何人），2 = owner 关闭求时器故障会话。 */
@@ -64,13 +74,18 @@ export function requireSession(sessionId: Hex): void {
   if (!/^0x[0-9a-fA-F]{64}$/.test(sessionId) || /^0x0{64}$/.test(sessionId)) throw new Error('INVALID_SESSION_ID')
 }
 
-/** 一次开场调用携带完整下注；Game 在同一交易内转入绑定的 Vault。 */
-export function openSessionCall(game: Address, horseId: number, stake: bigint): ContractCall {
+/** 一次开场调用携带完整下注与名单；Game 在同一交易内把 `msg.value` 转入绑定的 Vault。 */
+export function openSessionCall(
+  game: Address, horseId: number, stake: bigint, roster: readonly number[] = DEFAULT_ROSTER,
+): ContractCall {
   requireContract(game)
   if (!Number.isInteger(horseId) || horseId < 0 || horseId >= 5) throw new Error('INVALID_PAID_ENTRY')
   paidTierForStake(stake)
+  const normalized = normalizeRoster(roster)
   return {
-    to: game, data: encodeFunctionData({ abi: ponyGameAbi, functionName: 'openSession', args: [horseId, stake] }), value: stake,
+    to: game,
+    data: encodeFunctionData({ abi: ponyGameAbi, functionName: 'openSession', args: [horseId, stake, normalized] }),
+    value: stake,
   }
 }
 

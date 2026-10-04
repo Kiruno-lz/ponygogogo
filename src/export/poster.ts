@@ -1,37 +1,35 @@
 /** Compose a result poster from blank artwork and authoritative settlement data. */
 import { formatMon } from '../chain/amount.ts'
-import { HORSE_PROFILES } from '../game/horses.ts'
+import { PONY_CATALOG, ponyById, ponyIdAt } from '../game/ponyCatalog.ts'
 import type { RaceResult } from '../race/core/types.ts'
 import type { PaidResultView } from '../result/ResultScreen.tsx'
 import { t, type Lang } from '../ui/i18n.ts'
 
 export function posterContent(result: RaceResult, paid: PaidResultView | undefined, lang: Lang) {
+  const ponyId = ponyIdAt(result.roster, result.horseId)
   const rank = paid?.settlement?.rank ?? paid?.previewRank ?? result.rank
   const payout = paid?.settlement?.payout ?? (paid?.phase === 'forfeited' ? 0n : null)
   const net = payout !== null && paid ? payout - paid.stake : null
   const amount = !paid ? t(lang, 'result.practice') : net === null ? t(lang, 'result.pendingValue')
     : `${net > 0n ? '+' : ''}${formatMon(net, 4).replace(/\.?0+$/, '')} MON`
   const status = !paid ? t(lang, 'result.practiceValue') : `${t(lang, `result.stamp.${paid.phase}`)} · ${paid.settlement ? t(lang, 'result.chainRank', { rank }) : t(lang, 'result.previewRank', { rank })}`
-  return { horseId: result.horseId, rank, amount, status, name: HORSE_PROFILES[result.horseId]!.name,
+  return { horseId: result.horseId, ponyId, rank, amount, status, name: ponyById(ponyId).name,
     headline: rank === 1 && (!paid || (net !== null && net > 0n)) ? 'WIN' : 'FINISH' }
 }
 
 export const POSTER = { width: 1620, height: 971, qr: { x: 220, y: 594, size: 220, angle: -0.04 } } as const
 
-/** Hoof contacts measured on the five generated overlays; register them to the podium plane. */
-export const HORSE_FOOTINGS = [
-  { rear: [286, 694], front: [815, 717] },
-  { rear: [269, 826], front: [898, 838] },
-  { rear: [280, 723], front: [833, 740] },
-  { rear: [267, 738], front: [786, 745] },
-  { rear: [308, 793], front: [908, 818] },
-] as const
+export const HORSE_FOOTINGS = PONY_CATALOG.map(pony => pony.renderSpec.posterFootings)
 
 export function horseTransform(horseId: number): [number, number, number, number, number, number] {
-  const { rear, front } = HORSE_FOOTINGS[horseId]
-  const scale = 350 / (front[0] - rear[0])
-  const slope = (31 - scale * (front[1] - rear[1])) / (front[0] - rear[0])
-  return [scale, slope, 0, scale, 330 - scale * rear[0], 545 - slope * rear[0] - scale * rear[1]]
+  const spec = ponyById(horseId).renderSpec
+  const { rear, front } = spec.posterFootings
+  const span = front[0] - rear[0]
+  const scale = spec.posterScale ?? 350 / span
+  const targetX = spec.posterScale ? 505 - span * scale / 2 : 330
+  const targetY = 545 + (targetX - 330) * 31 / 350
+  const slope = (span * scale * 31 / 350 - scale * (front[1] - rear[1])) / span
+  return [scale, slope, 0, scale, targetX - scale * rear[0], targetY - slope * rear[0] - scale * rear[1]]
 }
 
 async function loadImage(src: string): Promise<HTMLImageElement> {
@@ -45,7 +43,7 @@ export async function drawPoster(content: ReturnType<typeof posterContent>): Pro
   await document.fonts.load('700 40px Kalam')
   const [background, hero, medal, qr, headline, prizeGroup] = await Promise.all([
     loadImage('/assets/art/share/background.webp'),
-    loadImage(`/assets/art/share/horse-${content.horseId}.webp`),
+    loadImage(`/assets/art/share/horse-${content.ponyId}.webp`),
     loadImage(`/assets/art/result/medal-${content.rank}.webp`),
     loadImage('/assets/art/share/qr.png'),
     loadImage(`/assets/art/share/${content.headline.toLowerCase()}.webp`),
@@ -62,7 +60,7 @@ export async function drawPoster(content: ReturnType<typeof posterContent>): Pro
   ctx.restore()
   // Dedicated overlays include perspective-correct hooves and contact shadows.
   ctx.save()
-  ctx.transform(...horseTransform(content.horseId))
+  ctx.transform(...horseTransform(content.ponyId))
   ctx.drawImage(hero, 0, 0)
   ctx.restore()
   ctx.drawImage(medal, 492, 548, 255, 255 * medal.height / medal.width)

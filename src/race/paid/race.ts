@@ -1,4 +1,5 @@
 import type { Hex } from 'viem'
+import { normalizeRoster } from '../core/roster.ts'
 import { derivePaidCpuDeck } from '../core/paidCpuDeck.ts'
 import { derivePaidDeck, FULL_CARD_MASK } from '../core/paidDeck.ts'
 import { derivePaidProfiles, type PaidTier } from '../core/paidProfiles.ts'
@@ -12,6 +13,7 @@ export type PaidRaceInput = {
   openAnchor: Hex
   stakeTier: PaidTier
   playerHorseId: number
+  roster?: readonly number[]
   choices: PaidChoiceSlots
   /** Player card-pool eligibility (default: the full canonical pool). */
   cardMask?: bigint
@@ -20,6 +22,7 @@ export type PaidRaceInput = {
 /** Opening-anchor derivations: personalities, the player's 14-card deck and the CPU 3-card decks. */
 export function derivePaidCoreInput(input: PaidRaceInput): PaidCoreInput {
   const { seed, openAnchor, stakeTier, playerHorseId } = input
+  const roster = input.roster === undefined ? undefined : normalizeRoster(input.roster)
   const profiles = derivePaidProfiles(seed, openAnchor, stakeTier, playerHorseId).map((p) => ({
     base: BigInt(p.base), acceleration: BigInt(p.acceleration), cap: BigInt(p.cap),
   }))
@@ -29,6 +32,7 @@ export function derivePaidCoreInput(input: PaidRaceInput): PaidCoreInput {
   }
   return {
     profiles,
+    ...(roster ? { roster } : {}),
     playerHorseId,
     playerDeck: derivePaidDeck(seed, openAnchor, input.cardMask ?? FULL_CARD_MASK),
     cpuDecks,

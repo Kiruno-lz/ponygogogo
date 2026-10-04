@@ -22,6 +22,7 @@ interface IPaidRaceSolver {
         uint8 stakeTier; // 1..4
         uint8 playerHorseId; // 0..4
         ChoiceInput[3] choices; // index 0..2 = checkpoints 1..3
+        uint8[5] roster; // stable pony identity at each starting participant slot
     }
 
     struct RaceResult {

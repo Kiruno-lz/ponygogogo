@@ -16,7 +16,7 @@ import { LocalAssetSource, fetchManifest, type AssetTier } from './assets/source
 import { DEFAULT_PASSKEY_NAME, PONY_GAME_ADDRESS, PONY_VAULT_ADDRESS } from './chain/network.ts'
 import { formatMon } from './chain/amount.ts'
 import {
-  PRACTICE_TIER, isTierPlayable, paidContractsDeployed, paidEntry, paidRaceAvailable, type PaidDeployment,
+  PRACTICE_TIER, isTierPlayable, paidContractsDeployed, paidRulesCompatible, paidEntry, paidRaceAvailable, type PaidDeployment,
 } from './chain/paidGate.ts'
 import { PAID_STAKE_LABELS } from './chain/paidStakes.ts'
 import { wallet, type GameAccount, type WalletAccount } from './chain/wallet.ts'
@@ -37,6 +37,7 @@ import { PaidResumeModal } from './ui/PaidResumeModal.tsx'
 import { usePaidRace } from './ui/usePaidRace.ts'
 import { RaceScreen } from './ui/RaceScreen.tsx'
 import { SelectScreen } from './ui/SelectScreen.tsx'
+import { normalizeRoster } from './game/ponyCatalog.ts'
 import { EffectShowcaseScreen } from './ui/EffectShowcaseScreen.tsx'
 import { SettingsScreen } from './ui/SettingsScreen.tsx'
 import { TierGate } from './ui/TierGate.tsx'
@@ -135,7 +136,8 @@ export default function App() {
   useEffect(() => {
     if (page !== 'select' || !paidRaceAvailable || paidDeployment !== 'checking') return
     paidContractsDeployed(wallet.publicClient, PONY_VAULT_ADDRESS!, PONY_GAME_ADDRESS!)
-      .then((ok) => setPaidDeployment(ok ? 'deployed' : 'missing'))
+      .then(async ok => !ok ? 'missing' : await paidRulesCompatible(wallet.publicClient, PONY_GAME_ADDRESS!) ? 'deployed' : 'unsupported')
+      .then(state => setPaidDeployment(state))
       .catch(() => undefined)
   }, [page, paidDeployment])
 
@@ -370,12 +372,13 @@ export default function App() {
     await refreshFunds()
   }, [refreshFunds])
 
-  const startRace = useCallback((horseId: number, tier: number) => {
+  const startRace = useCallback((horseId: number, tier: number, roster?: readonly number[]) => {
     // 有奖场次的唯一接入点：只有 paidEntry 开放（地址、链上代码、游戏账户齐备）时才走链上会话
     if (!isTierPlayable(tier, paidGate.open)) return
+    const selectedRoster = normalizeRoster(roster)
     if (tier !== PRACTICE_TIER) {
       if (!gameAccount) return
-      const d = paid.start(horseId, tier as 1 | 2 | 3 | 4)
+      const d = paid.start(horseId, tier as 1 | 2 | 3 | 4, selectedRoster)
       if (!d) return
       setPaidDriver(d)
       setPaidMeta(null)
@@ -388,7 +391,7 @@ export default function App() {
     setPaidMeta(null)
     const seq = raceSeq.current++
     const now = Date.now()
-    const d = new RaceDriver({ seed: practiceSeed(qs('seed'), now + seq), playerHorseId: horseId, stakeTier: PRACTICE_TIER })
+    const d = new RaceDriver({ seed: practiceSeed(qs('seed'), now + seq), playerHorseId: horseId, stakeTier: PRACTICE_TIER, roster: selectedRoster })
     d.raceId = practiceRaceId(now, seq)
     setDriver(d)
     setResult(null)
@@ -449,7 +452,7 @@ export default function App() {
     if (!info || resumeBusy) return
     setResumeBusy(true)
     try {
-      const d = await paid.resumeRace(info.facts)
+      const d = await paid.resumeRace(info)
       setPaidDriver(d)
       setDriver(d)
       if (settleNow) showPaidResult(d)

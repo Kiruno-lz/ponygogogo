@@ -18,7 +18,7 @@ import { explorerTxUrl } from '../chain/network.ts'
 import { paidCardDef } from '../race/cards/paidCards.ts'
 import { SIM_HZ } from '../race/core/constants.ts'
 import type { RaceResult } from '../race/core/types.ts'
-import { HORSE_PROFILES } from '../game/horses.ts'
+import { ponyById, ponyIdAt } from '../game/ponyCatalog.ts'
 import { usePress } from '../ui/Button.tsx'
 import { t, type Lang } from '../ui/i18n.ts'
 import { deadlineText, type DeadlineView } from '../ui/paidText.ts'
@@ -27,14 +27,6 @@ import { useNow } from '../ui/useNow.ts'
 /** 奖台踏面与角色中轴，五匹马按各自蹄底对齐 */
 const HERO_BASELINE = 739
 const HERO_CENTER_X = 380
-/** 五匹马统一缩到 hero-0 的 515×393 画布；每匹的实体位置不同，各自记下中轴与蹄底 */
-const HERO_FRAMES = [
-  { centerX: 247, bottom: 379 },
-  { centerX: 263, bottom: 382 },
-  { centerX: 259, bottom: 376 },
-  { centerX: 262, bottom: 380 },
-  { centerX: 260, bottom: 378 },
-]
 const HERO_W = 515
 const HERO_H = 393
 const HERO_SCALE = 1.12
@@ -85,9 +77,10 @@ export interface ResultScreenProps {
 
 export function ResultScreen(p: ResultScreenProps) {
   const [shareOpen, setShareOpen] = useState(false)
-  const prof = HORSE_PROFILES[p.result.horseId]!
+  const ponyId = ponyIdAt(p.result.roster, p.result.horseId)
+  const prof = ponyById(ponyId)
   const combo = p.result.endReason === 'forced-combo'
-  const hero = HERO_FRAMES[p.result.horseId] ?? HERO_FRAMES[0]!
+  const hero = prof.renderSpec.resultFooting
   const paid = p.paid ?? null
   const settled = paid?.settlement ?? null
   const forfeited = paid?.phase === 'forfeited'
@@ -111,7 +104,7 @@ export function ResultScreen(p: ResultScreenProps) {
         <img className="result-bg" src="/assets/art/result/background.webp" alt="" draggable={false} />
         <img
           className="result-hero"
-          src={`/assets/art/result/hero-${p.result.horseId}.webp`}
+          src={`/assets/art/result/hero-${ponyId}.webp`}
           alt={prof.name}
           draggable={false}
           style={{
@@ -217,7 +210,7 @@ export function ResultScreen(p: ResultScreenProps) {
         <span className="result-name">{prof.name}</span>
         <span className="result-rank-line">
           <span className="result-rank-label">{t(p.lang, 'result.rank')}</span>
-          <span className="result-rank-total mono">/ {HORSE_PROFILES.length}</span>
+          <span className="result-rank-total mono">/ 5</span>
         </span>
         {combo && !paid && (
           <span className="result-combo" data-testid="result-combo">

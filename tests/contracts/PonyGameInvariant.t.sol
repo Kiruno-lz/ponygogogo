@@ -46,9 +46,10 @@ contract PonyGameHandler {
         address actor = actors[actorSeed % 3];
         uint256 stake = game.stakeForTier(tierSeed % 4 + 1);
         vm.prank(actor);
+        uint8[5] memory roster = [uint8(0), 1, 2, 3, 4];
         bytes32 sessionId = agent
-            ? game.openAgentSession{value: stake}(horseSeed % 5, stake)
-            : game.openSession{value: stake}(horseSeed % 5, stake);
+            ? game.openAgentSession{value: stake}(horseSeed % 5, stake, roster)
+            : game.openSession{value: stake}(horseSeed % 5, stake, roster);
         stakesPaid += stake;
         sessions.push(sessionId);
         stakeOf[sessionId] = stake;

@@ -96,7 +96,7 @@ abstract contract PonyGameBase {
 
     function _open(address player, uint8 horseId, uint256 stake) internal returns (bytes32 sessionId) {
         vm.prank(player);
-        sessionId = game.openSession{value: stake}(horseId, stake);
+        sessionId = game.openSession{value: stake}(horseId, stake, [uint8(0), 1, 2, 3, 4]);
     }
 
     /// @dev Advances `blocks` blocks and `secs` seconds, recording `hash` for every skipped block both as

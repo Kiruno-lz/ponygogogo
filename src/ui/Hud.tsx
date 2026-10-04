@@ -7,9 +7,11 @@ import { cardIconUrl } from '../race/cards/iconUrl.ts'
 import { useEffect, useRef, useState } from 'react'
 import { SIM_HZ, STAMINA_MAX, TRACK_LEN } from '../race/core/constants.ts'
 import type { EffectInstance, RaceState } from '../race/core/types.ts'
-import { HORSE_PROFILES, hexCss } from '../game/horses.ts'
+import { hexCss } from '../game/horses.ts'
+import { ponyById, ponyIdAt } from '../game/ponyCatalog.ts'
 import { t, type Lang } from './i18n.ts'
 import { PlayerPlaque, StaminaArt } from './RaceArt.tsx'
+import { ponyAbilityText } from './ponyAbilityText.ts'
 
 const HUD_ICON: Record<string, string> = {
   'C-01': 'buff-wing',
@@ -26,6 +28,7 @@ const SYSTEM_ICON: Record<string, string> = {
 }
 
 interface Slot {
+  label?: string
   key: string
   icon: string
   tint?: number
@@ -34,11 +37,12 @@ interface Slot {
   debuff: boolean
 }
 
-function buildSlots(state: RaceState, horseId: number): Slot[] {
+function buildSlots(state: RaceState, horseId: number, lang: Lang): Slot[] {
   const byCard = new Map<string, Slot>()
   const push = (inst: EffectInstance): void => {
     const def = paidCardDef(inst.sourceCardId)
-    const icon = HUD_ICON[inst.sourceCardId] ?? def?.art.icon ?? SYSTEM_ICON[inst.sourceCardId]
+    const ponyId = typeof inst.payload.ponyId === 'number' ? inst.payload.ponyId : null
+    const icon = ponyId === null ? HUD_ICON[inst.sourceCardId] ?? def?.art.icon ?? SYSTEM_ICON[inst.sourceCardId] : `/assets/art/ponies/${ponyId}-portrait.webp`
     if (!icon) return
     const left =
       inst.durationTicks === null
@@ -54,6 +58,7 @@ function buildSlots(state: RaceState, horseId: number): Slot[] {
     }
     byCard.set(inst.sourceCardId, {
       key: inst.sourceCardId,
+      label: ponyId === null ? undefined : ponyAbilityText(ponyId, lang).name,
       icon,
       tint: def?.art.tint,
       secsLeft: left,
@@ -79,6 +84,8 @@ function StatusBadge({ slot, reduced }: { slot: Slot; reduced: boolean }) {
   return (
     <div
       data-testid={`buff-${slot.key}`}
+      title={slot.label}
+      aria-label={slot.label}
       className={`badge${pop && !reduced ? ' pop' : ''}`}
       style={{ width: 70, textAlign: 'center' }}
     >
@@ -96,7 +103,7 @@ function StatusBadge({ slot, reduced }: { slot: Slot; reduced: boolean }) {
         }}
       >
         <img
-          src={slot.icon.startsWith('buff-') ? `/assets/art/ui/${slot.icon}-trimmed.webp` : cardIconUrl(slot.icon)}
+          src={slot.icon.startsWith('/assets/') ? slot.icon : slot.icon.startsWith('buff-') ? `/assets/art/ui/${slot.icon}-trimmed.webp` : cardIconUrl(slot.icon)}
           alt=""
           style={{
             width: 54,
@@ -147,7 +154,7 @@ export interface HudProps {
 export function Hud(p: HudProps) {
   const st = p.state
   const player = st.horses[st.playerHorseId]!
-  const slots = buildSlots(st, player.horseId)
+  const slots = buildSlots(st, player.horseId, p.lang)
   const staminaPct = Math.max(0, Math.min(1.2, player.stamina / STAMINA_MAX))
   const exhausted = st.effects.some(
     (e) => e.ownerHorseId === player.horseId && e.payload.statusId === 'exhausted',
@@ -163,7 +170,7 @@ export function Hud(p: HudProps) {
 
   return (
     <div className="screen race-hud" style={{ pointerEvents: 'none', zIndex: 50 }}>
-      <PlayerPlaque horseId={player.horseId} />
+      <PlayerPlaque horseId={ponyIdAt(st.roster, player.horseId)} />
       <StaminaArt fraction={staminaPct} exhausted={exhausted} over={over}>
         {exhausted && <span className="stamina-exhausted" data-testid="exhausted">{t(p.lang, 'race.exhausted')}</span>}
       </StaminaArt>
@@ -190,7 +197,7 @@ export function Hud(p: HudProps) {
       >
 
         {board.map((h, i) => {
-          const prof = HORSE_PROFILES[h.horseId]!
+          const prof = ponyById(ponyIdAt(st.roster, h.horseId))
           const me = h.horseId === st.playerHorseId
           return (
             <div
@@ -210,7 +217,7 @@ export function Hud(p: HudProps) {
               <span className="h-title" style={{ width: 22, fontSize: 22 }}>
                 {i + 1}
               </span>
-              <HorseAvatar horseId={h.horseId} size={50} />
+              <HorseAvatar horseId={prof.ponyId} size={50} />
               <span style={{ flex: 1, fontSize: 22, fontWeight: 700 }}>{prof.name}</span>
               <span
                 className="mono"
@@ -259,7 +266,7 @@ export function Hud(p: HudProps) {
               height: h.horseId === st.playerHorseId ? 20 : 12,
               marginLeft: -5,
               borderRadius: 4,
-              background: hexCss(HORSE_PROFILES[h.horseId]!.mane),
+              background: hexCss(ponyById(ponyIdAt(st.roster, h.horseId)).mane),
               border: h.horseId === st.playerHorseId ? '2px solid #fff3d2' : 'none',
             }}
           />
@@ -271,7 +278,7 @@ export function Hud(p: HudProps) {
 
 export function HorseAvatar({ horseId, size }: { horseId: number; size: number }) {
   return <div className="horse-avatar" style={{ width: size, height: size }}>
-    <img src={`/assets/art/ui/leaderboard-avatar-${horseId}.webp`} alt={HORSE_PROFILES[horseId]!.name} draggable={false}/>
+    <img src={`/assets/art/ui/leaderboard-avatar-${horseId}.webp`} alt={ponyById(horseId).name} draggable={false}/>
   </div>
 }
 

@@ -8,10 +8,26 @@ import {PaidDeck} from "./PaidDeck.sol";
 import {PaidDrawRules} from "./PaidDrawRules.sol";
 import {PaidProfiles} from "./PaidProfiles.sol";
 import {PaidSettlement} from "./PaidSettlement.sol";
+import {PonyRules} from "./PonyRules.sol";
 
 /// @notice Cold-path calculations compiled into PaidRaceSolver: derivation, canonical rules, card snapshot
 /// decisions, draw transitions and settlement. Engine owns race memory, event scheduling and effect lifecycles.
 library PaidRaceCold {
+    error InvalidRoster();
+
+    /// @notice Canonical pony words for a roster: five distinct enabled pony ids, one packed word each.
+    /// @dev `memory` rather than `calldata` because the caller holds `CoreInput` in memory.
+    function ponyWords(uint8[5] memory roster) internal pure returns (uint256[5] memory words) {
+        uint256 seen;
+        for (uint256 h; h < 5; ++h) {
+            uint8 id = roster[h];
+            uint256 bit = uint256(1) << id;
+            if (!PonyRules.enabled(id) || seen & bit != 0) revert InvalidRoster();
+            seen |= bit;
+            words[h] = PonyRules.packed(id);
+        }
+    }
+
     function raceParams() internal pure returns (uint256[11] memory p) {
         p[0] = PaidCardRules.get(15).staminaMicro;
         p[1] = PaidCardRules.get(12).strengthBps;

@@ -192,7 +192,7 @@ export interface PendingChoice {
 }
 
 export type RaceEvent =
-  | { type: 'cardEffect'; horseId: number; cardId?: string; kind: 'trigger' | 'resource' | 'fixed' | 'target' | 'guard' | 'renew'; value: number; tick: number }
+  | { type: 'cardEffect'; horseId: number; cardId?: string; ponyId?: number; kind: 'trigger' | 'resource' | 'fixed' | 'target' | 'guard' | 'renew' | 'pony'; value: number; tick: number }
   | { type: 'gogo'; quality: 'good' | 'early' | 'late'; tick: number }
   | { type: 'gogoRejected'; tick: number }
   | { type: 'death'; horseId: number; tick: number }
@@ -215,6 +215,8 @@ export type RaceEvent =
   | { type: 'combo'; horseId: number; tick: number }
 
 export interface RaceState {
+  /** Stable catalog ids indexed by the five race participants; absent in legacy records. */
+  roster?: readonly number[]
   seed: string
   rulesVersion: string
   tick: number
@@ -283,6 +285,7 @@ export type RaceInput =
 // ---------------------------------------------------------------------------
 
 export interface RaceResult {
+  roster?: readonly number[]
   raceId: string
   seed: string
   horseId: number

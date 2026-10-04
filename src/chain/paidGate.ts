@@ -9,6 +9,8 @@
  */
 import { isAddressEqual, type Address, type Hex, type PublicClient } from 'viem'
 import { PONY_GAME_ADDRESS, PONY_VAULT_ADDRESS } from './network.ts'
+import { PAID_RULESET_HASH } from '../race/paid/cardRules.ts'
+import { ponyGameAbi } from './paidCalls.ts'
 
 /** 自 2026-09-29 起在 Monad 测试网开放（会话协议 v2 / 有奖规则 v3 合约已部署并跑通）；地址与代码两道条件照旧 */
 export const PAID_RACE_FEATURE: boolean = true
@@ -46,14 +48,20 @@ export async function paidContractsDeployed(
   return hasCode(v) && hasCode(g)
 }
 
+export async function paidRulesCompatible(client: Pick<PublicClient, 'readContract'>, game: Address): Promise<boolean> {
+  const rules = await client.readContract({ address: game, abi: ponyGameAbi, functionName: 'rulesetHash' })
+  return rules.toLowerCase() === PAID_RULESET_HASH.toLowerCase()
+}
+
 /** 运行期那一道：checking = 还没读到（或上次读失败，下次进选马页再读） */
-export type PaidDeployment = 'checking' | 'deployed' | 'missing'
+export type PaidDeployment = 'checking' | 'deployed' | 'missing' | 'unsupported'
 
 /** 选马页的有奖入口：能不能选，灰着时给哪条说明（i18n 键）。合约缺失优先，其次是登录，最后是还在确认 */
 export function paidEntry(
   built: boolean, deployment: PaidDeployment, signedIn: boolean,
 ): { open: boolean; hint: string | null } {
   if (!built || deployment === 'missing') return { open: false, hint: 'select.paidNotDeployed' }
+  if (deployment === 'unsupported') return { open: false, hint: 'select.paidRulesMismatch' }
   if (!signedIn) return { open: false, hint: 'select.paidLogin' }
   if (deployment === 'checking') return { open: false, hint: 'select.paidChecking' }
   return { open: true, hint: null }

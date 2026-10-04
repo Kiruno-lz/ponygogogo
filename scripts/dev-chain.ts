@@ -110,7 +110,7 @@ export async function deployDevChain(opts: {
     const env: Record<string, string> = {
       // FOUNDRY_OFFLINE: forge's Sourcify trace lookups stall on this network.
       PATH: process.env.PATH ?? '', HOME: homedir(), FOUNDRY_OFFLINE: 'true', ETH_RPC_URL: opts.rpcUrl,
-      NO_PROXY: 'localhost,127.0.0.1',
+      NO_PROXY: '127.0.0.1,localhost', no_proxy: '127.0.0.1,localhost',
       DEPLOYER_PRIVATE_KEY_PATH: keyFile, HOUSE_FUND_WEI: (opts.houseFundWei ?? parseEther('1000')).toString(), UNPAUSE: '1',
     }
     if (solver) env.PONY_SOLVER = solver

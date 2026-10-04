@@ -11,13 +11,14 @@
  * 显示结算期限（chain/settleDeadline.ts），逾期视为放弃。
  */
 import { useCallback, useRef, useState } from 'react'
-import type { Hex } from 'viem'
+import { isAddressEqual, type Hex, type Address } from 'viem'
 import { ChainClock, startClockSync, type ClockSync } from '../chain/chainClock.ts'
-import { PONY_GAME_ADDRESS } from '../chain/network.ts'
+import { PONY_GAME_ADDRESS, LEGACY_PONY_GAME_ADDRESSES } from '../chain/network.ts'
+import { recoverPaidSessions, sessionChainDeps, type PaidSessionContext } from '../chain/paidRecovery.ts'
 import { paidRaceAvailable } from '../chain/paidGate.ts'
 import {
-  choosePaidCard, openPaidSession, PaidSessionError, readSessionFacts, readSettleDeadline, recoverPaidSession,
-  settlePaidSession, type PaidChainDeps, type PaidSessionFacts, type PaidSettlementFacts,
+  choosePaidCard, openPaidSession, PaidSessionError, readSessionFacts, readSettleDeadline,
+  settlePaidSession, refreshSettlementReward, errorReason, type PaidChainDeps, type PaidSettlementFacts,
 } from '../chain/paidSession.ts'
 import { PAID_STAKE_WEI } from '../chain/paidStakes.ts'
 import { wallet } from '../chain/wallet.ts'
@@ -41,26 +42,29 @@ export type PaidSettleState = {
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
 /** 待恢复的会话、链上时间是否已越过玩家冲线（可以直接结算），以及结算期限 */
-export type PaidResumeInfo = { facts: PaidSessionFacts; canSettle: boolean; deadline: DeadlineView }
+export type PaidResumeInfo = PaidSessionContext & { canSettle: boolean; deadline: DeadlineView }
 
-async function deadlineOf(sessionId: Hex): Promise<DeadlineView> {
-  return deadlineView(await readSettleDeadline(wallet.publicClient, PONY_GAME_ADDRESS!, sessionId), Date.now())
+async function deadlineOf(game: Address, sessionId: Hex): Promise<DeadlineView> {
+  return deadlineView(await readSettleDeadline(wallet.publicClient, game, sessionId), Date.now())
 }
 
-async function resumeInfo(facts: PaidSessionFacts): Promise<PaidResumeInfo> {
-  const deadline = await deadlineOf(facts.sessionId)
+async function resumeInfo(context: PaidSessionContext): Promise<PaidResumeInfo> {
+  const { facts } = context
+  const deadline = await deadlineOf(context.game, facts.sessionId)
   try {
     const head = await wallet.publicClient.getBlock({ blockTag: 'latest' })
     const finishWall = solveFromFacts(facts).finishWall[facts.horseId]!
-    return { facts, canSettle: (Number(head.timestamp) - facts.openedAt) * 1000 >= Number(finishWall), deadline }
+    return { ...context, canSettle: (Number(head.timestamp) - facts.openedAt) * 1000 >= Number(finishWall), deadline }
   } catch {
-    return { facts, canSettle: false, deadline }
+    return { ...context, canSettle: false, deadline }
   }
 }
 
 export function usePaidRace(lang: Lang, refreshFunds: () => Promise<void>) {
   const [settle, setSettle] = useState<PaidSettleState | null>(null)
   const [resume, setResume] = useState<PaidResumeInfo | null>(null)
+  const [resumeError, setResumeError] = useState<string | null>(null)
+  const locationRef = useRef<Pick<PaidSessionContext, 'game'> | null>(null)
   const driverRef = useRef<PaidRaceDriver | null>(null)
   const clockRef = useRef<ChainClock | null>(null)
   const syncRef = useRef<ClockSync | null>(null)
@@ -81,47 +85,60 @@ export function usePaidRace(lang: Lang, refreshFunds: () => Promise<void>) {
 
   const deps = useCallback((timeoutMs: number): PaidChainDeps => {
     const account = wallet.getCallAccount()
-    if (!account || !PONY_GAME_ADDRESS) throw new PaidSessionError('account-not-resolved')
+    const location = locationRef.current ?? (PONY_GAME_ADDRESS ? { game: PONY_GAME_ADDRESS } : null)
+    if (!account || !location) throw new PaidSessionError('account-not-resolved')
+    const g = gen.current
     return {
-      account, client: wallet.publicClient, game: PONY_GAME_ADDRESS,
+      account, client: wallet.publicClient, ...location,
       poll: { pollMs: 400, timeoutMs }, clock: clockRef.current ?? undefined, now: () => performance.now(),
+      isCurrent: () => gen.current === g,
     }
   }, [])
 
-  const makeDriver = useCallback((horseId: number, tier: 1 | 2 | 3 | 4, clock: ChainClock): PaidRaceDriver => {
+  const makeDriver = useCallback((horseId: number, tier: 1 | 2 | 3 | 4, clock: ChainClock, roster?: readonly number[]): PaidRaceDriver => {
+    const g = gen.current
     const driver: PaidRaceDriver = new PaidRaceDriver({
       playerHorseId: horseId,
+      roster,
       stakeTier: tier,
       clock,
       timing: wallet.onDevChain ? DEV_EOA_TIMING : ALCHEMY_TIMING,
       // 选牌等满一个窗口加入块余量就够了：之后即使上链也在窗口外，合约必然拒绝
-      submitChoice: (k, cardId, slots, onStep) => choosePaidCard(deps(30_000), driver.sessionFacts!, k, cardId, slots, onStep),
+      submitChoice: (k, cardId, slots, onStep) => {
+        if (gen.current !== g) return Promise.reject(new PaidSessionError('account-not-resolved'))
+        return choosePaidCard(deps(30_000), driver.sessionFacts!, k, cardId, slots, onStep)
+      },
     })
     driverRef.current = driver
     return driver
   }, [deps])
 
   /** 开一场有奖比赛：立刻返回驱动器（倒计时与入场状态由比赛页显示），开场交易在后台跑。 */
-  const start = useCallback((horseId: number, tier: 1 | 2 | 3 | 4): PaidRaceDriver | null => {
+  const start = useCallback((horseId: number, tier: 1 | 2 | 3 | 4, roster: readonly number[]): PaidRaceDriver | null => {
     if (!paidRaceAvailable) return null
     const g = ++gen.current
+    locationRef.current = { game: PONY_GAME_ADDRESS! }
     setSettle(null)
     const clock = freshClock()
-    const driver = makeDriver(horseId, tier, clock)
+    const driver = makeDriver(horseId, tier, clock, roster)
     void (async () => {
       try {
         const { facts } = await openPaidSession(deps(90_000), horseId, PAID_STAKE_WEI[tier], (step) => {
           if (gen.current === g) driver.setEntryStep(step)
-        })
+        }, roster)
         if (gen.current !== g) return
         await syncRef.current?.sampleOnce()
+        if (gen.current !== g) return
         driver.open(facts)
       } catch (err) {
         if (gen.current !== g) return
         driver.failEntry(paidErrorText(lang, err))
         if (err instanceof PaidSessionError && err.code === 'active-session' && err.sessionId) {
           const facts = await readSessionFacts(wallet.publicClient, PONY_GAME_ADDRESS!, err.sessionId).catch(() => null)
-          if (facts && gen.current === g) setResume(await resumeInfo(facts))
+          if (facts) {
+            const info = await resumeInfo({ facts, game: PONY_GAME_ADDRESS! })
+            if (gen.current === g) setResume(info)
+          }
         }
       }
     })()
@@ -129,13 +146,18 @@ export function usePaidRace(lang: Lang, refreshFunds: () => Promise<void>) {
   }, [deps, freshClock, lang, makeDriver])
 
   /** 刷新恢复：按链上事实建驱动器，跳过倒计时，直接落到当前规范时刻。 */
-  const resumeRace = useCallback(async (facts: PaidSessionFacts): Promise<PaidRaceDriver> => {
-    ++gen.current
+  const resumeRace = useCallback(async (context: PaidSessionContext): Promise<PaidRaceDriver> => {
+    const g = ++gen.current
+    const { facts } = context
+    const player = wallet.getGameAccount()?.address
+    if (!player || !isAddressEqual(player, facts.player)) throw new PaidSessionError('account-not-resolved')
+    locationRef.current = context
     setSettle(null)
     setResume(null)
     const clock = freshClock()
     await syncRef.current?.sampleOnce()
-    const driver = makeDriver(facts.horseId, facts.stakeTier, clock)
+    if (gen.current !== g) throw new PaidSessionError('account-not-resolved')
+    const driver = makeDriver(facts.horseId, facts.stakeTier, clock, facts.roster)
     driver.setEntryStep({ phase: 'included', hash: null })
     driver.open(facts, { resume: true })
     return driver
@@ -147,10 +169,13 @@ export function usePaidRace(lang: Lang, refreshFunds: () => Promise<void>) {
     const clock = clockRef.current
     const finishWall = driver.playerFinishWall
     if (!facts0 || !clock || finishWall === null) return
+    const location = locationRef.current
+    if (!location) return
+    const settlementDeps = sessionChainDeps(deps(90_000), location)
     // 重试时保留已知的期限，不让那一行闪掉
     setSettle((s) => ({ phase: 'waiting', txHash: null, detail: null, settlement: null, mismatch: false, deadline: s?.deadline ?? null }))
     // 期限只是提示：后台读，读到就补上，不拖慢结算
-    const refreshDeadline = () => void deadlineOf(facts0.sessionId).then((deadline) => {
+    const refreshDeadline = () => void deadlineOf(location.game, facts0.sessionId).then((deadline) => {
       if (live()) setSettle((s) => s && s.phase !== 'settled' && s.phase !== 'forfeited' ? { ...s, deadline } : s)
     })
     refreshDeadline()
@@ -163,11 +188,11 @@ export function usePaidRace(lang: Lang, refreshFunds: () => Promise<void>) {
     }
     for (let attempt = 0; ; attempt++) {
       // 先按链上最新事实校正预览（未确认的选择、恢复进场）
-      const fresh = await readSessionFacts(wallet.publicClient, PONY_GAME_ADDRESS!, facts0.sessionId).catch(() => null)
+      const fresh = await readSessionFacts(wallet.publicClient, location.game, facts0.sessionId).catch(() => null)
       if (!live()) return
       if (fresh && fresh.state === 1) driver.reconcile(fresh)
       let hash: Hex | null = null
-      const out = await settlePaidSession(deps(90_000), facts0, (step) => {
+      const out = await settlePaidSession(settlementDeps, facts0, (step) => {
         if (!live()) return
         if (step.phase === 'submitted') setSettle((s) => s && { ...s, phase: 'pending', detail: null })
         if (step.phase === 'included' && step.hash) hash = step.hash
@@ -217,24 +242,48 @@ export function usePaidRace(lang: Lang, refreshFunds: () => Promise<void>) {
     if (driver) void runSettlement(driver, gen.current)
   }, [runSettlement])
 
+  /** Read-only retry: the race and payout are already confirmed even when its reward RPC failed. */
+  const retryGrant = useCallback(() => {
+    const fact = settle?.phase === 'settled' ? settle.settlement : null
+    const game = locationRef.current?.game
+    if (!fact?.grantError || !game) return
+    const g = gen.current
+    void refreshSettlementReward(wallet.publicClient, game, fact).then(confirmed => {
+      if (gen.current === g) setSettle(old => old?.settlement?.sessionId === fact.sessionId ? { ...old, settlement: confirmed } : old)
+    }).catch(error => {
+      if (gen.current === g) setSettle(old => old?.settlement?.sessionId === fact.sessionId
+        ? { ...old, settlement: { ...old.settlement, grantError: errorReason(error) } } : old)
+    })
+  }, [settle])
+
   /** 登录/解析出游戏账户后调用：链上有未完结会话就提示恢复。 */
   const checkResume = useCallback(async () => {
-    if (!paidRaceAvailable || !PONY_GAME_ADDRESS) return
     const player = wallet.getGameAccount()?.address
     if (!player) return
-    const facts = await recoverPaidSession(wallet.publicClient, PONY_GAME_ADDRESS, player).catch(() => null)
-    setResume(facts ? await resumeInfo(facts) : null)
+    const g = gen.current
+    const current = () => gen.current === g && wallet.getGameAccount()?.address.toLowerCase() === player.toLowerCase()
+    const games = [...(PONY_GAME_ADDRESS ? [PONY_GAME_ADDRESS] : []), ...LEGACY_PONY_GAME_ADDRESSES]
+    try {
+      const contexts = await recoverPaidSessions(wallet.publicClient, games, player)
+      const info = contexts[0] ? await resumeInfo(contexts[0]) : null
+      if (current()) { setResume(info); setResumeError(null) }
+    } catch (error) {
+      if (current()) setResumeError(errorReason(error))
+    }
   }, [])
 
   const reset = useCallback(() => {
     ++gen.current
     stopSync()
     driverRef.current = null
+    locationRef.current = null
+    setResume(null)
+    setResumeError(null)
     setSettle(null)
   }, [stopSync])
 
   return {
-    settle, resume, start, resumeRace, finish, retry, checkResume, reset,
+    settle, resume, resumeError, start, resumeRace, finish, retry, retryGrant, checkResume, reset,
     dismissResume: useCallback(() => setResume(null), []),
     get driver() { return driverRef.current },
   }

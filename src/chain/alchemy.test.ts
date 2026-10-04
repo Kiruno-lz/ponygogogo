@@ -119,7 +119,7 @@ describe('independent Alchemy account', () => {
       expirySec: expect.any(Number),
       key: { publicKey: sessionKey, type: 'secp256k1' },
       permissions: [{ type: 'functions-on-contract', data: {
-        address: ROOT, functions: [toFunctionSelector('openAgentSession(uint8,uint256)')],
+        address: ROOT, functions: [toFunctionSelector('openAgentSession(uint8,uint256,uint8[5])')],
       } }],
     }])
   })

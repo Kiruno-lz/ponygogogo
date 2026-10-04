@@ -101,7 +101,7 @@ contract PonyGameTest is PonyGameBase {
         fresh.setEntryPaused(false);
         vm.expectRevert(PonyGame.InvalidConfiguration.selector);
         vm.prank(ALICE);
-        fresh.openSession{value: TIER1}(0, TIER1);
+        fresh.openSession{value: TIER1}(0, TIER1, [uint8(0), 1, 2, 3, 4]);
         vm.expectRevert(PonyGame.InvalidConfiguration.selector);
         fresh.bindVault(vault);
         PonyVault own = new PonyVault(address(fresh), address(this));
@@ -125,7 +125,7 @@ contract PonyGameTest is PonyGameBase {
         game.setEntryPaused(true);
         vm.expectRevert(PonyGame.EntryPaused.selector);
         vm.prank(BOB);
-        game.openSession{value: TIER1}(0, TIER1);
+        game.openSession{value: TIER1}(0, TIER1, [uint8(0), 1, 2, 3, 4]);
         _mine(1, 0);
         _warpToTxSec(sessionId, 30);
         _choose(ALICE, sessionId, 1, 0, _noRefresh());
@@ -179,7 +179,9 @@ contract PonyGameTest is PonyGameBase {
             uint64 t0 = uint64(vm.getBlockTimestamp());
             uint64 b0 = uint64(vm.getBlockNumber());
             vm.expectEmit(address(game));
-            emit PonyGame.SessionOpened(expectedId, player, i, stakes[i], expectedSeed, t0, b0, RULESET);
+            emit PonyGame.SessionOpened(
+                expectedId, player, i, stakes[i], expectedSeed, t0, b0, RULESET, [uint8(0), 1, 2, 3, 4]
+            );
             vm.expectEmit(address(vault));
             emit PonyVault.StakeLocked(expectedId, player, stakes[i], 3 * stakes[i], 2 * stakes[i]);
             bytes32 sessionId = _open(player, i, stakes[i]);
@@ -226,7 +228,8 @@ contract PonyGameTest is PonyGameBase {
     /// @notice The house must hold 2× the stake as reserve: tier 4 (10 MON) needs 20 MON of free liquidity.
     function testOpenNeedsPlayerBalanceAndHouseReserve() public {
         vm.prank(CAROL);
-        (bool funded,) = address(game).call{value: TIER1}(abi.encodeCall(PonyGame.openSession, (0, TIER1)));
+        (bool funded,) =
+            address(game).call{value: TIER1}(abi.encodeCall(PonyGame.openSession, (0, TIER1, [uint8(0), 1, 2, 3, 4])));
         require(!funded, "unfunded account opened");
         require(game.nonces(CAROL) == 0 && game.sessionOf(CAROL) == bytes32(0), "failed open kept state");
         vault.withdrawHouse(HOUSE - 19.9 ether);
@@ -257,7 +260,7 @@ contract PonyGameTest is PonyGameBase {
         game.configureAgentBudget(uint64(vm.getBlockTimestamp() + 1 days), 1 ether);
         vm.expectRevert(PonyGame.ActiveSession.selector);
         vm.prank(ALICE);
-        game.openAgentSession{value: TIER1}(1, TIER1);
+        game.openAgentSession{value: TIER1}(1, TIER1, [uint8(0), 1, 2, 3, 4]);
         require(game.sessionOf(ALICE) == first && game.nonces(ALICE) == 1, "active session overwritten");
 
         _settleNow(first, 3);
@@ -276,31 +279,31 @@ contract PonyGameTest is PonyGameBase {
         uint64 expiry = uint64(vm.getBlockTimestamp() + 1 days);
         vm.expectRevert(AgentBudget.AgentBudgetExceeded.selector);
         vm.prank(ALICE);
-        game.openAgentSession{value: TIER1}(1, TIER1);
+        game.openAgentSession{value: TIER1}(1, TIER1, [uint8(0), 1, 2, 3, 4]);
 
         vm.prank(ALICE);
         game.configureAgentBudget(expiry, 1.3 ether);
         vm.expectEmit(address(game));
         emit AgentBudget.AgentBudgetSpent(ALICE, TIER2, TIER2);
         vm.prank(ALICE);
-        bytes32 first = game.openAgentSession{value: TIER2}(1, TIER2);
+        bytes32 first = game.openAgentSession{value: TIER2}(1, TIER2, [uint8(0), 1, 2, 3, 4]);
         require(game.sessionOf(ALICE) == first, "agent session");
         _settleNow(first, 3);
 
         vm.expectRevert(AgentBudget.AgentBudgetExceeded.selector);
         vm.prank(ALICE);
-        game.openAgentSession{value: TIER2}(1, TIER2);
+        game.openAgentSession{value: TIER2}(1, TIER2, [uint8(0), 1, 2, 3, 4]);
 
         game.setEntryPaused(true);
         vm.expectRevert(PonyGame.EntryPaused.selector);
         vm.prank(ALICE);
-        game.openAgentSession{value: TIER1}(1, TIER1);
+        game.openAgentSession{value: TIER1}(1, TIER1, [uint8(0), 1, 2, 3, 4]);
         (,, uint256 spent) = game.agentBudgets(ALICE);
         require(spent == TIER2, "failed open consumed budget");
         game.setEntryPaused(false);
 
         vm.prank(ALICE);
-        bytes32 second = game.openAgentSession{value: TIER1}(1, TIER1);
+        bytes32 second = game.openAgentSession{value: TIER1}(1, TIER1, [uint8(0), 1, 2, 3, 4]);
         (,, spent) = game.agentBudgets(ALICE);
         require(spent == 1.3 ether, "cumulative spend");
         _settleNow(second, 2);
@@ -309,7 +312,7 @@ contract PonyGameTest is PonyGameBase {
         game.revokeAgentBudget();
         vm.expectRevert(AgentBudget.AgentBudgetExceeded.selector);
         vm.prank(ALICE);
-        game.openAgentSession{value: TIER1}(1, TIER1);
+        game.openAgentSession{value: TIER1}(1, TIER1, [uint8(0), 1, 2, 3, 4]);
         bytes32 direct = _open(ALICE, 1, TIER1);
         require(direct != bytes32(0), "revocation blocked the player's own entry");
         _settleNow(direct, 1);
@@ -319,7 +322,7 @@ contract PonyGameTest is PonyGameBase {
         vm.warp(vm.getBlockTimestamp() + 10);
         vm.expectRevert(AgentBudget.AgentBudgetExceeded.selector);
         vm.prank(ALICE);
-        game.openAgentSession{value: TIER1}(1, TIER1);
+        game.openAgentSession{value: TIER1}(1, TIER1, [uint8(0), 1, 2, 3, 4]);
         _assertVault();
     }
 
@@ -647,6 +650,7 @@ contract PonyGameTest is PonyGameBase {
         expected.openAnchor = _hashOf(s.openedBlock);
         expected.stakeTier = 4;
         expected.playerHorseId = 1;
+        expected.roster = [uint8(0), 1, 2, 3, 4];
         expected.choices[0] = IPaidRaceSolver.ChoiceInput(true, 30, 9, _slots(0), _hashOf(blocks[0]));
         expected.choices[1] = IPaidRaceSolver.ChoiceInput(true, 61, 0, _noRefresh(), _hashOf(blocks[1]));
         expected.choices[2] = IPaidRaceSolver.ChoiceInput(true, 95, 21, _slots(1, 2), _hashOf(blocks[2]));

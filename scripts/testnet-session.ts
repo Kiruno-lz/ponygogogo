@@ -48,6 +48,7 @@ import {
 } from '../src/chain/paidSession.ts'
 import { PAID_STAKE_WEI } from '../src/chain/paidStakes.ts'
 import { PAID_RULESET_HASH } from '../src/race/paid/cardRules.ts'
+import { DEFAULT_ROSTER, normalizeRoster, type PonyRoster } from '../src/race/core/roster.ts'
 import { derivePaidCoreInput, solvePaidRace, type PaidRaceInput } from '../src/race/paid/race.ts'
 import { checkPaidChoice, type PaidChoiceSlot, type PaidChoiceSlots, type PaidSolveResult } from '../src/race/paid/solver.ts'
 import { solveFromFacts } from '../src/race/paidResult.ts'
@@ -61,7 +62,7 @@ const POLL = { pollMs: 100, timeoutMs: 90_000 }
 
 const extraGameAbi = parseAbi([
   'struct ChoiceInput { bool present; uint32 txSec; uint8 cardId; uint8[] refreshSlots; bytes32 anchor; }',
-  'struct RaceInput { bytes32 seed; bytes32 openAnchor; uint8 stakeTier; uint8 playerHorseId; ChoiceInput[3] choices; }',
+  'struct RaceInput { bytes32 seed; bytes32 openAnchor; uint8 stakeTier; uint8 playerHorseId; ChoiceInput[3] choices; uint8[5] roster; }',
   'function raceInput(bytes32 sessionId) view returns (RaceInput)',
   'function solver() view returns (address)',
   'function owner() view returns (address)',
@@ -75,7 +76,7 @@ const vaultStateAbi = parseAbi([
 ])
 const solverAbi = parseAbi([
   'struct ChoiceInput { bool present; uint32 txSec; uint8 cardId; uint8[] refreshSlots; bytes32 anchor; }',
-  'struct RaceInput { bytes32 seed; bytes32 openAnchor; uint8 stakeTier; uint8 playerHorseId; ChoiceInput[3] choices; }',
+  'struct RaceInput { bytes32 seed; bytes32 openAnchor; uint8 stakeTier; uint8 playerHorseId; ChoiceInput[3] choices; uint8[5] roster; }',
   'struct RaceResult { uint32[5] finishTime; uint32[5] finishWall; uint8[5] rawOrder; uint8[5] settlementOrder; uint8 playerRawRank; uint8 playerSettlementRank; uint8[3] acquired; uint32 eventCount; bytes32 digest; }',
   'function solve(RaceInput input) view returns (RaceResult)',
   'function rulesetHash() view returns (bytes32)',
@@ -91,6 +92,7 @@ export type SessionScriptConfig = {
   sessionId: Hex | null
   createPlayer: boolean
   horse: number
+  roster: PonyRoster
   tier: 1 | 2 | 3 | 4
   samples: number
   chooseDelayMs: number
@@ -138,6 +140,7 @@ export function parseSessionConfig(env: Record<string, string | undefined>, argv
     sessionId: sessionId as Hex | null,
     createPlayer: argv.includes('--create-player'),
     horse: intFlag(argv, '--horse', 2, 0, 4),
+    roster: normalizeRoster(flag(argv, '--roster') === undefined ? DEFAULT_ROSTER : flag(argv, '--roster')!.split(',').map(Number)),
     tier: intFlag(argv, '--tier', 1, 1, 4) as 1 | 2 | 3 | 4,
     samples: intFlag(argv, '--samples', 16, 0, 40),
     chooseDelayMs: intFlag(argv, '--choose-delay-ms', 1500, 0, 15_000),
@@ -312,7 +315,7 @@ function slotsOf(choices: PaidChoiceFacts): PaidChoiceSlots {
 }
 
 function raceInputOf(facts: PaidSessionFacts): PaidRaceInput {
-  return { seed: facts.seed, openAnchor: facts.openAnchor, stakeTier: facts.stakeTier, playerHorseId: facts.horseId, choices: slotsOf(facts.choices) }
+  return { seed: facts.seed, openAnchor: facts.openAnchor, stakeTier: facts.stakeTier, playerHorseId: facts.horseId, roster: facts.roster, choices: slotsOf(facts.choices) }
 }
 
 /** Seconds s in [openSec, openSec + 19] at which the TS solver accepts `cardId` for checkpoint k. */
@@ -479,7 +482,7 @@ async function main(): Promise<void> {
           if (receipt.status !== 'success') throw new Error('TOPUP_REVERTED')
         }
       }
-      const calls = [openSessionCall(cfg.game, cfg.horse, stake)]
+      const calls = [openSessionCall(cfg.game, cfg.horse, stake, cfg.roster)]
       const walletNow = await pub.getBalance({ address: sma })
       const prepared = walletNow >= stake ? await prepare('openSession', calls) : null
       if (walletNow < stake) log('prepareCalls openSession skipped', `sma-b holds ${formatEther(walletNow)} < ${formatEther(stake)}; the top-up comes first`)
@@ -489,7 +492,7 @@ async function main(): Promise<void> {
       }
       if (!prepared) throw new Error('OPEN_NOT_PREPARED')
       timed.label('openSession', prepared)
-      const opened = await openPaidSession(deps, cfg.horse, stake)
+      const opened = await openPaidSession(deps, cfg.horse, stake, undefined, cfg.roster)
       await finish(lastRecord(), opened.hash ? [opened.hash] : [])
       facts = opened.facts
     }
@@ -635,7 +638,7 @@ async function main(): Promise<void> {
     const onChainInput = await pub.readContract({ address: cfg.game, abi: extraGameAbi, functionName: 'raceInput', args: [facts.sessionId] })
     const tsInput: PaidRaceInput = {
       seed: onChainInput.seed, openAnchor: onChainInput.openAnchor, stakeTier: onChainInput.stakeTier as 1 | 2 | 3 | 4,
-      playerHorseId: onChainInput.playerHorseId,
+      playerHorseId: onChainInput.playerHorseId, roster: onChainInput.roster,
       choices: onChainInput.choices.map((c) => (c.present
         ? { txSec: BigInt(c.txSec), cardId: c.cardId, refreshSlots: [...c.refreshSlots], anchor: c.anchor }
         : null)) as unknown as PaidChoiceSlots,
@@ -724,7 +727,23 @@ type Prepare = (label: string, calls: readonly ContractCall[]) => Promise<Record
 type Finish = (record: CallRecord | undefined, hashes: readonly Hex[]) => Promise<void>
 
 type VectorSlot = { txSec: string; cardId: number; refreshSlots: number[]; anchor: Hex } | null
-type VectorCase = { name: string; stopAtPanel?: number; input: { seed: Hex; openAnchor: Hex; playerHorseId: number; choices: VectorSlot[] }; expected: { stepCount: number; digest: Hex } }
+type VectorCase = { name: string; stakeTier?: number; stopAtPanel?: number; input: { seed: Hex; openAnchor: Hex; playerHorseId: number; roster?: number[]; choices: VectorSlot[] }; expected: { stepCount: number; digest: Hex } }
+
+export function heavySolverInput(vectors: { meta: { rulesetHash: string }; cases: VectorCase[] }) {
+  if (vectors.meta.rulesetHash !== PAID_RULESET_HASH) throw new Error('STALE_HEAVY_VECTOR_RULESET')
+  const derived = vectors.cases.filter(c => c.name.startsWith('derived-') && c.stopAtPanel === undefined)
+  if (!derived.length) throw new Error('NO_DERIVED_HEAVY_VECTOR')
+  const vector = derived.reduce((a, b) => b.expected.stepCount > a.expected.stepCount ? b : a)
+  if (!Number.isInteger(vector.stakeTier) || vector.stakeTier! < 1 || vector.stakeTier! > 4 || vector.input.choices.length !== 3) throw new Error('INVALID_HEAVY_VECTOR')
+  const input = {
+    seed: vector.input.seed, openAnchor: vector.input.openAnchor, stakeTier: vector.stakeTier as 1 | 2 | 3 | 4,
+    playerHorseId: vector.input.playerHorseId, roster: normalizeRoster(vector.input.roster),
+    choices: vector.input.choices.map(c => c
+      ? { present: true, txSec: Number(c.txSec), cardId: c.cardId, refreshSlots: c.refreshSlots, anchor: c.anchor }
+      : { present: false, txSec: 0, cardId: 0, refreshSlots: [], anchor: ZERO_HASH }),
+  }
+  return { vector, input }
+}
 
 /**
  * Heavy settlement on the sponsored path: batches of read-only `PaidRaceSolver.solve` calls sized to about 11M, 23M
@@ -736,18 +755,11 @@ async function heavyProbe(ctx: {
   log: Logger; prepare: Prepare; finish: Finish
 }): Promise<Record<string, unknown>> {
   const { cfg, pub, sma, solver, timed, log, prepare, finish } = ctx
-  const vectors = JSON.parse(readFileSync(resolve(ROOT, 'tests/vectors/paid-race-v4.json'), 'utf8')) as { cases: VectorCase[] }
-  const derived = vectors.cases.filter((c) => c.name.startsWith('derived-') && c.stopAtPanel === undefined)
-  const heaviest = derived.reduce((a, b) => (b.expected.stepCount > a.expected.stepCount ? b : a))
-  const index = Number(heaviest.name.slice('derived-'.length))
-  const input = {
-    seed: heaviest.input.seed, openAnchor: heaviest.input.openAnchor, stakeTier: index % 4 + 1, playerHorseId: heaviest.input.playerHorseId,
-    choices: heaviest.input.choices.map((c) => (c
-      ? { present: true, txSec: Number(c.txSec), cardId: c.cardId, refreshSlots: c.refreshSlots, anchor: c.anchor }
-      : { present: false, txSec: 0, cardId: 0, refreshSlots: [], anchor: ZERO_HASH })) as never,
-  }
-  const data = encodeFunctionData({ abi: solverAbi, functionName: 'solve', args: [input] })
-  const result = await pub.readContract({ address: solver, abi: solverAbi, functionName: 'solve', args: [input] })
+  const vectors = JSON.parse(readFileSync(resolve(ROOT, 'tests/vectors/pony-race-v5.json'), 'utf8')) as { meta: { rulesetHash: string }; cases: VectorCase[] }
+  const { vector: heaviest, input } = heavySolverInput(vectors)
+  const data = encodeFunctionData({ abi: solverAbi, functionName: 'solve', args: [input as never] })
+  const result = await pub.readContract({ address: solver, abi: solverAbi, functionName: 'solve', args: [input as never] })
+  if (result.digest !== heaviest.expected.digest) throw new Error('HEAVY_VECTOR_DIGEST_MISMATCH')
   const solveGas = await pub.estimateGas({ account: sma, to: solver, data })
   log('heavy base call', { vector: heaviest.name, stepCount: heaviest.expected.stepCount, digestMatches: result.digest === heaviest.expected.digest, solveGas })
   const probes: Record<string, unknown>[] = []

@@ -3,6 +3,10 @@ export type Lang = 'zh' | 'en'
 type Dict = Record<string, string>
 
 const zh: Dict = {
+  'select.paidRulesMismatch': '有奖赛道需要更新，请先试玩',
+  'paid.err.ruleset-mismatch': '有奖赛道需要更新，请先试玩',
+  'resume.readFailed': '未完成场次读取失败：{reason}',
+  'resume.retry': '重新读取场次',
   'app.title': 'Ponygogogo',
   'app.tagline': 'Run · Collect · Play',
 
@@ -276,6 +280,10 @@ const zh: Dict = {
 }
 
 const en: Dict = {
+  'select.paidRulesMismatch': 'Paid track needs an update; practice is available',
+  'paid.err.ruleset-mismatch': 'Paid track needs an update; practice is available',
+  'resume.readFailed': 'Could not read unfinished sessions: {reason}',
+  'resume.retry': 'Read sessions again',
   'app.title': 'Ponygogogo',
   'app.tagline': 'Run · Collect · Play',
 

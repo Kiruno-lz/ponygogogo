@@ -18,10 +18,11 @@ export type PaidKeyframe = {
 }
 
 /** bonus = C-04 +2000 bps attached to a later card (cardId = that card). */
-export type PaidInstanceKind = 'buff' | 'bonus' | 'equip' | 'ability' | 'respawn' | 'watch' | 'fixed'
+export type PaidInstanceKind = 'buff' | 'bonus' | 'equip' | 'ability' | 'respawn' | 'watch' | 'fixed' | 'trait'
 export type PaidInstanceEnd = 'expired' | 'replaced' | 'stolen' | 'finished' | 'recycled' | 'consumed' | 'death'
 
 export type PaidTraceInstance = {
+  ponyId?: number
   id: number
   horse: number
   cardId: number
@@ -51,6 +52,7 @@ export type PaidTraceCard = { tau: bigint; horse: number; cardId: number }
 export type PaidTimeSegment = { tau: bigint; wall: bigint; slow: boolean }
 
 export type PaidTrace = {
+  roster?: readonly number[]
   tauEnd: bigint
   keyframes: PaidKeyframe[][]
   instances: PaidTraceInstance[]

@@ -3,7 +3,9 @@ import {
   encodeAbiParameters, encodeErrorResult, encodeEventTopics, keccak256, parseAbi, toHex, type Address, type Hex, type Log,
 } from 'viem'
 import type { CallAccount, CallProgress, ContractCall } from './alchemy.ts'
-import { ponyGameAbi } from './paidCalls.ts'
+import { ponyGameAbi, legacyPonyGameAbi } from './paidCalls.ts'
+import { ponyRewardsAbi } from './rewards.ts'
+import { LEGACY_PAID_RULESET_HASH, PAID_RULESET_HASH } from '../race/paid/cardRules.ts'
 import {
   choosePaidCard, errorReason, openPaidSession, PaidSessionError, parseCardChosen, parseSessionOpened,
   parseSessionSettled, readSettleDeadline, revertName, settlePaidSession, SPONSOR_QUOTA_REASON, type PaidChainDeps, type PaidSessionFacts,
@@ -13,6 +15,8 @@ import {
 const GAME = '0x1111111111111111111111111111111111111111' as Address
 const PLAYER = '0x3333333333333333333333333333333333333333' as Address
 const OTHER = '0x4444444444444444444444444444444444444444' as Address
+/** PonyRewards 的地址：奖励日志只认这一个发出者，Game 以 `rewards()` 公布它。 */
+const REWARDS = '0x2222222222222222222222222222222222222222' as Address
 const SESSION = keccak256(toHex('session')) as Hex
 const SEED = keccak256(toHex('seed')) as Hex
 const BLOCK_HASH = keccak256(toHex('block-100')) as Hex
@@ -20,8 +24,9 @@ const ZERO = `0x${'00'.repeat(32)}` as Hex
 const STAKE = 10n ** 18n // tier 2 = 1 MON
 
 function eventLog(eventName: string, args: Record<string, unknown>, address: Address = GAME): Log {
-  const item = ponyGameAbi.find((i) => i.type === 'event' && i.name === eventName) as { inputs: readonly { name: string; type: string; indexed?: boolean }[] }
-  const topics = encodeEventTopics({ abi: ponyGameAbi, eventName: eventName as never, args: args as never }) as Hex[]
+  const abi = eventName === 'SessionOpened' && !args.roster ? legacyPonyGameAbi : ponyGameAbi
+  const item = abi.find((i) => i.type === 'event' && i.name === eventName) as { inputs: readonly { name: string; type: string; indexed?: boolean }[] }
+  const topics = encodeEventTopics({ abi, eventName: eventName as never, args: args as never }) as Hex[]
   const data = encodeAbiParameters(
     item.inputs.filter((i) => !i.indexed) as never,
     item.inputs.filter((i) => !i.indexed).map((i) => args[i.name]) as never,
@@ -30,7 +35,7 @@ function eventLog(eventName: string, args: Record<string, unknown>, address: Add
 }
 
 const opened = (player: Address, block = 100n) => eventLog('SessionOpened', {
-  sessionId: SESSION, player, horseId: 2, stake: STAKE, seed: SEED, openedAt: 1_790_000_000n, openedBlock: block, rulesetHash: ZERO,
+  sessionId: SESSION, player, horseId: 2, stake: STAKE, seed: SEED, openedAt: 1_790_000_000n, openedBlock: block, rulesetHash: PAID_RULESET_HASH, roster: [0,1,2,3,4],
 })
 const chosen = (checkpoint: number, block = 100n) => eventLog('CardChosen', {
   sessionId: SESSION, player: PLAYER, checkpoint, cardId: 7, refreshSlots: [2], txSec: 31, blockNumber: block,
@@ -40,6 +45,10 @@ const settled = () => eventLog('SessionSettled', {
   playerSettlementRank: 1, payout: 3n * STAKE, digest: keccak256(toHex('digest')), acquired: [7, 0, 21],
 })
 const junk: Log = { ...opened(PLAYER), address: OTHER, data: '0x1234' }
+const reward = (player: Address = PLAYER, sessionId: Hex = SESSION): Log => ({ ...settled(), address: REWARDS,
+  topics: encodeEventTopics({ abi: ponyRewardsAbi, eventName: 'CollectibleGranted', args: { player, sessionId } }) as [Hex, ...Hex[]],
+  data: encodeAbiParameters([{ type: 'uint8' }, { type: 'uint8' }], [1, 8]),
+})
 
 describe('receipt parsing', () => {
   test('SessionOpened: own log in a shared bundle; the open anchor is the receipt block hash', () => {
@@ -47,9 +56,18 @@ describe('receipt parsing', () => {
     expect(parseSessionOpened(receipt, GAME, PLAYER)).toEqual({
       sessionId: SESSION, player: PLAYER, state: 1, horseId: 2, stakeTier: 2, stake: STAKE, seed: SEED,
       openedAt: 1_790_000_000, openedBlock: 100n, openAnchor: BLOCK_HASH, choices: [null, null, null],
+      roster: [0,1,2,3,4],
     })
     expect(parseSessionOpened({ ...receipt, logs: [opened(OTHER)] }, GAME, PLAYER)).toBeNull()
     expect(() => parseSessionOpened({ ...receipt, logs: [opened(PLAYER, 99n)] }, GAME, PLAYER)).toThrow('OPEN_BLOCK_MISMATCH')
+  })
+
+  test('old opening logs retain legacy participant identity and do not activate new abilities', () => {
+    const log = eventLog('SessionOpened', { sessionId: SESSION, player: PLAYER, horseId: 2, stake: STAKE,
+      seed: SEED, openedAt: 1_790_000_000n, openedBlock: 100n, rulesetHash: LEGACY_PAID_RULESET_HASH })
+    const parsed = parseSessionOpened({ status: 'success', blockHash: BLOCK_HASH, blockNumber: 100n, logs: [log] }, GAME, PLAYER)
+    expect(parsed?.roster).toBeUndefined()
+    expect(parsed?.horseId).toBe(2)
   })
 
   test('CardChosen: matches session and checkpoint; anchor = block hash', () => {
@@ -69,6 +87,12 @@ describe('receipt parsing', () => {
       acquired: [7, 0, 21],
     })
     expect(parseSessionSettled([junk], GAME, SESSION, null, null)).toBeNull()
+  })
+
+  test('the settlement parser pairs only the ledger grant for the settled player and session', () => {
+    const s = parseSessionSettled([reward(OTHER), reward(PLAYER, SEED), reward(), settled()], GAME, SESSION, null, 100n, REWARDS)
+    expect(s?.grant).toEqual({ sessionId: SESSION, player: PLAYER, assetKind: 'pony', assetId: 8 })
+    expect(parseSessionSettled([reward(), settled()], GAME, SESSION, null, 100n, GAME)?.grant).toBeNull()
   })
 })
 
@@ -119,11 +143,13 @@ function fakeReader(s: ChainState): SessionReader {
   return {
     readContract: (async ({ functionName }: { functionName: string }) => {
       if (functionName === 'sessionOf') return s.sessionOf
+      if (functionName === 'rulesetHash') return PAID_RULESET_HASH
       if (functionName === 'getSession') {
         return {
           player: PLAYER, state: s.state, playerHorseId: 2, stakeTier: 2, stake: STAKE, openedAt: 1_790_000_000n, openedBlock: 100n,
           seed: SEED, openAnchor: BLOCK_HASH, lastCheckpoint: s.choice ? 1 : 0,
           choices: [s.choice ?? emptyChoice, emptyChoice, emptyChoice],
+          roster: [0,1,2,3,4],
         }
       }
       throw new Error(`unexpected read ${functionName}`)
@@ -164,6 +190,32 @@ describe('flows read the chain before trusting an uncertain outcome', () => {
     expect(active).toMatchObject({ code: 'active-session', sessionId: SESSION })
     const poor = await openPaidSession(deps({ ...base(), balance: 1n }, acc), 2, STAKE).catch((e: unknown) => e)
     expect(poor).toMatchObject({ code: 'insufficient-wallet', detail: String(STAKE) })
+    expect(acc.sent).toEqual([])
+  })
+
+  test('logout while the entry balance read is pending prevents its later transaction', async () => {
+    const acc = fakeAccount(() => 'call')
+    let live = true
+    let finishBalance!: (value: bigint) => void
+    let balanceStarted!: () => void
+    const started = new Promise<void>(resolve => { balanceStarted = resolve })
+    const balance = new Promise<bigint>(resolve => { finishBalance = resolve })
+    const d = { ...deps(base(), acc), isCurrent: () => live }
+    d.client = { ...d.client, getBalance: (() => { balanceStarted(); return balance }) as never }
+    const opening = openPaidSession(d, 2, STAKE).catch((error: unknown) => error)
+    await started
+    live = false
+    finishBalance(STAKE)
+    const out = await opening
+    expect(acc.sent).toEqual([])
+    expect(out).toMatchObject({ code: 'account-not-resolved' })
+  })
+
+  test('an obsolete driver cannot send a card choice or a settlement', async () => {
+    const acc = fakeAccount(() => 'call')
+    const d = { ...deps(base(), acc), isCurrent: () => false }
+    await choosePaidCard(d, facts, 1, 7, []).catch(() => undefined)
+    await settlePaidSession(d, facts).catch(() => undefined)
     expect(acc.sent).toEqual([])
   })
 
@@ -252,6 +304,45 @@ describe('happy paths parse the receipts of the included calls', () => {
     expect(choice).toMatchObject({ state: 'included', hash: TX, choice: { txSec: 31, anchor: BLOCK_HASH, refreshSlots: [2] } })
     const settle = await settlePaidSession({ ...deps(base(), includedAccount([TX])), client: reader }, facts)
     expect(settle).toMatchObject({ state: 'settled', settlement: { rank: 1, hash: TX, blockNumber: 100n } })
+  })
+
+  test('confirmed settlement includes the reward from the same transaction, never from another player', async () => {
+    const reader = withReceipts(base(), [reward(OTHER), reward(), settled()])
+    const oldRead = reader.readContract
+    reader.readContract = (async (call: { functionName: string }) => call.functionName === 'rulesetHash' ? PAID_RULESET_HASH
+      : call.functionName === 'rewards' ? REWARDS : oldRead(call as never)) as never
+    const out = await settlePaidSession({ ...deps(base(), includedAccount([TX])), client: reader }, facts)
+    expect(out).toMatchObject({ state: 'settled', settlement: { grant: { assetKind: 'pony', assetId: 8, player: PLAYER, sessionId: SESSION } } })
+  })
+
+  test('already-settled recovery reads the full transaction receipt, including its ledger reward', async () => {
+    const s = { ...base(), state: 2, settledLogs: [settled()] }
+    const reader = withReceipts(s, [settled(), reward()])
+    const oldRead = reader.readContract
+    reader.readContract = (async (call: { functionName: string }) => call.functionName === 'rulesetHash' ? PAID_RULESET_HASH
+      : call.functionName === 'rewards' ? REWARDS : oldRead(call as never)) as never
+    const account = fakeAccount(() => 'unexpected')
+    const out = await settlePaidSession({ ...deps(s, account), client: reader }, facts)
+    expect(out).toMatchObject({ state: 'settled', settlement: { grant: { assetKind: 'pony', assetId: 8 } } })
+    expect(account.sent).toHaveLength(0)
+  })
+
+  test('a ledger RPC outage is not a no-reward fact and never resends an already-settled session', async () => {
+    const s = { ...base(), state: 2, settledLogs: [settled()] }
+    const reader = withReceipts(s, [settled(), reward()])
+    const oldRead = reader.readContract
+    reader.readContract = (async (call: { functionName: string }) => call.functionName === 'rulesetHash' ? PAID_RULESET_HASH
+      : call.functionName === 'rewards' ? Promise.reject(new Error('ledger unavailable')) : oldRead(call as never)) as never
+    const account = fakeAccount(() => 'unexpected')
+    const out = await settlePaidSession({ ...deps(s, account), client: reader }, facts)
+    expect(out).toMatchObject({ state: 'settled', settlement: { rank: 1, payout: 3n * STAKE, grantError: 'ledger unavailable' } })
+    if (out.state !== 'settled') throw new Error('lost confirmed settlement')
+    expect(out.settlement.grant).toBeUndefined()
+    expect(account.sent).toHaveLength(0)
+    reader.readContract = (async (call: { functionName: string }) => call.functionName === 'rulesetHash' ? PAID_RULESET_HASH
+      : call.functionName === 'rewards' ? REWARDS : oldRead(call as never)) as never
+    const { refreshSettlementReward } = await import('./paidSession.ts')
+    expect(await refreshSettlementReward(reader, GAME, out.settlement)).toMatchObject({ grantError: null, grant: { assetKind: 'pony', assetId: 8 } })
   })
 
   test('recovery: no session is null; unsealed anchors are read from the blocks', async () => {
