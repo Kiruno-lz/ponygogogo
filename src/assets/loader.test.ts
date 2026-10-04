@@ -25,6 +25,15 @@ const MANIFEST: AssetManifest = {
   's.1': { kind: 'image', path: 's1.webp', bytes: 40, sha256: 's1', tier: 'result' },
 }
 
+test('character assets remain addressable but do not join whole-tier prefetch', async () => {
+  const source = new LocalAssetSource({ ...MANIFEST,
+    'art.ponies.8-running': { kind: 'image', path: 'assets/art/ponies/8-running.webp', bytes: 123, sha256: 'sprite', tier: 'race', deferred: true },
+  })
+  expect(source.keysOf('race')).toEqual(['r.1','r.2'])
+  expect(source.keys()).toContain('art.ponies.8-running')
+  expect((await source.load('art.ponies.8-running')).url).toBe('/assets/art/ponies/8-running.webp')
+})
+
 interface Gate {
   release(key: AssetKey): void
   pending(): AssetKey[]
@@ -74,6 +83,22 @@ class FakeSource implements AssetSource {
 const count = (calls: AssetKey[], key: AssetKey): number => calls.filter((k) => k === key).length
 /** 让已经排队的微任务跑完 */
 const settle = (): Promise<void> => new Promise((r) => setTimeout(r, 0))
+
+test('a requested asset subset shares pending jobs with tier loading and reports real failures', async () => {
+  const src = new FakeSource(key => key === 'r.1')
+  const loader = new AssetLoader(src)
+  const tier = loader.loadTier('race')
+  const subset = loader.loadKeys(['r.1','r.1'], () => {})
+  await settle()
+  expect(count(src.calls,'r.1')).toBe(1)
+  src.gate().release('r.1')
+  expect(await tier).toBe(true)
+  expect(await subset).toBe(true)
+  let progress: LoadProgress | undefined
+  expect(await loader.loadKeys(['no-such-asset'], p => { progress = p })).toBe(false)
+  expect(progress?.failures[0]?.key).toBe('no-such-asset')
+  expect(progress?.done).toBe(0)
+})
 
 describe('tier 切分', () => {
   test('keysOf 按 tier 取，互不重叠且并起来就是全集', () => {

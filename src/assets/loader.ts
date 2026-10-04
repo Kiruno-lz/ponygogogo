@@ -39,6 +39,7 @@ export class AssetLoader {
   private readonly cache = new Map<AssetKey, LoadedAsset>()
   private readonly state = new Map<AssetTier, TierState>()
   private readonly listeners = new Set<Listener>()
+  private readonly keyJobs = new Map<AssetKey, Promise<LoadedAsset>>()
 
   constructor(private readonly source: AssetSource) {}
 
@@ -114,6 +115,39 @@ export class AssetLoader {
     }
   }
 
+  /** Requested page/roster assets share the same cache and jobs, without widening a whole tier. */
+  async loadKeys(keys: readonly AssetKey[], onProgress: (p: LoadProgress) => void, concurrency = 6): Promise<boolean> {
+    const unique = [...new Set(keys)]
+    const progress: LoadProgress = { total: unique.length, done: 0, current: null, failures: [] }
+    const emit = () => onProgress({ ...progress, failures: [...progress.failures] })
+    emit()
+    const queue = [...unique]
+    await Promise.all(Array.from({ length: Math.min(concurrency, Math.max(1, queue.length)) }, async () => {
+      for (;;) {
+        const key = queue.shift()
+        if (key === undefined) return
+        try { await this.loadAsset(key); progress.done++ }
+        catch (error) { progress.failures.push({ key, message: error instanceof Error ? error.message : String(error) }) }
+        progress.current = key
+        emit()
+      }
+    }))
+    progress.current = null
+    emit()
+    return progress.failures.length === 0
+  }
+
+  private loadAsset(key: AssetKey): Promise<LoadedAsset> {
+    const cached = this.cache.get(key)
+    if (cached) return Promise.resolve(cached)
+    const pending = this.keyJobs.get(key)
+    if (pending) return pending
+    const job = this.source.load(key).then(asset => { this.cache.set(key, asset); return asset })
+      .finally(() => this.keyJobs.delete(key))
+    this.keyJobs.set(key, job)
+    return job
+  }
+
   private stateOf(tier: AssetTier): TierState {
     let s = this.state.get(tier)
     if (!s) {
@@ -138,7 +172,7 @@ export class AssetLoader {
           const key = queue.shift()
           if (key === undefined) return
           try {
-            this.cache.set(key, await this.source.load(key))
+            await this.loadAsset(key)
             // done 只数真的进了缓存的项。失败项不计入，所以 100% 永远等于「这一组可用了」
             s.done++
           } catch (err) {

@@ -107,7 +107,7 @@ export default function App() {
    */
   const [urls, setUrls] = useState<Record<string, string>>({})
   /** 点得比后台预取快、或者预取失败了：正在等哪一级、要去哪一页 */
-  const [gate, setGate] = useState<{ tier: AssetTier; to: Page; failed: boolean } | null>(null)
+  const [gate, setGate] = useState<{ tier: AssetTier; to: Page; failed: boolean; retry?: () => void; cancel?: () => void } | null>(null)
   const [gateProgress, setGateProgress] = useState<LoadProgress>(EMPTY_PROGRESS)
   /** 清单本身取不到时重新走一遍启动流程 */
   const [bootAttempt, setBootAttempt] = useState(0)
@@ -120,6 +120,7 @@ export default function App() {
   const walletSeq = useRef(0)
   /** 本地试玩的局序号，只用于 seed 熵与本地局号 */
   const raceSeq = useRef(0)
+  const navigationSeq = useRef(0)
   const loaderRef = useRef<AssetLoader | null>(null)
   const audioRef = useRef<AudioManager | null>(null)
   const prefetched = useRef(false)
@@ -235,23 +236,30 @@ export default function App() {
    */
   const go = useCallback(
     (to: Page) => {
+      const seq = ++navigationSeq.current
+      const current = () => navigationSeq.current === seq
       const tier = PAGE_TIER[to]
       const loader = loaderRef.current
       if (!tier || !loader || loader.isTierReady(tier)) {
         setPage(to)
         return
       }
-      setGate({ tier, to, failed: false })
-      void (async () => {
-        const ok = await loader.loadGroup([tier], setGateProgress)
-        syncUrls()
-        if (ok) {
-          setGate(null)
-          setPage(to)
-        } else {
-          setGate({ tier, to, failed: true })
-        }
-      })()
+      const cancel = () => { if (current()) navigationSeq.current++ }
+      const load = () => {
+        if (!current()) return
+        setGate({ tier, to, failed: false, retry: load, cancel })
+        void loader.loadGroup([tier], progress => { if (current()) setGateProgress(progress) }).then(ok => {
+          if (!current()) return
+          syncUrls()
+          if (ok) {
+            setGate(null)
+            setPage(to)
+          } else {
+            setGate({ tier, to, failed: true, retry: load, cancel })
+          }
+        })
+      }
+      load()
     },
     [syncUrls],
   )
@@ -359,6 +367,9 @@ export default function App() {
   const logout = useCallback(() => {
     // 退出即作废所有在途的钱包操作：注册的领水轮询不能在退出之后再把余额写回来
     walletSeq.current++
+    raceSeq.current++
+    navigationSeq.current++
+    setGate(null)
     setWalletBusy(null)
     wallet.logout()
     resetPaid()
@@ -384,28 +395,52 @@ export default function App() {
   const startRace = useCallback((horseId: number, tier: number, roster?: readonly number[]) => {
     // 有奖场次的唯一接入点：只有 paidEntry 开放（地址、链上代码、游戏账户齐备）时才走链上会话
     if (!isTierPlayable(tier, paidGate.open)) return
+    const loader = loaderRef.current
+    if (!loader) return
+    navigationSeq.current++
     const selectedRoster = normalizeRoster(roster)
-    if (tier !== PRACTICE_TIER) {
-      if (!gameAccount) return
-      const d = paid.start(horseId, tier as 1 | 2 | 3 | 4, selectedRoster)
-      if (!d) return
-      setPaidDriver(d)
+    const keys = selectedRoster.flatMap(pony => ['idle','running'].map(action => `art.ponies.${pony}-${action}`))
+    const seq = ++raceSeq.current
+    const walletGeneration = walletSeq.current
+    const current = () => raceSeq.current === seq && walletSeq.current === walletGeneration
+    // Confirm the five participant images before creating a driver or sending paid entry.
+    const launch = () => {
+      if (!current()) return
+      setGate(null)
+      if (tier !== PRACTICE_TIER) {
+        if (!gameAccount) return
+        const d = paid.start(horseId, tier as 1 | 2 | 3 | 4, selectedRoster)
+        if (!d) return
+        setPaidDriver(d)
+        setPaidMeta(null)
+        setDriver(d)
+        setResult(null)
+        setPage('race')
+        return
+      }
+      setPaidDriver(null)
       setPaidMeta(null)
+      const now = Date.now()
+      const d = new RaceDriver({ seed: practiceSeed(qs('seed'), now + seq), playerHorseId: horseId, stakeTier: PRACTICE_TIER, roster: selectedRoster })
+      d.raceId = practiceRaceId(now, seq)
       setDriver(d)
       setResult(null)
       setPage('race')
-      return
     }
-    setPaidDriver(null)
-    setPaidMeta(null)
-    const seq = raceSeq.current++
-    const now = Date.now()
-    const d = new RaceDriver({ seed: practiceSeed(qs('seed'), now + seq), playerHorseId: horseId, stakeTier: PRACTICE_TIER, roster: selectedRoster })
-    d.raceId = practiceRaceId(now, seq)
-    setDriver(d)
-    setResult(null)
-    setPage('race')
-  }, [gameAccount, paid, paidGate.open])
+    if (keys.every(key => loader.url(key))) { launch(); return }
+    const cancel = () => { if (current()) raceSeq.current++ }
+    const load = () => {
+      if (!current()) return
+      setGate({ tier: 'race', to: 'race', failed: false, retry: load, cancel })
+      void loader.loadKeys(keys, progress => { if (current()) setGateProgress(progress) }).then(ok => {
+        if (!current()) return
+        syncUrls()
+        if (ok) launch()
+        else setGate({ tier: 'race', to: 'race', failed: true, retry: load, cancel })
+      })
+    }
+    load()
+  }, [gameAccount, paid, paidGate.open, syncUrls])
 
   /** 有奖比赛交给结算页：预览名次（待链上验证）+ 后台结算 */
   const showPaidResult = useCallback((d: PaidRaceDriver) => {
@@ -444,6 +479,7 @@ export default function App() {
   }, [driver, paidDriver, showPaidResult, audio, go])
 
   const backHome = useCallback(() => {
+    navigationSeq.current++
     setDriver(null)
     setPaidDriver(null)
     setPaidMeta(null)
@@ -583,14 +619,15 @@ export default function App() {
         )}
         {page === 'select' && (
           <SelectScreen
+            key={account?.address ?? 'guest'}
             lang={lang}
+            reducedMotion={settings.reducedMotion}
+            availablePonyIds={collection.availablePonyIds}
+            rngSeed={practiceForcedSeed(qs('seed')) ?? undefined}
             balance={walletBalance}
             paidOpen={paidGate.open}
             paidHint={paidGate.hint && t(lang, paidGate.hint)}
             onBack={() => setPage('home')}
-            availablePonyIds={collection.availablePonyIds}
-            reducedMotion={settings.reducedMotion}
-            rngSeed={practiceForcedSeed(qs('seed')) ?? undefined}
             onRace={startRace}
           />
         )}
@@ -691,10 +728,11 @@ export default function App() {
             lang={lang}
             progress={gateProgress}
             waiting={!gate.failed}
-            onRetry={() => go(gate.to)}
+            onRetry={() => gate.retry ? gate.retry() : go(gate.to)}
             onCancel={() => {
               // 比赛已经跑完了，退回去只能回首页；从首页点进来的关掉就是留在首页
               setGate(null)
+              gate.cancel?.()
               if (gate.to === 'result') backHome()
             }}
           />

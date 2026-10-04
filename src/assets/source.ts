@@ -21,6 +21,8 @@ export interface ManifestEntry {
   bytes: number
   sha256: string
   tier: AssetTier
+  /** Page components load role-specific artwork on demand instead of prefetching the whole catalog. */
+  deferred?: boolean
   alt?: string
   cid?: string
 }
@@ -73,7 +75,7 @@ function canPlay(path: string): boolean {
 }
 
 function keysOfTier(manifest: AssetManifest, tier: AssetTier): AssetKey[] {
-  return Object.keys(manifest).filter((k) => manifest[k]!.tier === tier)
+  return Object.keys(manifest).filter((k) => manifest[k]!.tier === tier && manifest[k]!.deferred !== true)
 }
 
 /** 从构建产物读取 manifest[key].path，通过浏览器资源加载事件报告完成 */

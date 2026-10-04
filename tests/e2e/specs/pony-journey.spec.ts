@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { playUntilResult } from '../helpers.ts'
+import { enterHome, playUntilResult } from '../helpers.ts'
 
 test.use({ viewport: { width: 1640, height: 1050 } })
 
@@ -35,4 +35,14 @@ test('a participant image failure offers retry and does not advance the unseen p
   await page.getByRole('button', { name: /重试失败项|Retry failed items/ }).click()
   await page.waitForFunction(() => (window as any).ponyJourneyReady === true)
   await expect(page.getByTestId('tier-gate-error')).toHaveCount(0)
+})
+
+test('home prefetch leaves role-specific images for the page that uses them', async ({ page }) => {
+  const character: string[] = []
+  page.on('request', r => { if (/\/(ponies\/\d+-|result\/hero-\d|share\/horse-\d)/.test(r.url())) character.push(r.url()) })
+  const prefetched = page.waitForResponse(r => r.url().endsWith('/art/share/prize-group.webp'))
+  await page.goto('/')
+  await enterHome(page)
+  await prefetched
+  expect(character).toEqual([])
 })

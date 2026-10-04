@@ -8,6 +8,7 @@
  */
 import type { LoadProgress } from '../assets/loader.ts'
 import { WoodButton } from './Button.tsx'
+import { StageDialog } from './StageDialog.tsx'
 import { t, type Lang } from './i18n.ts'
 
 export function TierGate({
@@ -26,7 +27,7 @@ export function TierGate({
 }) {
   const pct = progress.total === 0 ? 0 : Math.round((progress.done / progress.total) * 100)
   return (
-    <div className="tier-gate" data-testid="tier-gate">
+    <StageDialog className="tier-gate" testId="tier-gate" label={t(lang, 'assets.preparing')} onDismiss={onCancel}>
       <div className="panel" style={{ width: 720, padding: '14px 24px', textAlign: 'center' }}>
         {waiting ? (
           <>
@@ -34,6 +35,12 @@ export function TierGate({
             <div className="mono" data-testid="tier-gate-progress" style={{ marginTop: 10, fontSize: 20 }}>
               {progress.done} / {progress.total} · {pct}%
             </div>
+            <WoodButton
+              zh={t(lang, 'assets.later')}
+              variant={2}
+              onClick={onCancel}
+              style={{ minWidth: 240, minHeight: 84, transform: 'scale(0.8)' }}
+            />
           </>
         ) : (
           <div data-testid="tier-gate-error">
@@ -63,6 +70,6 @@ export function TierGate({
           </div>
         )}
       </div>
-    </div>
+    </StageDialog>
   )
 }
