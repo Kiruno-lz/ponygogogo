@@ -122,6 +122,7 @@ describe('keeper × PonyGame on anvil', () => {
   })
   const forgeEnv = (extra: Record<string, string>) => ({
     PATH: process.env.PATH ?? '', HOME: homedir(), FOUNDRY_OFFLINE: 'true', ETH_RPC_URL: rpcUrl,
+    NO_PROXY: 'localhost,127.0.0.1',
     DEPLOYER_PRIVATE_KEY_PATH: KEY_FILE, ...extra,
   })
   const readVault = async (functionName: string, args: readonly unknown[] = []) =>

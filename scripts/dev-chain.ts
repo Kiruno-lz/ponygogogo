@@ -110,12 +110,13 @@ export async function deployDevChain(opts: {
     const env: Record<string, string> = {
       // FOUNDRY_OFFLINE: forge's Sourcify trace lookups stall on this network.
       PATH: process.env.PATH ?? '', HOME: homedir(), FOUNDRY_OFFLINE: 'true', ETH_RPC_URL: opts.rpcUrl,
+      NO_PROXY: 'localhost,127.0.0.1',
       DEPLOYER_PRIVATE_KEY_PATH: keyFile, HOUSE_FUND_WEI: (opts.houseFundWei ?? parseEther('1000')).toString(), UNPAUSE: '1',
     }
     if (solver) env.PONY_SOLVER = solver
     const run = Bun.spawnSync([
       resolve(FOUNDRY_BIN, 'forge'), 'script', 'scripts/DeployPony.s.sol', '--rpc-url', opts.rpcUrl, '--broadcast',
-      '--code-size-limit', '131072', '--slow',
+      '--code-size-limit', '131072', '--slow', '--non-interactive',
     ], { cwd: ROOT, env, stdout: 'pipe', stderr: 'pipe' })
     const out = run.stdout.toString()
     if (run.exitCode !== 0) throw new Error(`forge script failed:\n${out}\n${run.stderr.toString()}`)

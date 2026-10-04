@@ -124,10 +124,12 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     try {
       const script = Bun.spawnSync([
         resolve(FOUNDRY, 'forge'), 'script', 'scripts/DeployPony.s.sol', '--rpc-url', rpcUrl, '--broadcast', '--slow',
+        '--code-size-limit', '131072', '--non-interactive',
       ], {
         cwd: ROOT, stdout: 'pipe', stderr: 'pipe',
         env: {
           PATH: process.env.PATH ?? '', HOME: homedir(), FOUNDRY_OFFLINE: 'true', ETH_RPC_URL: rpcUrl,
+          NO_PROXY: 'localhost,127.0.0.1',
           DEPLOYER_PRIVATE_KEY_PATH: KEY_FILE, HOUSE_FUND_WEI: parseEther('100').toString(), UNPAUSE: '1',
         },
       })
