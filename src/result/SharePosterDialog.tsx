@@ -46,7 +46,7 @@ export function SharePosterDialog({ lang, result, paid, onClose }: {
   return (
     <StageDialog label={t(lang, 'result.share')} testId="share-dialog" className="share-dialog" onDismiss={onClose}>
       <div className="share-poster-panel" aria-busy={!image && !failed}>
-        {image ? <img data-testid="share-poster" className="share-poster-image" src={image.url} alt={`Ponygogogo · ${content.name} · #${content.rank} · ${content.amount} · ${content.status}`} />
+        {image ? <img data-testid="share-poster" className="share-poster-image" src={image.url} alt={`Ponygogogo · ${content.name} · #${content.rank} · ${content.amount} · ${content.status}${content.grant ? ` · ${content.grant.kind}: ${content.grant.name}` : ''}`} />
           : <div className="share-placeholder" role="status">{t(lang, failed ? 'share.failed' : 'share.loading')}</div>}
         <div className="share-close">{button('close', t(lang, 'share.close'), onClose)}</div>
         <div className="share-actions">

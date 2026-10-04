@@ -4,6 +4,7 @@ import { PONY_CATALOG, ponyById, ponyIdAt } from '../game/ponyCatalog.ts'
 import type { RaceResult } from '../race/core/types.ts'
 import type { PaidResultView } from '../result/ResultScreen.tsx'
 import { t, type Lang } from '../ui/i18n.ts'
+import { collectibleView } from '../result/collectibleView.ts'
 
 export function posterContent(result: RaceResult, paid: PaidResultView | undefined, lang: Lang) {
   const ponyId = ponyIdAt(result.roster, result.horseId)
@@ -14,10 +15,13 @@ export function posterContent(result: RaceResult, paid: PaidResultView | undefin
     : `${net > 0n ? '+' : ''}${formatMon(net, 4).replace(/\.?0+$/, '')} MON`
   const status = !paid ? t(lang, 'result.practiceValue') : `${t(lang, `result.stamp.${paid.phase}`)} · ${paid.settlement ? t(lang, 'result.chainRank', { rank }) : t(lang, 'result.previewRank', { rank })}`
   return { horseId: result.horseId, ponyId, rank, amount, status, name: ponyById(ponyId).name,
+    grant: paid?.phase === 'settled' && paid.settlement && paid.grant ? collectibleView(paid.grant, lang) : null,
     headline: rank === 1 && (!paid || (net !== null && net > 0n)) ? 'WIN' : 'FINISH' }
 }
 
-export const POSTER = { width: 1620, height: 971, qr: { x: 220, y: 594, size: 220, angle: -0.04 } } as const
+export const POSTER = { width: 1620, height: 971, qr: { x: 220, y: 594, size: 220, angle: -0.04 },
+  grant: { x: 1120, y: 702, width: 466, height: 229 },
+} as const
 
 export const HORSE_FOOTINGS = PONY_CATALOG.map(pony => pony.renderSpec.posterFootings)
 
@@ -41,13 +45,15 @@ async function loadImage(src: string): Promise<HTMLImageElement> {
 
 export async function drawPoster(content: ReturnType<typeof posterContent>): Promise<Blob> {
   await document.fonts.load('700 40px Kalam')
-  const [background, hero, medal, qr, headline, prizeGroup] = await Promise.all([
+  const [background, hero, medal, qr, headline, prizeGroup, grantImage, cardFrame] = await Promise.all([
     loadImage('/assets/art/share/background.webp'),
     loadImage(`/assets/art/share/horse-${content.ponyId}.webp`),
     loadImage(`/assets/art/result/medal-${content.rank}.webp`),
     loadImage('/assets/art/share/qr.png'),
     loadImage(`/assets/art/share/${content.headline.toLowerCase()}.webp`),
     loadImage('/assets/art/share/prize-group.webp'),
+    content.grant ? loadImage(content.grant.image) : null,
+    content.grant?.assetKind === 'rareCard' ? loadImage('/assets/placeholder/ui/card_frame_rare.webp') : null,
   ])
   const canvas = document.createElement('canvas')
   canvas.width = POSTER.width; canvas.height = POSTER.height
@@ -98,6 +104,31 @@ export async function drawPoster(content: ReturnType<typeof posterContent>): Pro
   const qrScale = POSTER.qr.size / Math.max(qr.width, qr.height)
   ctx.drawImage(qr, -qr.width * qrScale / 2, -qr.height * qrScale / 2, qr.width * qrScale, qr.height * qrScale)
   ctx.restore()
+  if (content.grant && grantImage) {
+    const box = POSTER.grant
+    ctx.save()
+    ctx.fillStyle = '#fff0d7'; ctx.strokeStyle = '#8d602c'; ctx.lineWidth = 3
+    ctx.beginPath(); ctx.roundRect(box.x, box.y, box.width, box.height, 18); ctx.fill(); ctx.stroke()
+    const left = box.x + 14, top = box.y + 44, width = 143, height = 169
+    if (cardFrame) {
+      const frameWidth = height * cardFrame.width / cardFrame.height
+      ctx.drawImage(cardFrame, left + (width - frameWidth) / 2, top, frameWidth, height)
+      ctx.filter = content.grant.tint ? `hue-rotate(${content.grant.tint}deg) saturate(1.25)` : 'none'
+      ctx.drawImage(grantImage, left + width / 2 - 42, top + 35, 84, 84)
+      ctx.filter = 'none'
+    } else {
+      const scale = Math.min(width / grantImage.width, height / grantImage.height)
+      ctx.drawImage(grantImage, left + (width - grantImage.width * scale) / 2, top + (height - grantImage.height * scale) / 2,
+        grantImage.width * scale, grantImage.height * scale)
+    }
+    ctx.fillStyle = '#5b2d10'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+    ctx.font = '700 25px Kalam'; ctx.fillText(content.grant.title, box.x + 20, box.y + 26, box.width - 40)
+    const textX = box.x + 172, maxWidth = box.width - 190
+    ctx.font = '700 22px Kalam'; ctx.fillText(content.grant.kind, textX, box.y + 75, maxWidth)
+    ctx.font = '700 30px Kalam'; ctx.fillText(content.grant.name, textX, box.y + 122, maxWidth)
+    ctx.font = '700 21px Kalam'; ctx.fillText(content.grant.collected, textX, box.y + 172, maxWidth)
+    ctx.restore()
+  }
   return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Poster export failed')), 'image/png'))
 }
 

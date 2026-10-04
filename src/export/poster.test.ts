@@ -48,6 +48,15 @@ test('平台跳转链接正确编码海报结果', () => {
   expect(platformUrl('xiaohongshu', '')).toBe('https://www.xiaohongshu.com/')
 })
 
+test('only a confirmed paid settlement can add the collectible window', () => {
+  const grant = { sessionId: `0x${'12'.repeat(32)}` as const, player: '0x1111111111111111111111111111111111111111' as const, assetKind: 'pony' as const, assetId: 8 }
+  expect(posterContent(result, { ...paid, grant }, 'en').grant).toMatchObject({ name: 'Gugu Gaga', kind: 'Pony', assetKind: 'pony', assetId: 8 })
+  expect(posterContent(result, { ...paid, grant, phase: 'pending', settlement: null }, 'en').grant).toBeNull()
+  expect(posterContent(result, { ...paid, grant, phase: 'forfeited', settlement: null }, 'en').grant).toBeNull()
+  expect(posterContent(result, undefined, 'zh').grant).toBeNull()
+  expect(posterContent(result, { ...paid, grant: { ...grant, assetKind: 'rareCard', assetId: 2 } }, 'zh').grant?.kind).toBe('稀有卡')
+})
+
 test('所有主角的前后蹄底都注册到奖台顶面的透视，二维码顺着木牌倾斜', () => {
   for (let horse = 0; horse < 5; horse++) {
     const [a, b, c, d, x, y] = horseTransform(horse)
@@ -59,4 +68,19 @@ test('所有主角的前后蹄底都注册到奖台顶面的透视，二维码�
   }
   expect(POSTER.qr.angle).toBeGreaterThan(-0.06)
   expect(POSTER.qr.angle).toBeLessThan(-0.02)
+})
+
+test('all nine roles stand on the podium, with a natural narrower footing for the biped', () => {
+  for (let pony = 0; pony < 9; pony++) {
+    const [a,b,c,d,x,y] = horseTransform(pony)
+    const { rear,front } = HORSE_FOOTINGS[pony]!
+    for (const point of [rear,front]) {
+      const px = a * point[0] + c * point[1] + x
+      const py = b * point[0] + d * point[1] + y
+      expect(px).toBeGreaterThanOrEqual(330)
+      expect(px).toBeLessThanOrEqual(680)
+      expect(py).toBeCloseTo(545 + (px - 330) * 31 / 350)
+    }
+    if (pony === 8) expect(a * (front[0] - rear[0])).toBeLessThan(150)
+  }
 })

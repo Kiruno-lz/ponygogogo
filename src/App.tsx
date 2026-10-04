@@ -128,6 +128,15 @@ export default function App() {
   const funds = useGameFunds(lang)
   const { reset: resetFunds, refresh: refreshFunds } = funds
   const paid = usePaidRace(lang, refreshFunds)
+  const syncedGrants = useRef(new Set<string>())
+  const confirmedGrant = paid.settle?.phase === 'settled' ? paid.settle.settlement?.grant : null
+  useEffect(() => {
+    if (!confirmedGrant || gameAccount?.address.toLowerCase() !== confirmedGrant.player.toLowerCase()) return
+    const key = `${confirmedGrant.player.toLowerCase()}:${confirmedGrant.sessionId.toLowerCase()}`
+    if (syncedGrants.current.has(key)) return
+    syncedGrants.current.add(key)
+    collection.acceptGrant(confirmedGrant)
+  }, [confirmedGrant, gameAccount?.address, collection.acceptGrant])
   const { checkResume, reset: resetPaid } = paid
   /** 木牌与选马页显示的「钱包余额」就是 sma-b 的原生 MON；null = 还没读到 */
   const walletBalance = funds.funds?.wallet ?? null
@@ -495,12 +504,15 @@ export default function App() {
       txHash: s.txHash,
       detail: s.detail,
       settlement: s.settlement ? { rank: s.settlement.rank, payout: s.settlement.payout } : null,
+      grant: s.phase === 'settled' ? s.settlement?.grant ?? null : null,
+      grantError: s.settlement?.grantError ?? null,
+      onRetryGrant: paid.retryGrant,
       mismatch: s.mismatch,
       deadline: s.deadline,
       choiceNotes: paidMeta.notes,
       onRetry: paid.retry,
     }
-  }, [paidMeta, paid.settle, paid.retry])
+  }, [paidMeta, paid.settle, paid.retry, paid.retryGrant])
 
   /** 有奖结算后，名次与三次选择以 SessionSettled 为准（结算页与分享图同一份） */
   const shownResult = useMemo(() => {
@@ -602,6 +614,7 @@ export default function App() {
             lang={lang}
             result={shownResult}
             paid={paidMeta ? paidView : undefined}
+            collectionSync={paidMeta ? { loading: collection.loading, error: collection.error, onRetry: collection.unlock } : undefined}
             choiceNotes={driver instanceof RaceDriver ? paidChoiceNoteKeys(driver.canonicalResult()).map((k) => k ? t(lang, k) : null) : undefined}
             onAgain={() => {
               setDriver(null)
@@ -687,9 +700,10 @@ export default function App() {
           />
         )}
 
-        {notice && (
+        {(notice || (page !== 'collection' && collection.error) || (page === 'home' && paid.resumeError)) && (
           <div
             data-testid="notice"
+            role={collection.error || paid.resumeError ? 'alert' : 'status'}
             className="panel"
             style={{
               position: 'absolute',
@@ -703,7 +717,13 @@ export default function App() {
               zIndex: 200,
             }}
           >
-            {notice}
+            {notice ?? collection.error ?? t(lang, 'resume.readFailed', { reason: paid.resumeError ?? '' })}
+            {!notice && collection.error && <button type="button" className="chip" disabled={collection.loading} onClick={collection.unlock}>
+              {t(lang, 'grant.retrySync')}
+            </button>}
+            {!notice && !collection.error && paid.resumeError && <button type="button" className="chip" onClick={() => void checkResume()}>
+              {t(lang, 'resume.retry')}
+            </button>}
           </div>
         )}
       </div>
