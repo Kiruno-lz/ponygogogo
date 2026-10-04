@@ -17,7 +17,10 @@ test('all nineteen card faces use distinct, shipped icons and generated descript
     expect(def.desc.zh.length).toBeGreaterThan(8)
     const url = cardIconUrl(def.art.icon); icons.add(url)
     expect(existsSync(root + '/public' + url)).toBe(true)
-    expect(readFileSync(root + '/public' + url, 'utf8')).toContain('<svg')
+    const image = readFileSync(root + '/public' + url)
+    expect(image.subarray(0, 4).toString()).toBe('RIFF')
+    expect(image.subarray(8, 12).toString()).toBe('WEBP')
+    expect(image.readUInt32LE(4) + 8).toBe(image.length)
   }
   expect(icons.size).toBe(19)
 })

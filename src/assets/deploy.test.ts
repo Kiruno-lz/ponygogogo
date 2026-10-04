@@ -23,9 +23,9 @@ function coverage(path: string) {
 }
 
 test('new card icons pass the actual deployment asset-coverage preflight and have a cache policy', () => {
-  const result = coverage('assets/cards/card-22.svg')
+  const result = coverage('assets/art/cards/card-22.webp')
   expect(result.status).toBe(0)
-  const policy = headers.split('\n\n').find(block => block.includes('/assets/cards/*'))
+  const policy = headers.split('\n\n').find(block => block.includes('/assets/art/*'))
   expect(policy).toContain('Cache-Control: public, max-age=86400, stale-while-revalidate=604800')
 })
 

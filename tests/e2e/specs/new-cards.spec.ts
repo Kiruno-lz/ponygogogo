@@ -1,6 +1,19 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 const copyCheck = readFileSync(new URL('../../art/card-layout.js',import.meta.url),'utf8').replace('export function','function')
+test('all forty generated card icons load and their bilingual copy fits',async({page})=>{
+ await page.goto('/tests/e2e/fixtures/new-cards.html')
+ await page.getByRole('button',{name:'all cards',exact:true}).click()
+ for(const lang of ['zh','en']) {
+  await expect(page.locator('.card-root')).toHaveCount(40)
+  await page.locator('.card-root img').evaluateAll(imgs=>Promise.all(imgs.map(img=>(img as HTMLImageElement).decode())))
+  const sources=await page.locator('.card-root img[src*="/art/cards/"]').evaluateAll(imgs=>imgs.map(img=>(img as HTMLImageElement).src))
+  expect(new Set(sources).size).toBe(40)
+  expect(await page.evaluate(`(${copyCheck})()`)).toEqual({cards:40,faces:40,locked:0,overflow:0})
+  await page.screenshot({path:`tests/e2e/screenshots/all-cards-${lang}.png`,fullPage:true})
+  if(lang==='zh') await page.getByRole('button',{name:'zh',exact:true}).click()
+ }
+})
 test('nineteen actual card faces load and fit in Chinese and English',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
  await page.goto('/tests/e2e/fixtures/new-cards.html')

@@ -3,10 +3,18 @@ import { readFileSync } from 'node:fs'
 import { PNG } from 'pngjs'
 import { transparentQr } from './prepare-share-qr.ts'
 
-const source = PNG.sync.read(readFileSync(new URL('../art-src/QR code.png', import.meta.url)))
-test('白色二维码背景变成 alpha，黑色模块和中间标识不变', () => {
+const shipped = PNG.sync.read(readFileSync(new URL('../public/assets/art/share/qr.png', import.meta.url)))
+test('以 public 二维码为基线，去除白底后恢复原始模块和中间标识', () => {
+  // Reconstruct a white-matte input from the shipped QR without reading the local artwork archive.
+  const source = new PNG({ width: shipped.width, height: shipped.height })
+  for (let i = 0; i < shipped.data.length; i += 4) {
+    const alpha = shipped.data[i + 3] / 255
+    for (let c = 0; c < 3; c++) source.data[i + c] = Math.round(shipped.data[i + c] * alpha + 255 * (1 - alpha))
+    source.data[i + 3] = 255
+  }
   const original = Buffer.from(source.data)
   const output = transparentQr(source)
+  expect(output.data, '去白底必须完整恢复 public 中的二维码像素').toEqual(shipped.data)
   expect(output.width).toBe(source.width)
   expect(output.height).toBe(source.height)
   expect(output.data[3], 'outside white background must be transparent').toBe(0)

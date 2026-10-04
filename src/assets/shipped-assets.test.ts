@@ -11,6 +11,7 @@ import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
+import { PNG } from 'pngjs'
 import { PONY_CATALOG } from '../game/ponyCatalog.ts'
 import { cardIconUrl } from '../race/cards/iconUrl.ts'
 import { PAID_CARD_POOL } from '../race/cards/paidCards.ts'
@@ -63,6 +64,37 @@ describe('每条静态资源引用都有对应产物', () => {
 })
 
 describe('动态拼接的资源族', () => {
+  test.skipIf(!existsSync(join(ROOT, 'art-src/art/cards/generation-prompts.json')))('本地母版存在时，已注册精修卡面的画布与 RGBA 像素保持一致', () => {
+    const provenance = JSON.parse(readFileSync(join(ROOT, 'art-src/art/cards/generation-prompts.json'), 'utf8')) as {
+      cards: { id: number; preserveCanvas?: boolean }[]
+    }
+    const registered = provenance.cards.filter(card => card.preserveCanvas)
+    expect(registered.length).toBeGreaterThan(0)
+    for (const card of registered) {
+      const source = PNG.sync.read(readFileSync(join(ROOT, `art-src/art/cards/_generated/card-${card.id}.png`)))
+      const master = PNG.sync.read(readFileSync(join(ROOT, `art-src/art/cards/card-${card.id}.png`)))
+      expect([master.width, master.height]).toEqual([source.width, source.height])
+      expect(master.data.equals(source.data), `C-${card.id} 的注册画布或像素被改动`).toBe(true)
+    }
+  })
+
+  test('四十张卡各用独立 WebP 和 race 级产物，不复用旧切片或 SVG', () => {
+    const manifest = JSON.parse(readFileSync(join(PUBLIC, 'assets/manifest.json'), 'utf8'))
+    const urls = PAID_CARD_POOL.map(card => cardIconUrl(card.art.icon))
+    expect(new Set(urls).size).toBe(40)
+    for (const card of PAID_CARD_POOL) {
+      const id = Number(card.cardId.slice(2))
+      const url = `/assets/art/cards/card-${id}.webp`
+      expect(cardIconUrl(card.art.icon), card.cardId).toBe(url)
+      expect(card.art.tint, card.cardId).toBeUndefined()
+      const entry = manifest[`art.cards.card-${id}`]
+      expect(entry?.path, card.cardId).toBe(url.slice(1))
+      expect(entry?.tier, card.cardId).toBe('race')
+      const bytes = readFileSync(join(PUBLIC, url))
+      expect(entry.sha256).toBe(createHash('sha256').update(bytes).digest('hex').slice(0, 16))
+    }
+  })
+
   // src/game/pony.ts:21、src/ui/PonyPortrait.tsx:9
   test('八帧分镜：每匹马 × idle/running', () => {
     for (const p of PONY_CATALOG) for (const action of ['idle', 'running']) {
@@ -204,9 +236,18 @@ describe('显示尺寸表', () => {
   })
 })
 
-// The derived alpha QR must ship losslessly; its input stays in art-src unchanged.
-test('透明二维码使用独立 PNG 产物并保持母版像素', () => {
+test('public 中的二维码是可解码且包含透明背景和可见内容的 RGBA PNG', () => {
   const runtime = readFileSync(join(PUBLIC, 'assets/art/share/qr.png'))
-  expect(runtime.equals(readFileSync(join(ROOT, 'art-src/art/share/qr.png')))).toBe(true)
   expect(runtime[25]).toBe(6) // RGBA
+  const qr = PNG.sync.read(runtime)
+  expect(qr.width).toBeGreaterThan(0)
+  expect(qr.height).toBeGreaterThan(0)
+  let transparent = 0
+  let opaque = 0
+  for (let i = 3; i < qr.data.length; i += 4) {
+    if (qr.data[i] === 0) transparent++
+    if (qr.data[i] === 255) opaque++
+  }
+  expect(transparent, '二维码必须包含透明背景').toBeGreaterThan(0)
+  expect(opaque, '二维码必须包含可见内容').toBeGreaterThan(0)
 })
