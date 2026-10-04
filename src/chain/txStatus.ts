@@ -1,5 +1,5 @@
 /**
- * 钱包里一笔资金交易（充值、提款、根账户迁入）的界面状态机。
+ * 钱包里一笔资金交易（根账户迁入）的界面状态机。
  *
  * 签名中 → 已提交（有调用 ID 或交易哈希）→ 已入块 / 失败 / 未确认。
  * 调用 ID 不是交易哈希，也不证明入块；「未确认」表示等满超时仍查不到终态——
@@ -8,7 +8,7 @@
 import type { Hex } from 'viem'
 import type { CallProgress } from './alchemy.ts'
 
-export type TxKind = 'deposit' | 'withdraw' | 'migrate'
+export type TxKind = 'migrate'
 
 export type TxState =
   | { phase: 'idle' }

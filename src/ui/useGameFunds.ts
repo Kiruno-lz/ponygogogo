@@ -1,5 +1,5 @@
 /**
- * 钱包面板背后的资金状态：sma-b 钱包余额与 Vault 可用余额的同块快照、根账户余额、
+ * 钱包面板背后的资金状态：sma-b 原生 MON 余额、根账户余额、
  * 以及当前这一笔资金交易的进度。状态放在 App 一级，面板关掉再打开，在途交易的进度还在。
  *
  * 每次登录、注册、退出都 `reset()`：世代号自增，旧账户在途的读数与交易回报一律丢弃，
@@ -7,7 +7,7 @@
  */
 import { useCallback, useReducer, useRef, useState } from 'react'
 import type { FundsSnapshot } from '../chain/funds.ts'
-import { TX_IDLE, isTxBusy, txReducer, type TxKind, type TxState } from '../chain/txStatus.ts'
+import { TX_IDLE, isTxBusy, txReducer, type TxState } from '../chain/txStatus.ts'
 import { wallet, type MigrationOutcome } from '../chain/wallet.ts'
 import type { Lang } from './i18n.ts'
 import { walletErrorText } from './walletError.ts'
@@ -19,8 +19,6 @@ export type GameFunds = {
   reset: () => void
   /** 读失败时把快照清回 null（界面显示占位符而不是旧数字），并把错误抛给调用方展示 */
   refresh: () => Promise<void>
-  deposit: (amount: bigint) => Promise<void>
-  withdraw: (amount: bigint) => Promise<void>
   migrate: () => Promise<MigrationOutcome | null>
 }
 
@@ -30,7 +28,6 @@ export function useGameFunds(lang: Lang): GameFunds {
   const [tx, rawDispatch] = useReducer(txReducer, TX_IDLE)
   const gen = useRef(0)
   const txRef = useRef<TxState>(TX_IDLE)
-  const fundsRef = useRef<FundsSnapshot | null>(null)
 
   /** 同步维护一份 ref：同一事件循环里连点两次，第二次也能看到「已在途」 */
   const dispatch = useCallback((e: Parameters<typeof txReducer>[1]) => {
@@ -40,7 +37,6 @@ export function useGameFunds(lang: Lang): GameFunds {
 
   const reset = useCallback(() => {
     gen.current++
-    fundsRef.current = null
     setFunds(null)
     setRootBalance(null)
     dispatch({ type: 'reset' })
@@ -51,40 +47,15 @@ export function useGameFunds(lang: Lang): GameFunds {
     try {
       const [next, root] = await Promise.all([wallet.readFunds(), wallet.readRootBalance().catch(() => null)])
       if (gen.current !== g) return
-      fundsRef.current = next
       setFunds(next)
       setRootBalance(root)
     } catch (err) {
       if (gen.current === g) {
-        fundsRef.current = null
         setFunds(null)
       }
       throw err
     }
   }, [])
-
-  const runCall = useCallback(async (kind: TxKind, submit: (f: FundsSnapshot) => Promise<string>) => {
-    const snapshot = fundsRef.current
-    if (!snapshot || isTxBusy(txRef.current)) return
-    const g = gen.current
-    const live = () => gen.current === g
-    dispatch({ type: 'start', kind })
-    try {
-      const callId = await submit(snapshot)
-      if (!live()) return
-      dispatch({ type: 'submitted', callId })
-      const result = await wallet.trackCall(callId, (p) => { if (live()) dispatch({ type: 'progress', progress: p }) })
-      if (!live()) return
-      dispatch(result.state === 'timeout' ? { type: 'timeout' } : { type: 'progress', progress: result })
-    } catch (err) {
-      if (live()) dispatch({ type: 'error', reason: walletErrorText(lang, err) })
-    } finally {
-      if (live()) await refresh().catch(() => undefined)
-    }
-  }, [dispatch, lang, refresh])
-
-  const deposit = useCallback((amount: bigint) => runCall('deposit', (f) => wallet.deposit(f, amount)), [runCall])
-  const withdraw = useCallback((amount: bigint) => runCall('withdraw', (f) => wallet.withdraw(f, amount)), [runCall])
 
   const migrate = useCallback(async (): Promise<MigrationOutcome | null> => {
     if (isTxBusy(txRef.current)) return null
@@ -111,5 +82,5 @@ export function useGameFunds(lang: Lang): GameFunds {
     }
   }, [dispatch, lang, refresh])
 
-  return { funds, rootBalance, tx, reset, refresh, deposit, withdraw, migrate }
+  return { funds, rootBalance, tx, reset, refresh, migrate }
 }

@@ -42,7 +42,6 @@ const MULTIPLIER_BPS = [30_000n, 15_000n, 10_000n, 0n, 0n]
 type Artifact = { abi: Abi; deployedBytecode: { object: Hex } }
 const artifact = (path: string): Artifact => JSON.parse(readFileSync(resolve(ROOT, 'out', path), 'utf8')) as Artifact
 const gameAbi = () => artifact('PonyGame.sol/PonyGame.json').abi
-const vaultAbi = () => artifact('PonyVault.sol/PonyVault.json').abi
 const solverAbi = () => artifact('PaidRaceSolver.sol/PaidRaceSolver.json').abi
 
 type Settled = {
@@ -55,7 +54,6 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
   let rpcUrl = ''
   let solver: Address
   let game: Address
-  let vault: Address
   const owner = privateKeyToAccount(OWNER_KEY)
   const player = privateKeyToAccount(PLAYER_KEY)
   const gas: Record<string, bigint> = {}
@@ -137,11 +135,9 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
       const pick = (label: string) => getAddress(new RegExp(`^\\s+${label} (0x[0-9a-fA-F]{40})$`, 'm').exec(out)![1]!)
       solver = pick('solver')
       game = pick('game')
-      vault = pick('vault')
     } finally {
       rmSync(resolve(ROOT, KEY_FILE), { force: true })
     }
-    await sendAt((await latest()) + 1n, vault, vaultAbi(), 'deposit', [], parseEther('15'))
   })
 
   afterAll(() => {
@@ -166,7 +162,7 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
 
   /** Opens a session and returns the TS core input built from the chain's seed, T0 and open block hash. */
   async function open(tier: PaidTier, horseId: number, label: string) {
-    const receipt = await sendAt((await latest()) + 3n, game, gameAbi(), 'openSession', [horseId, STAKES[tier]])
+    const receipt = await sendAt((await latest()) + 3n, game, gameAbi(), 'openSession', [horseId, STAKES[tier]], STAKES[tier])
     gas[`${label} openSession`] = receipt.gasUsed
     const opened = eventArgs(receipt, 'SessionOpened')
     const sessionId = opened.sessionId as Hex

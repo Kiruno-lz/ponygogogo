@@ -2,8 +2,8 @@
  * L2 契约测试：资金模块对真实 EVM 语义。
  *
  * 在本测试里起一条 anvil，部署 Foundry 编出的 PonyVault，用一个直接 EOA 实现与 Alchemy sma-b
- * 相同的 `CallAccount` 接口，走 `readFunds` / `depositToVault` / `withdrawFromVault` / `trackCall` 全程。
- * 这样校验的是 ABI、payable 入账、按 wei 记账、回退语义与同块读取，而不是替身的行为。
+ * 相同的 `CallAccount` 接口，验证原生余额快照、庄家储备与已移除的玩家充值入口。
+ * 这样校验的是 ABI、庄家 payable 入账、按 wei 记账、回退语义与同块读取，而不是替身的行为。
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
@@ -23,7 +23,7 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { foundry } from 'viem/chains'
 import type { CallAccount, CallProgress, ContractCall } from '../../../src/chain/alchemy.ts'
 import { MON } from '../../../src/chain/amount.ts'
-import { depositToVault, readFunds, trackCall, withdrawFromVault, type FundsSnapshot } from '../../../src/chain/funds.ts'
+import { readFunds, trackCall } from '../../../src/chain/funds.ts'
 import { readVaultSolvency } from '../../../src/chain/vault.ts'
 
 const ROOT = join(import.meta.dir, '../../..')
@@ -118,54 +118,28 @@ afterAll(() => {
 
 const fast = { pollMs: 20, timeoutMs: 5_000 }
 
-describe('资金模块 × 真实 PonyVault（anvil）', () => {
-  test('Vault 未配置或地址无代码时报 not-deployed，钱包余额照常读出', async () => {
+describe('智能账户原生 MON 与 Vault 储备（anvil）', () => {
+  test('wallet funds come directly from the account at the snapshot block', async () => {
     const address = player.getAddress()
-    const unset = await readFunds(client, null, address)
-    expect(unset.vault).toEqual({ state: 'not-deployed', reason: 'unset' })
-    expect(unset.wallet).toBe(await client.getBalance({ address, blockNumber: unset.blockNumber }))
-    const noCode = await readFunds(client, GAME, address)
-    expect(noCode.vault).toEqual({ state: 'not-deployed', reason: 'no-code' })
+    const funds = await readFunds(client, address)
+    expect(funds.wallet).toBe(await client.getBalance({ address, blockNumber: funds.blockNumber }))
+    expect(Object.keys(funds).sort()).toEqual(['blockNumber', 'player', 'wallet'])
   })
 
-  test('充值：payable deposit 按 wei 记入可用余额，钱包减少金额加实付 gas', async () => {
-    const before = await readFunds(client, vault, player.getAddress())
-    expect(before.vault).toEqual({ state: 'ready', address: vault, available: 0n })
-
-    const callId = await depositToVault(player, before, MON)
-    const result = await trackCall(player, callId, fast)
-    expect(result.state).toBe('included')
-    const hash = (result as Extract<CallProgress, { state: 'included' }>).transactionHashes[0]!
-    const receipt = await client.getTransactionReceipt({ hash })
-
-    const after = await readFunds(client, vault, player.getAddress())
-    expect(after.blockNumber).toBeGreaterThanOrEqual(receipt.blockNumber)
-    expect(after.vault).toEqual({ state: 'ready', address: vault, available: MON })
-    expect(after.wallet).toBe(before.wallet - MON - receipt.gasUsed * receipt.effectiveGasPrice)
+  test('owner funding is reflected in the new L + H solvency invariant', async () => {
+    const owner = createWalletClient({ account: privateKeyToAccount(OWNER_KEY), chain: foundry, transport: http(rpc) })
+    const abi = JSON.parse(readFileSync(ARTIFACT, 'utf8')).abi as Abi
+    const hash = await owner.writeContract({ address: vault, abi, functionName: 'fundHouse', value: MON })
+    await client.waitForTransactionReceipt({ hash })
+    const state = await readVaultSolvency(client, vault)
+    expect(state.houseLiquidity).toBe(MON)
+    expect(state.nativeBalance).toBe(state.totalLocked + state.houseLiquidity)
   })
 
-  test('提款：withdraw 把 MON 原路打回账户，Vault 账务守恒', async () => {
-    const before = await readFunds(client, vault, player.getAddress())
-    const amount = 4n * MON / 10n
-    const result = await trackCall(player, await withdrawFromVault(player, before, amount), fast)
-    expect(result.state).toBe('included')
-    const hash = (result as Extract<CallProgress, { state: 'included' }>).transactionHashes[0]!
-    const receipt = await client.getTransactionReceipt({ hash })
-
-    const after = await readFunds(client, vault, player.getAddress())
-    expect(after.vault).toEqual({ state: 'ready', address: vault, available: MON - amount })
-    expect(after.wallet).toBe(before.wallet + amount - receipt.gasUsed * receipt.effectiveGasPrice)
-    const solvency = await readVaultSolvency(client, vault)
-    expect(solvency.totalAvailable).toBe(MON - amount)
-    expect(solvency.nativeBalance).toBe(solvency.totalAvailable + solvency.totalLocked + solvency.houseLiquidity)
-  })
-
-  test('链上回退如实报 failed：过期快照骗过本地校验，合约仍拒绝超额提款', async () => {
-    const real = await readFunds(client, vault, player.getAddress())
-    const forged: FundsSnapshot = { ...real, vault: { state: 'ready', address: vault, available: 100n * MON } }
-    const result = await trackCall(player, await withdrawFromVault(player, forged, 50n * MON), fast)
-    expect(result.state).toBe('failed')
-    const after = await readFunds(client, vault, player.getAddress())
-    expect(after.vault).toEqual(real.vault)
+  test('the removed player deposit selector reverts without retaining MON', async () => {
+    const before = await client.getBalance({ address: vault })
+    const callId = await player.send([{ to: vault, data: '0xd0e30db0', value: MON }])
+    expect((await trackCall(player, callId, fast)).state).toBe('failed')
+    expect(await client.getBalance({ address: vault })).toBe(before)
   })
 })

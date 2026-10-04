@@ -198,7 +198,7 @@ test('有奖动线：入场 → 选牌上链 → 冲线待验证 → 自动结�
   await startPaid(page, 2, 'paid-00-select')
   await page.screenshot({ path: `${SHOT}/paid-01-entry.png` })
   await checkScreen(page, { ids: ['screen-race', 'countdown'], url: /localhost:5178/, title: /Ponygogogo/ })
-  // the entry batch (deposit shortfall + openSession) is reported until it is included
+  // the payable Game.openSession call is reported until it is included
   await expect(page.getByTestId('countdown')).toBeHidden({ timeout: 60_000 })
   await expect(page.getByTestId('gogo')).toBeVisible()
   await expect(page.getByTestId('gogo')).toHaveText('GOGOGO')
@@ -218,12 +218,12 @@ test('有奖动线：入场 → 选牌上链 → 冲线待验证 → 自动结�
 
   await expectSettled(page, player, 'paid-05')
 
-  // balances refresh after settlement: the Vault game balance now holds the payout
-  const onChain = await settledOnChain(player)
+  // balances refresh after settlement: the smart account directly receives the payout
+  const balance = await chain().pub.getBalance({ address: player })
   await page.getByTestId('result-btn-home').click()
   await expect(page.getByTestId('screen-home')).toBeVisible()
   await page.getByTestId('wallet-open').click()
-  await expect(page.getByTestId('wallet-game-balance')).toHaveText(`${(Number(onChain!.payout) / 1e18).toFixed(4)} MON`)
+  await expect(page.getByTestId('wallet-balance')).toHaveText(`${(Number(balance) / 1e18).toFixed(4)} MON`)
 })
 
 test('刷新恢复：第一次选择上链后刷新 → 登录 → 恢复窗口 → 继续比赛 → 结算', async ({ page }) => {

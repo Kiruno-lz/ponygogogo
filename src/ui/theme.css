@@ -294,14 +294,6 @@ html, body, #root {
 .wallet-facts .wallet-secondary { font-size: 17px; opacity: .72; }
 .wallet-signer-address { font-size: 16px; word-break: break-all; }
 .wallet-muted { font-weight: 700; opacity: .72; }
-/* 充值 / 提款：金额输入与两个动作同一行，校验信息另起一行 */
-.wallet-funds { width: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.wallet-funds label { font-size: 20px; font-weight: 800; opacity: .78; }
-.wallet-funds input { width: 220px; box-sizing: border-box; padding: 8px 12px; border: 3px solid #a8642f; border-radius: 12px; background: rgba(255, 246, 228, .85); color: var(--ink); font-family: inherit; font-size: 22px; font-weight: 700; }
-.wallet-funds input:focus-visible { outline: 4px solid var(--gold-lite); outline-offset: 2px; }
-.wallet-funds input:disabled { opacity: .55; }
-.wallet-funds .chip { font-size: 20px; padding: 8px 16px; }
-.wallet-amount-error { flex-basis: 100%; font-size: 16px; font-weight: 800; color: #a32c17; }
 .wallet-modal .chip:disabled { cursor: default; filter: grayscale(.55) opacity(.6); }
 .wallet-tx { width: 100%; margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; font-size: 18px; font-weight: 700; line-height: 1.45; }
 .wallet-tx.failed { color: #a32c17; }

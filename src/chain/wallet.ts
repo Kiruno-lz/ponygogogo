@@ -2,7 +2,7 @@
  * 通行密钥钱包。项目里唯一持有账户身份的地方。
  *
  * **两个地址，两种角色**：通行密钥 PRF 派生出根 EOA，它只做签名者与 owner；玩家的游戏账户是由根
- * EOA 拥有的独立 Alchemy Modular Account V2（sma-b）。测试币、钱包余额、Vault 充值提款都落在 sma-b 上。
+ * EOA 拥有的独立 Alchemy Modular Account V2（sma-b）。测试币、钱包余额、比赛下注与奖金都落在 sma-b 上。
  *
  * 注册：创建一把 rpId 下的通行密钥（名字由玩家自己起）→ 取 PRF 输出 → 派生根 EOA → 解析 sma-b → 给 sma-b 领测试币。
  * 登录：唤起某一把通行密钥的断言 → 同一个 PRF 输出 → 同一个根地址 → 同一个 sma-b。
@@ -46,18 +46,16 @@ import { AlchemyAccount, createAlchemyAccount, type AccountClient, type CallAcco
 import { DEV_CHAIN, DirectEoaAccount, devFaucet, type DevChain } from './devChain.ts'
 import { claimFaucet, type FaucetResult } from './faucet.ts'
 import {
-  depositToVault,
   readFunds,
   trackCall,
   trackTransaction,
-  withdrawFromVault,
   type FundsSnapshot,
   type ReceiptResult,
   type TrackOptions,
   type TrackResult,
 } from './funds.ts'
 import { MIGRATION_MIN_WEI, planMigration } from './migration.ts'
-import { CHAIN, DEFAULT_PASSKEY_NAME, PONY_VAULT_ADDRESS, RPC_URL, RP_NAME, defaultRpId } from './network.ts'
+import { CHAIN, DEFAULT_PASSKEY_NAME, RPC_URL, RP_NAME, defaultRpId } from './network.ts'
 
 /** 名字只是认证器列表里的标签，别让它长到撑爆系统弹窗 */
 const MAX_NAME_LEN = 32
@@ -146,7 +144,6 @@ export type WalletDeps = {
   /** 注入的 Alchemy 钱包客户端工厂；不传就按 API key 连真实服务 */
   alchemyClient?: (signer: LocalAccount) => AccountClient
   /** Vault 地址；不传就用构建期配置，null 表示未部署 */
-  vaultAddress?: Address | null
   /** 交易状态轮询节奏；测试注入 0 间隔 */
   txPoll?: Pick<TrackOptions, 'pollMs' | 'timeoutMs'>
   /**
@@ -197,7 +194,6 @@ export class MeraWallet {
   private readonly alchemyApiKey: string
   private readonly alchemyPolicyId: string
   private readonly alchemyClient: ((signer: LocalAccount) => AccountClient) | undefined
-  private readonly vaultAddress: Address | null
   private readonly txPoll: Pick<TrackOptions, 'pollMs' | 'timeoutMs'>
   private readonly devChain: DevChain | null
 
@@ -221,7 +217,6 @@ export class MeraWallet {
     this.alchemyApiKey = deps.alchemyApiKey ?? (import.meta.env?.VITE_ALCHEMY_API_KEY as string | undefined) ?? ''
     this.alchemyPolicyId = deps.alchemyPolicyId ?? (import.meta.env?.VITE_ALCHEMY_POLICY_ID as string | undefined) ?? ''
     this.alchemyClient = deps.alchemyClient
-    this.vaultAddress = deps.vaultAddress !== undefined ? deps.vaultAddress : PONY_VAULT_ADDRESS
     this.txPoll = deps.txPoll ?? {}
     this.devChain = deps.devChain !== undefined ? deps.devChain : DEV_CHAIN
   }
@@ -395,21 +390,11 @@ export class MeraWallet {
     return this.readBalance(this.account.address)
   }
 
-  /** 同一块高度的 sma-b 钱包余额与 Vault 可用余额。 */
+  /** 指定块高度的 sma-b 原生 MON 余额。 */
   async readFunds(): Promise<FundsSnapshot> {
     if (!this.account) throw new WalletError('locked', 'Wallet is locked')
     const game = await this.resolveGameAccount()
-    return readFunds(this.client, this.vaultAddress, game.address)
-  }
-
-  /** sma-b → Vault。返回 Alchemy 调用 ID（不是交易哈希）。 */
-  async deposit(funds: FundsSnapshot, amount: bigint): Promise<string> {
-    return depositToVault(await this.callAccount(), funds, amount)
-  }
-
-  /** Vault → sma-b。返回 Alchemy 调用 ID。 */
-  async withdraw(funds: FundsSnapshot, amount: bigint): Promise<string> {
-    return withdrawFromVault(await this.callAccount(), funds, amount)
+    return readFunds(this.client, game.address)
   }
 
   async trackCall(callId: string, onProgress?: TrackOptions['onProgress']): Promise<TrackResult> {

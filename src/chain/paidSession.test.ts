@@ -11,7 +11,6 @@ import {
 } from './paidSession.ts'
 
 const GAME = '0x1111111111111111111111111111111111111111' as Address
-const VAULT = '0x2222222222222222222222222222222222222222' as Address
 const PLAYER = '0x3333333333333333333333333333333333333333' as Address
 const OTHER = '0x4444444444444444444444444444444444444444' as Address
 const SESSION = keccak256(toHex('session')) as Hex
@@ -109,7 +108,6 @@ describe('failure reasons', () => {
 
 type ChainState = {
   sessionOf: Hex
-  available: bigint
   balance: bigint
   state: number
   choice: { present: boolean; txSec: number; blockNumber: bigint; cardId: number; refreshSlots: number[]; anchor: Hex } | null
@@ -121,7 +119,6 @@ function fakeReader(s: ChainState): SessionReader {
   return {
     readContract: (async ({ functionName }: { functionName: string }) => {
       if (functionName === 'sessionOf') return s.sessionOf
-      if (functionName === 'available') return s.available
       if (functionName === 'getSession') {
         return {
           player: PLAYER, state: s.state, playerHorseId: 2, stakeTier: 2, stake: STAKE, openedAt: 1_790_000_000n, openedBlock: 100n,
@@ -154,29 +151,29 @@ const facts: PaidSessionFacts = {
 }
 
 const deps = (s: ChainState, account: CallAccount): PaidChainDeps => ({
-  account, client: fakeReader(s), game: GAME, vault: VAULT, poll: { pollMs: 1, timeoutMs: 5 }, now: () => 0,
+  account, client: fakeReader(s), game: GAME, poll: { pollMs: 1, timeoutMs: 5 }, now: () => 0,
 })
 
 describe('flows read the chain before trusting an uncertain outcome', () => {
-  const base = (): ChainState => ({ sessionOf: ZERO, available: 0n, balance: 10n ** 18n, state: 1, choice: null, settledLogs: [] })
+  const base = (): ChainState => ({ sessionOf: ZERO, balance: 10n ** 18n, state: 1, choice: null, settledLogs: [] })
 
-  test('open refuses while a session is unfinished and when the wallet cannot cover the shortfall', async () => {
+  test('open refuses while a session is unfinished and when the wallet cannot cover the full stake', async () => {
     const acc = fakeAccount(() => 'call')
     const active = await openPaidSession(deps({ ...base(), sessionOf: SESSION }, acc), 2, STAKE).catch((e: unknown) => e)
     expect(active).toBeInstanceOf(PaidSessionError)
     expect(active).toMatchObject({ code: 'active-session', sessionId: SESSION })
-    const poor = await openPaidSession(deps({ ...base(), available: STAKE / 2n, balance: 1n }, acc), 2, STAKE).catch((e: unknown) => e)
-    expect(poor).toMatchObject({ code: 'insufficient-wallet', detail: String(STAKE / 2n) })
+    const poor = await openPaidSession(deps({ ...base(), balance: 1n }, acc), 2, STAKE).catch((e: unknown) => e)
+    expect(poor).toMatchObject({ code: 'insufficient-wallet', detail: String(STAKE) })
     expect(acc.sent).toEqual([])
   })
 
   test('open maps the house-liquidity revert and the sponsor quota refusal to their own codes', async () => {
     const house = encodeErrorResult({ abi: parseAbi(['error InsufficientHouseLiquidity()']), errorName: 'InsufficientHouseLiquidity' })
-    const noHouse = await openPaidSession(deps({ ...base(), available: STAKE }, fakeAccount(() => { throw { message: 'x', data: house } })), 2, STAKE)
+    const noHouse = await openPaidSession(deps(base(), fakeAccount(() => { throw { message: 'x', data: house } })), 2, STAKE)
       .catch((e: unknown) => e)
     expect(noHouse).toMatchObject({ code: 'house-liquidity', detail: 'InsufficientHouseLiquidity' })
     const quota = await openPaidSession(
-      deps({ ...base(), available: STAKE }, fakeAccount(() => { throw new Error("Policy's max count per spender exceeded") })), 2, STAKE,
+      deps(base(), fakeAccount(() => { throw new Error("Policy's max count per spender exceeded") })), 2, STAKE,
     ).catch((e: unknown) => e)
     expect(quota).toMatchObject({ code: 'sponsor-quota', detail: SPONSOR_QUOTA_REASON })
   })
@@ -234,10 +231,10 @@ describe('happy paths parse the receipts of the included calls', () => {
     }
   }
 
-  const base = (): ChainState => ({ sessionOf: ZERO, available: STAKE, balance: 0n, state: 1, choice: null, settledLogs: [] })
+  const base = (): ChainState => ({ sessionOf: ZERO, balance: STAKE, state: 1, choice: null, settledLogs: [] })
   const TX = keccak256(toHex('tx-1'))
 
-  test('open: available covers the stake, so only openSession is sent; facts come from SessionOpened', async () => {
+  test('open: one call pays the full stake to Game; facts come from SessionOpened', async () => {
     const acc = includedAccount([TX])
     const sent: ContractCall[][] = []
     const spy: CallAccount = { ...acc, send: async (calls) => { sent.push([...calls]); return 'call-1' } }

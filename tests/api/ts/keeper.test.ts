@@ -50,7 +50,6 @@ const KEY_FILE = `keys/.l2-anvil-${process.pid}.private`
 const RULESET = PAID_RULESET_HASH
 const TIER1 = parseEther('0.3')
 const HOUSE = parseEther('10')
-const DEPOSIT = parseEther('5')
 
 type Artifact = { abi: Abi; bytecode: { object: Hex } }
 const artifact = (path: string): Artifact => JSON.parse(readFileSync(resolve(ROOT, 'out', path), 'utf8')) as Artifact
@@ -155,7 +154,7 @@ describe('keeper × PonyGame on anvil', () => {
   }
 
   async function openSession(horseId: number, at: bigint): Promise<Hex> {
-    await send('player', game, gameAbi(), 'openSession', [horseId, TIER1], undefined, at)
+    await send('player', game, gameAbi(), 'openSession', [horseId, TIER1], TIER1, at)
     return await clients().pub.readContract({
       address: game, abi: gameAbi(), functionName: 'sessionOf', args: [player.address],
     }) as Hex
@@ -205,7 +204,6 @@ describe('keeper × PonyGame on anvil', () => {
     expect(game).toBeDefined()
     expect(vault).toBeDefined()
 
-    await send('player', vault, vaultAbi(), 'deposit', [], DEPOSIT)
   }, 120_000)
 
   afterAll(() => {
@@ -294,7 +292,7 @@ describe('keeper × PonyGame on anvil', () => {
     expect((await session(sessionId)).state).toBe(1)
 
     const houseBefore = await readVault('houseLiquidity')
-    const availableBefore = await readVault('available', [player.address])
+    const availableBefore = await clients().pub.getBalance({ address: player.address })
     const live = await createKeeper(keeperConfig({ send: true, keyPath: resolve(ROOT, KEY_FILE) }))
     const sent = (await live.runOnce()).actions.find((a) => a.sessionId === sessionId)
     expect(sent).toMatchObject({ kind: 'forfeit', sessionId, reason: 1, dryRun: false })
@@ -302,7 +300,7 @@ describe('keeper × PonyGame on anvil', () => {
     expect(sent.gasUsed).toBeGreaterThan(0n)
     expect((await session(sessionId)).state).toBe(3)
     expect(await readVault('houseLiquidity')).toBe(houseBefore + TIER1)
-    expect(await readVault('available', [player.address])).toBe(availableBefore)
+    expect(await clients().pub.getBalance({ address: player.address })).toBe(availableBefore)
     expect(await readVault('reservedLiquidity')).toBe(0n)
     expect((await live.runOnce()).actions).toEqual([])
   })

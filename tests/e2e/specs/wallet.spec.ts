@@ -1,10 +1,10 @@
 /**
- * L3 钱包动线：取名注册 → 解析游戏账户（sma-b）并给它领测试币 → 看游戏账户、签名账户与两种余额
+ * L3 钱包动线：取名注册 → 解析游戏账户（sma-b）并给它领测试币 → 看游戏账户、签名账户与原生余额
  *            → 导出助记词 → 退出 → 登录回同一个游戏账户；以及把签名账户的余额迁入游戏账户。
  *
  * 通行密钥用 Chrome 的 CDP 虚拟认证器（开 PRF 扩展）驱动，跑的是真实的 mera 代码路径；
  * RPC、水龙头与 Alchemy 都在路由层拦下，测试不打真实测试网、不消耗水龙头额度。
- * 构建未配置 Vault 地址，所以游戏余额恒为「合约尚未部署」、充值提款不可用。
+ * 构建未配置 Vault 地址，所以余额直接读取智能账户，不提供 Vault 充值或提款。
  */
 import { expect, test } from '@playwright/test'
 import { enterHome, noConsoleErrors, open } from '../helpers.ts'
@@ -12,7 +12,7 @@ import { ONE_MON, addAuthenticator, logout, readAddress, readAddresses, register
 
 const SHOT = 'tests/e2e/screenshots'
 
-test('钱包动线：取名注册 → 游戏账户领币 → 两个地址与两种余额 → 导出助记词 → 退出 → 登录回同一账户', async ({ page }) => {
+test('钱包动线：取名注册 → 游戏账户领币 → 两个地址与智能账户余额 → 导出助记词 → 退出 → 登录回同一账户', async ({ page }) => {
   const errors = await noConsoleErrors(page)
   await addAuthenticator(page)
   const chain = await stubChain(page)
@@ -39,7 +39,7 @@ test('钱包动线：取名注册 → 游戏账户领币 → 两个地址与两�
   expect(chain.faucetCalls()).toBe(1)
   await page.screenshot({ path: `${SHOT}/21-wallet-registered.png` })
 
-  // --- 钱包面板：游戏账户、签名账户、网络、钱包余额、游戏余额 ---
+  // --- 钱包面板：游戏账户、签名账户、网络、钱包余额 ---
   await page.getByTestId('wallet-open').click()
   await expect(page.getByTestId('wallet-modal')).toBeVisible()
   const game = (await page.getByTestId('wallet-address').innerText()).trim()
@@ -52,10 +52,10 @@ test('钱包动线：取名注册 → 游戏账户领币 → 两个地址与两�
   expect(chain.faucetAddresses()).toEqual([game])
   await expect(page.getByTestId('wallet-network')).toHaveText('Monad Testnet')
   await expect(page.getByTestId('wallet-balance')).toHaveText('1.0000 MON')
-  await expect(page.getByTestId('wallet-game-balance')).toHaveText(/游戏合约尚未部署|not deployed/)
-  await expect(page.getByTestId('wallet-amount')).toBeDisabled()
-  await expect(page.getByRole('button', { name: /^充值$|^Deposit$/ })).toBeDisabled()
-  await expect(page.getByRole('button', { name: /^提款$|^Withdraw$/ })).toBeDisabled()
+  await expect(page.getByTestId('wallet-game-balance')).toHaveCount(0)
+  await expect(page.getByTestId('wallet-amount')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^充值$|^Deposit$/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^提款$|^Withdraw$/ })).toHaveCount(0)
   // 签名账户里没有钱，不露出迁移入口
   await expect(page.getByTestId('wallet-migrate')).toHaveCount(0)
   await page.screenshot({ path: `${SHOT}/22-wallet-modal.png` })

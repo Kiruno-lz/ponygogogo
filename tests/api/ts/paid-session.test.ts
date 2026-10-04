@@ -25,9 +25,9 @@ import type { CallAccount, CallProgress, ContractCall } from '../../../src/chain
 import { ChainClock } from '../../../src/chain/chainClock.ts'
 import { DirectEoaAccount } from '../../../src/chain/devChain.ts'
 import { CHAIN } from '../../../src/chain/network.ts'
-import { ponyGameAbi, ponyVaultSessionAbi } from '../../../src/chain/paidCalls.ts'
+import { ponyGameAbi } from '../../../src/chain/paidCalls.ts'
 import {
-  choosePaidCard, openPaidSession, PaidSessionError, readSessionFacts, readVaultAvailable, recoverPaidSession,
+  choosePaidCard, openPaidSession, PaidSessionError, readSessionFacts, recoverPaidSession,
   settlePaidSession, type PaidChainDeps, type PaidSessionFacts,
 } from '../../../src/chain/paidSession.ts'
 import { PAID_STAKE_WEI } from '../../../src/chain/paidStakes.ts'
@@ -87,7 +87,7 @@ function playerAccount(rig: Rig, key: Hex): DirectEoaAccount {
 }
 
 function deps(rig: Rig, account: CallAccount): PaidChainDeps {
-  return { account, client: rig.pub, game: rig.info.game, vault: rig.info.vault, poll: FAST, clock: new ChainClock({ epochOffsetMs: 0 }) }
+  return { account, client: rig.pub, game: rig.info.game, poll: FAST, clock: new ChainClock({ epochOffsetMs: 0 }) }
 }
 
 async function latestTimestamp(rig: Rig): Promise<number> {
@@ -136,8 +136,7 @@ describe('hand-written ABI matches the Foundry artifacts', () => {
     expect(check(ponyGameAbi as unknown as Abi, artifactAbi('PonyGame.sol/PonyGame.json'))).toBe(ponyGameAbi.length)
   })
 
-  test('PonyVault session subset and the mock solver aligner', () => {
-    expect(check(ponyVaultSessionAbi as unknown as Abi, artifactAbi('PonyVault.sol/PonyVault.json'))).toBe(2)
+  test('mock solver aligner ABI', () => {
     expect(check(mockSolverAbi as unknown as Abi, artifactAbi('MockPaidRaceSolver.sol/MockPaidRaceSolver.json'))).toBe(4)
   })
 })
@@ -159,18 +158,20 @@ describe('paid session on anvil (stand-in solver aligned to the TS solver)', () 
     rig?.anvil.kill()
   })
 
-  test('open: one batch deposits the Vault shortfall and opens; events give sessionId, seed, T0, b0 and the open anchor', async () => {
+  test('open: one transaction pays the stake to Game and opens; events give sessionId, seed, T0, b0 and the open anchor', async () => {
     const steps: string[] = []
-    expect(await readVaultAvailable(rig.pub, rig.info.vault, player.getAddress())).toBe(0n)
-    const { facts: opened } = await openPaidSession(deps(rig, player), 3, STAKE, (s) => steps.push(s.phase))
-    facts = opened
+    const walletBefore = await rig.pub.getBalance({ address: player.getAddress() })
+    const nonceBefore = await rig.pub.getTransactionCount({ address: player.getAddress() })
+    const openedResult = await openPaidSession(deps(rig, player), 3, STAKE, (s) => steps.push(s.phase))
+    facts = openedResult.facts
+    const receipt = await rig.pub.getTransactionReceipt({ hash: openedResult.hash! })
+    expect(await rig.pub.getTransactionCount({ address: player.getAddress() })).toBe(nonceBefore + 1)
+    expect(await rig.pub.getBalance({ address: player.getAddress() })).toBe(walletBefore - STAKE - receipt.gasUsed * receipt.effectiveGasPrice)
     expect(steps).toEqual(['signing', 'submitted', 'included'])
     expect(facts).toMatchObject({ player: player.getAddress(), horseId: 3, stakeTier: TIER, stake: STAKE, state: 1 })
     const block = await rig.pub.getBlock({ blockNumber: facts.openedBlock })
     expect(facts.openAnchor).toBe(block.hash)
     expect(facts.openedAt).toBe(Number(block.timestamp))
-    // the whole stake came from the wallet and is now locked, nothing left available
-    expect(await readVaultAvailable(rig.pub, rig.info.vault, player.getAddress())).toBe(0n)
     expect(await readSessionFacts(rig.pub, rig.info.game, facts.sessionId)).toEqual(facts)
     await alignMockSolver(rig.pub, rig.owner, rig.info.solver, facts)
   })
@@ -246,6 +247,7 @@ describe('paid session on anvil (stand-in solver aligned to the TS solver)', () 
 
     await atSecond(rig, facts.openedAt + Math.ceil(finishWall / 1000))
     const steps: string[] = []
+    const walletBefore = await rig.pub.getBalance({ address: player.getAddress() })
     const out = await settlePaidSession(deps(rig, player), facts, (s) => steps.push(s.phase))
     expect(out.state).toBe('settled')
     if (out.state !== 'settled') throw new Error('unreachable')
@@ -256,7 +258,8 @@ describe('paid session on anvil (stand-in solver aligned to the TS solver)', () 
     const multipliers = [30_000n, 15_000n, 10_000n, 0n, 0n]
     expect(s.payout).toBe(STAKE * multipliers[s.rank - 1]! / 10_000n)
     expect(s.hash).toMatch(/^0x[0-9a-f]{64}$/)
-    expect(await readVaultAvailable(rig.pub, rig.info.vault, player.getAddress())).toBe(s.payout)
+    const receipt = await rig.pub.getTransactionReceipt({ hash: s.hash! })
+    expect(await rig.pub.getBalance({ address: player.getAddress() })).toBe(walletBefore + s.payout - receipt.gasUsed * receipt.effectiveGasPrice)
     expect(await recoverPaidSession(rig.pub, rig.info.game, player.getAddress())).toBeNull()
     expect((await readSessionFacts(rig.pub, rig.info.game, facts.sessionId)).state).toBe(2)
 
@@ -266,13 +269,14 @@ describe('paid session on anvil (stand-in solver aligned to the TS solver)', () 
     expect(steps.filter((x) => x.startsWith('again'))).toEqual([])
   })
 
-  test('a second open is funded from the Vault balance alone (no deposit call) once available covers the stake', async () => {
-    const before = await readVaultAvailable(rig.pub, rig.info.vault, player.getAddress())
-    if (before < STAKE) return
+  test('a later open also pays its complete stake from the wallet', async () => {
+    const before = await rig.pub.getBalance({ address: player.getAddress() })
     const { facts: next } = await openPaidSession(deps(rig, player), 0, STAKE)
-    expect(await readVaultAvailable(rig.pub, rig.info.vault, player.getAddress())).toBe(before - STAKE)
+    const after = await rig.pub.getBalance({ address: player.getAddress() })
+    expect(after).toBeLessThanOrEqual(before - STAKE)
     expect(next.sessionId).not.toBe(facts.sessionId)
   })
+
 })
 
 // ------------------------------------------------------------------------------------------------ real solver

@@ -1,12 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { decodeFunctionData, type Address } from 'viem'
+import { type Address } from 'viem'
 import type { CallAccount, CallProgress, ContractCall } from './alchemy.ts'
 import { MON } from './amount.ts'
-import { FundsError, depositToVault, trackCall, trackTransaction, withdrawFromVault, type FundsSnapshot } from './funds.ts'
-import { vaultAbi } from './vault.ts'
+import { readFunds, trackCall, trackTransaction } from './funds.ts'
 
 const PLAYER = '0x1111111111111111111111111111111111111111' as Address
-const VAULT = '0x2222222222222222222222222222222222222222' as Address
 const HASH = `0x${'ab'.repeat(32)}` as const
 
 function account(address: Address | null = PLAYER, script: Array<CallProgress | Error> = []) {
@@ -24,45 +22,14 @@ function account(address: Address | null = PLAYER, script: Array<CallProgress | 
   return { acct, sent }
 }
 
-const ready = (wallet: bigint, available: bigint): FundsSnapshot => ({
-  blockNumber: 1n, player: PLAYER, wallet, vault: { state: 'ready', address: VAULT, available },
-})
-
-async function code(p: Promise<unknown>): Promise<string> {
-  const err = await p.then(() => null, (e: unknown) => e)
-  return err instanceof FundsError ? err.code : String(err)
-}
-
-describe('vault deposit and withdraw', () => {
-  test('deposit sends the payable call with value from the smart account', async () => {
-    const { acct, sent } = account()
-    expect(await depositToVault(acct, ready(MON, 0n), MON)).toBe('call-1')
-    expect(sent).toHaveLength(1)
-    const [call] = sent[0]!
-    expect(call!.to).toBe(VAULT)
-    expect(call!.value).toBe(MON)
-    expect(decodeFunctionData({ abi: vaultAbi, data: call!.data }).functionName).toBe('deposit')
-  })
-
-  test('withdraw sends withdraw(amount) without value', async () => {
-    const { acct, sent } = account()
-    await withdrawFromVault(acct, ready(0n, 2n * MON), MON)
-    const [call] = sent[0]!
-    expect(call!.value).toBeUndefined()
-    expect(decodeFunctionData({ abi: vaultAbi, data: call!.data })).toEqual({ functionName: 'withdraw', args: [MON] })
-  })
-
-  test('refuses what would certainly fail, before asking the user to sign', async () => {
-    const notDeployed: FundsSnapshot = { blockNumber: 1n, player: PLAYER, wallet: MON, vault: { state: 'not-deployed', reason: 'unset' } }
-    expect(await code(depositToVault(account().acct, notDeployed, 1n))).toBe('vault-not-deployed')
-    expect(await code(depositToVault(account().acct, ready(MON, 0n), 0n))).toBe('invalid-amount')
-    expect(await code(depositToVault(account().acct, ready(MON, 0n), MON + 1n))).toBe('insufficient-wallet')
-    expect(await code(withdrawFromVault(account().acct, ready(0n, MON), MON + 1n))).toBe('insufficient-available')
-    expect(await code(depositToVault(account(null).acct, ready(MON, 0n), 1n))).toBe('account-not-resolved')
-    const other = account('0x3333333333333333333333333333333333333333')
-    expect(await code(depositToVault(other.acct, ready(MON, 0n), 1n))).toBe('stale-funds')
-    expect(other.sent).toHaveLength(0)
-  })
+test('funds read the smart account MON balance at one uncached block', async () => {
+  const requests: unknown[] = []
+  const reader = {
+    getBlockNumber: async (args: unknown) => { requests.push(args); return 7n },
+    getBalance: async (args: unknown) => { requests.push(args); return MON },
+  } as Parameters<typeof readFunds>[0]
+  expect(await readFunds(reader, PLAYER)).toEqual({ blockNumber: 7n, player: PLAYER, wallet: MON })
+  expect(requests).toEqual([{ cacheTime: 0 }, { address: PLAYER, blockNumber: 7n }])
 })
 
 describe('call tracking', () => {

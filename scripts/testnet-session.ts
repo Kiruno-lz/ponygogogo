@@ -1,11 +1,11 @@
 /**
  * P5 测试网真实有奖会话（会话协议 v2）：走产品路径——src/chain/alchemy.ts 的 AlchemyAccount（sma-b，Alchemy 赞助）
- * + src/chain/paidSession.ts 的开场/选牌/结算 + src/chain/funds.ts 的提款——在 Monad 测试网跑一场
- * 充值+开场 → 选牌 → 等规范冲线 → 结算 → 提款，逐笔记录 call id、交易哈希、块、时间戳、gasUsed 与时延，
+ * + src/chain/paidSession.ts 的开场/选牌/结算——在 Monad 测试网跑一场
+ * 直接支付下注开场 → 选牌 → 等规范冲线 → 结算，逐笔记录 call id、交易哈希、块、时间戳、gasUsed 与时延，
  * 并把 previewSettlement / SessionSettled 与 TS `solvePaidRace`（同一链上输入）逐字段比对。
  *
  * 默认只模拟（读链、eth_call、Alchemy prepareCalls 估算），不发任何交易；`--send` 才发送。开新场还要 `--open`，
- * 避免重跑时误开第二场；不带 `--open` 时只恢复并走完未完结会话，没有会话就只提款。
+ * 避免重跑时误开第二场；不带 `--open` 时只恢复并走完未完结会话，没有会话就结束。
  *
  * 私钥只从文件读，从不输出：玩家 PLAYER_KEY_PATH（缺省 keys/ponygogogo-testnet-player.private，`--create-player`
  * 在缺失时随机生成并以 0600 写入）；部署者 DEPLOYER_PRIVATE_KEY_PATH（只在 sma-b 需要充值时读，充值额受 --max-topup
@@ -14,8 +14,8 @@
  *
  * 用法：
  *   bun scripts/testnet-session.ts [--create-player]         # 模拟：解析 sma-b、读余额/会话、prepareCalls 估算
- *   bun scripts/testnet-session.ts --send --open             # 充值差额 → 开场 → 选牌 → 等冲线 → 时延采样 → 结算 → 提款
- *   bun scripts/testnet-session.ts --send                    # 恢复未完结会话并走完；无会话则只提款
+ *   bun scripts/testnet-session.ts --send --open             # 直接支付下注开场 → 选牌 → 等冲线 → 时延采样 → 结算
+ *   bun scripts/testnet-session.ts --send                    # 恢复未完结会话并走完；无会话则结束
  *   PLAYER_KEY_PATH=keys/<probe>.private bun scripts/testnet-session.ts --create-player --send --session 0x… --no-settle
  *                                                            # 另一个 sma-b 对任意开放会话发 sealAnchors 时延样本（任何人可调）
  *   bun scripts/testnet-session.ts --heavy [--send]          # 重结算可行性：prepareCalls 估算约 11M/23M/29M 调用 gas，
@@ -25,7 +25,7 @@
  *       缺省 1）--samples N（sealAnchors 时延样本，缺省 16）--choose-delay-ms N（确认过 openSec 后再等多久点击，缺省 1500）
  *       --max-topup MON（缺省 0.35，够第 1 档 0.3 MON 下注加 gas）--out 目录（缺省 runs/）
  * Alchemy 赞助策略按 spender 限次（实测约 75 s 内第 11 次被拒「max count per spender exceeded」，稍后恢复）：
- * 采样遇拒即停，结算/提款遇拒不重试，报告里记录原因。
+ * 采样遇拒即停，结算遇拒不重试，报告里记录原因。
  */
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -37,13 +37,13 @@ import {
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { AlchemyAccount, type CallAccount, type CallProgress, type ContractCall } from '../src/chain/alchemy.ts'
 import { ChainClock, startClockSync } from '../src/chain/chainClock.ts'
-import { readFunds, trackCall, withdrawCall, withdrawFromVault } from '../src/chain/funds.ts'
+import { readFunds, trackCall } from '../src/chain/funds.ts'
 import { CHAIN } from '../src/chain/network.ts'
 import {
-  chooseCardCall, openSessionCalls, ponyGameAbi, sealAnchorsCall, SESSION_STATE, settleSessionCall,
+  chooseCardCall, openSessionCall, ponyGameAbi, sealAnchorsCall, SESSION_STATE, settleSessionCall,
 } from '../src/chain/paidCalls.ts'
 import {
-  choosePaidCard, errorReason, openPaidSession, readSessionFacts, readVaultAvailable, recoverPaidSession,
+  choosePaidCard, errorReason, openPaidSession, readSessionFacts, recoverPaidSession,
   settlePaidSession, type PaidChainDeps, type PaidChoiceFacts, type PaidSessionFacts,
 } from '../src/chain/paidSession.ts'
 import { PAID_STAKE_WEI } from '../src/chain/paidStakes.ts'
@@ -71,9 +71,7 @@ const vaultStateAbi = parseAbi([
   'function entryPaused() view returns (bool)',
   'function houseLiquidity() view returns (uint256)',
   'function reservedLiquidity() view returns (uint256)',
-  'function totalAvailable() view returns (uint256)',
   'function totalLocked() view returns (uint256)',
-  'function available(address) view returns (uint256)',
 ])
 const solverAbi = parseAbi([
   'struct ChoiceInput { bool present; uint32 txSec; uint8 cardId; uint8[] refreshSlots; bytes32 anchor; }',
@@ -376,7 +374,7 @@ async function main(): Promise<void> {
   const clock = new ChainClock()
   const sync = startClockSync(pub, clock, { intervalMs: 1000 })
   const timed = new TimedAccount(alchemy, clock)
-  const deps: PaidChainDeps = { account: timed, client: pub, game: cfg.game, vault: cfg.vault, poll: POLL, clock }
+  const deps: PaidChainDeps = { account: timed, client: pub, game: cfg.game, poll: POLL, clock }
   const stake = PAID_STAKE_WEI[cfg.tier]
   log('player root', signer.address)
   log('player sma-b', sma)
@@ -419,7 +417,7 @@ async function main(): Promise<void> {
 
   try {
     // ------------------------------------------------------------ contract state
-    const [solver, rulesetHash, entryPaused, boundVault, vaultGame, house, reserved, totalAvail, totalLocked, vaultBal] = await Promise.all([
+    const [solver, rulesetHash, entryPaused, boundVault, vaultGame, house, reserved, totalLocked, vaultBal] = await Promise.all([
       pub.readContract({ address: cfg.game, abi: extraGameAbi, functionName: 'solver' }),
       pub.readContract({ address: cfg.game, abi: ponyGameAbi, functionName: 'rulesetHash' }),
       pub.readContract({ address: cfg.game, abi: ponyGameAbi, functionName: 'entryPaused' }),
@@ -427,15 +425,14 @@ async function main(): Promise<void> {
       pub.readContract({ address: cfg.vault, abi: vaultStateAbi, functionName: 'game' }),
       pub.readContract({ address: cfg.vault, abi: vaultStateAbi, functionName: 'houseLiquidity' }),
       pub.readContract({ address: cfg.vault, abi: vaultStateAbi, functionName: 'reservedLiquidity' }),
-      pub.readContract({ address: cfg.vault, abi: vaultStateAbi, functionName: 'totalAvailable' }),
       pub.readContract({ address: cfg.vault, abi: vaultStateAbi, functionName: 'totalLocked' }),
       pub.getBalance({ address: cfg.vault }),
     ])
     const state = {
       solver, rulesetHash, rulesetMatches: rulesetHash === PAID_RULESET_HASH, entryPaused,
       bound: isAddressEqual(boundVault, cfg.vault) && isAddressEqual(vaultGame, cfg.game),
-      house, reserved, totalAvail, totalLocked, vaultBal,
-      solvent: vaultBal >= totalAvail + totalLocked + house && house >= reserved,
+      house, reserved, totalLocked, vaultBal,
+      solvent: vaultBal >= totalLocked + house && house >= reserved,
     }
     log('contracts', state)
     report.contracts = state
@@ -447,10 +444,9 @@ async function main(): Promise<void> {
     }
 
     // ------------------------------------------------------------ balances and session
-    const funds0 = await readFunds(pub, cfg.vault, sma)
-    const available0 = funds0.vault.state === 'ready' ? funds0.vault.available : 0n
-    log('sma-b funds', { wallet: formatEther(funds0.wallet), vaultAvailable: formatEther(available0) })
-    report.fundsBefore = { wallet: funds0.wallet, vaultAvailable: available0 }
+    const funds0 = await readFunds(pub, sma)
+    log('sma-b funds', { wallet: formatEther(funds0.wallet) })
+    report.fundsBefore = { wallet: funds0.wallet }
 
     let facts: PaidSessionFacts | null = cfg.sessionId
       ? await readSessionFacts(pub, cfg.game, cfg.sessionId)
@@ -463,8 +459,7 @@ async function main(): Promise<void> {
 
     if (!facts && cfg.open && !cfg.sessionId) {
       if (entryPaused) throw new Error('ENTRY_PAUSED')
-      const shortfall = available0 >= stake ? 0n : stake - available0
-      const topup = shortfall > funds0.wallet ? shortfall - funds0.wallet : 0n
+      const topup = stake > funds0.wallet ? stake - funds0.wallet : 0n
       if (topup > cfg.maxTopup) throw new Error(`TOPUP_OVER_CAP ${formatEther(topup)} > ${formatEther(cfg.maxTopup)}`)
       if (topup > 0n) {
         if (!cfg.deployerKeyPath) throw new Error('MISSING_DEPLOYER_PRIVATE_KEY_PATH')
@@ -484,23 +479,22 @@ async function main(): Promise<void> {
           if (receipt.status !== 'success') throw new Error('TOPUP_REVERTED')
         }
       }
-      const calls = openSessionCalls(cfg.vault, cfg.game, cfg.horse, stake, shortfall)
+      const calls = [openSessionCall(cfg.game, cfg.horse, stake)]
       const walletNow = await pub.getBalance({ address: sma })
-      const prepared = walletNow >= shortfall ? await prepare('deposit+openSession', calls) : null
-      if (walletNow < shortfall) log('prepareCalls deposit+openSession skipped', `sma-b holds ${formatEther(walletNow)} < ${formatEther(shortfall)}; the top-up comes first`)
+      const prepared = walletNow >= stake ? await prepare('openSession', calls) : null
+      if (walletNow < stake) log('prepareCalls openSession skipped', `sma-b holds ${formatEther(walletNow)} < ${formatEther(stake)}; the top-up comes first`)
       if (!cfg.send) {
         log('simulate-only: pass --send to broadcast')
         return
       }
       if (!prepared) throw new Error('OPEN_NOT_PREPARED')
-      timed.label('deposit+openSession', prepared)
+      timed.label('openSession', prepared)
       const opened = await openPaidSession(deps, cfg.horse, stake)
       await finish(lastRecord(), opened.hash ? [opened.hash] : [])
       facts = opened.facts
     }
 
     if (!facts) {
-      await withdrawAll(cfg, pub, timed, prepare, finish, log, report)
       return
     }
     const asPlayer = isAddressEqual(facts.player, sma)
@@ -664,7 +658,7 @@ async function main(): Promise<void> {
     if (!cfg.send) {
       const simError = await simulate('settleSession', settleCall)
       report.settleSimulation = { reverted: simError, prepared: simError ? null : await prepare('settleSession', [settleCall]) }
-      log('simulate-only: pass --send to settle and withdraw')
+      log('simulate-only: pass --send to settle')
       return
     }
     let settled = null
@@ -697,8 +691,6 @@ async function main(): Promise<void> {
     log('SessionSettled', settled)
     log('SessionSettled vs solvePaidRace', settleCheck)
     report.settlement = { event: settled, settleCheck }
-
-    await withdrawAll(cfg, pub, timed, prepare, finish, log, report)
   } finally {
     sync.stop()
     const calls = timed.records.map((r) => ({
@@ -717,8 +709,8 @@ async function main(): Promise<void> {
       report.latency = { submitToIncludedMs: stats(lat), includedToFinalizedMs: fin.length ? stats(fin) : null, submitToBlockTimestampMs: stats(blockLat), marginMs: ALCHEMY_TIMING.marginMs }
       log('latency', report.latency)
     }
-    const fundsEnd = await readFunds(pub, cfg.vault, sma).catch(() => null)
-    if (fundsEnd) report.fundsAfter = { wallet: fundsEnd.wallet, vaultAvailable: fundsEnd.vault.state === 'ready' ? fundsEnd.vault.available : null }
+    const fundsEnd = await readFunds(pub, sma).catch(() => null)
+    if (fundsEnd) report.fundsAfter = { wallet: fundsEnd.wallet }
     report.finishedAt = new Date().toISOString()
     mkdirSync(cfg.outDir, { recursive: true })
     const out = resolve(cfg.outDir, `testnet-${report.mode}-${Date.now()}.json`)
@@ -730,31 +722,6 @@ async function main(): Promise<void> {
 type Logger = (label: string, value?: unknown) => void
 type Prepare = (label: string, calls: readonly ContractCall[]) => Promise<Record<string, unknown> | null>
 type Finish = (record: CallRecord | undefined, hashes: readonly Hex[]) => Promise<void>
-
-/** Withdraws the whole Vault available balance back to the sma-b wallet (product path: funds.withdrawFromVault). */
-async function withdrawAll(
-  cfg: SessionScriptConfig, pub: PublicClient, timed: TimedAccount, prepare: Prepare, finish: Finish, log: Logger,
-  report: Record<string, unknown>,
-): Promise<void> {
-  const player = timed.getAddress()!
-  const funds = await readFunds(pub, cfg.vault, player)
-  const available = funds.vault.state === 'ready' ? funds.vault.available : 0n
-  log('vault available before withdraw', formatEther(available))
-  if (available === 0n) {
-    report.withdraw = { skipped: 'nothing available' }
-    return
-  }
-  const prepared = await prepare('withdraw', [withdrawCall(cfg.vault, available)])
-  if (!cfg.send || !prepared) {
-    report.withdraw = { simulated: available, prepared }
-    return
-  }
-  timed.label('withdraw', prepared)
-  const id = await withdrawFromVault(timed, funds, available)
-  const progress = await trackCall(timed, id, POLL)
-  await finish(timed.records.at(-1), progress.state === 'included' || progress.state === 'failed' ? progress.transactionHashes : [])
-  report.withdraw = { amount: available, state: progress.state, availableAfter: await readVaultAvailable(pub, cfg.vault, player) }
-}
 
 type VectorSlot = { txSec: string; cardId: number; refreshSlots: number[]; anchor: Hex } | null
 type VectorCase = { name: string; stopAtPanel?: number; input: { seed: Hex; openAnchor: Hex; playerHorseId: number; choices: VectorSlot[] }; expected: { stepCount: number; digest: Hex } }
