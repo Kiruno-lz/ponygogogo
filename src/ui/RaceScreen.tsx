@@ -127,7 +127,7 @@ export function RaceScreen(p: RaceScreenProps) {
             setPunch((k) => k + 1)
           }
         }
-        for (const key of raceEventSounds(events)) p.audio.play(key, key === 'audio.sfx_explosion' ? 0.85 : 0.6)
+        for (const key of raceEventSounds(events, p.driver.state.playerHorseId)) p.audio.play(key, key === 'audio.sfx_explosion' ? 0.85 : 0.6)
       }
       p.audio.setSlowmo(p.driver.slowmo)
       // 倒计时滴答，最后一声换成起跑枪

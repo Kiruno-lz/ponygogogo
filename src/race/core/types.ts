@@ -210,7 +210,7 @@ export type RaceEvent =
   | { type: 'cardPicked'; horseId: number; cardId: string; tick: number }
   | { type: 'exhaustEnter'; horseId: number; tick: number }
   | { type: 'exhaustExit'; horseId: number; tick: number }
-  | { type: 'wind'; dir: 1 | -1; tick: number }
+  | { type: 'wind'; horseId: number; dir: 1 | -1; tick: number }
   | { type: 'finish'; horseId: number; rank: number; tick: number }
   | { type: 'combo'; horseId: number; tick: number }
 

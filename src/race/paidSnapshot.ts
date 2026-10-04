@@ -319,7 +319,7 @@ export function toRaceEvent(e: PaidLoggedEvent, trace: PaidTrace, playerHorseId:
     case EV_TARGET: return { type: 'cardEffect', horseId: e.horse, cardId: 'C-34', kind: 'target', value: Number(e.arg), tick }
     case EV_GUARD: return { type: 'cardEffect', horseId: e.horse, cardId: 'C-37', kind: 'guard', value: 1, tick }
     case EV_EQUIP_REFRESH: return { type: 'cardEffect', horseId: e.horse, cardId: 'C-32', kind: 'renew', value: Number(e.arg), tick }
-    case EV_WIND: return { type: 'wind', dir: e.arg < 0n ? -1 : 1, tick }
+    case EV_WIND: return { type: 'wind', horseId: e.horse, dir: e.arg < 0n ? -1 : 1, tick }
     default: return null
   }
 }
