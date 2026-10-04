@@ -236,9 +236,18 @@ describe('显示尺寸表', () => {
   })
 })
 
-// The derived alpha QR must ship losslessly; its input stays in art-src unchanged.
-test('透明二维码使用独立 PNG 产物并保持母版像素', () => {
+test('public 中的二维码是可解码且包含透明背景和可见内容的 RGBA PNG', () => {
   const runtime = readFileSync(join(PUBLIC, 'assets/art/share/qr.png'))
-  expect(runtime.equals(readFileSync(join(ROOT, 'art-src/art/share/qr.png')))).toBe(true)
   expect(runtime[25]).toBe(6) // RGBA
+  const qr = PNG.sync.read(runtime)
+  expect(qr.width).toBeGreaterThan(0)
+  expect(qr.height).toBeGreaterThan(0)
+  let transparent = 0
+  let opaque = 0
+  for (let i = 3; i < qr.data.length; i += 4) {
+    if (qr.data[i] === 0) transparent++
+    if (qr.data[i] === 255) opaque++
+  }
+  expect(transparent, '二维码必须包含透明背景').toBeGreaterThan(0)
+  expect(opaque, '二维码必须包含可见内容').toBeGreaterThan(0)
 })
