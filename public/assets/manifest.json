@@ -804,139 +804,6 @@
     "tier": "home",
     "alt": "assets/placeholder/audio/sfx_ui_hover.mp3"
   },
-  "cards.card-22": {
-    "kind": "image",
-    "path": "assets/cards/card-22.svg",
-    "bytes": 309,
-    "sha256": "c6fe0aac02e463e9",
-    "tier": "race"
-  },
-  "cards.card-23": {
-    "kind": "image",
-    "path": "assets/cards/card-23.svg",
-    "bytes": 311,
-    "sha256": "bfb98b7f004749ac",
-    "tier": "race"
-  },
-  "cards.card-24": {
-    "kind": "image",
-    "path": "assets/cards/card-24.svg",
-    "bytes": 291,
-    "sha256": "b28776c6939ee113",
-    "tier": "race"
-  },
-  "cards.card-25": {
-    "kind": "image",
-    "path": "assets/cards/card-25.svg",
-    "bytes": 307,
-    "sha256": "2cc3326c756a19ca",
-    "tier": "race"
-  },
-  "cards.card-26": {
-    "kind": "image",
-    "path": "assets/cards/card-26.svg",
-    "bytes": 343,
-    "sha256": "3de76e690838119f",
-    "tier": "race"
-  },
-  "cards.card-27": {
-    "kind": "image",
-    "path": "assets/cards/card-27.svg",
-    "bytes": 287,
-    "sha256": "5bffbf1a8a07e900",
-    "tier": "race"
-  },
-  "cards.card-28": {
-    "kind": "image",
-    "path": "assets/cards/card-28.svg",
-    "bytes": 288,
-    "sha256": "d0ca6113c431958e",
-    "tier": "race"
-  },
-  "cards.card-29": {
-    "kind": "image",
-    "path": "assets/cards/card-29.svg",
-    "bytes": 388,
-    "sha256": "89ba5e822b2f51a7",
-    "tier": "race"
-  },
-  "cards.card-30": {
-    "kind": "image",
-    "path": "assets/cards/card-30.svg",
-    "bytes": 314,
-    "sha256": "669876edeeeee26f",
-    "tier": "race"
-  },
-  "cards.card-31": {
-    "kind": "image",
-    "path": "assets/cards/card-31.svg",
-    "bytes": 330,
-    "sha256": "5ff35ac96018a395",
-    "tier": "race"
-  },
-  "cards.card-32": {
-    "kind": "image",
-    "path": "assets/cards/card-32.svg",
-    "bytes": 365,
-    "sha256": "b05bbba813d36674",
-    "tier": "race"
-  },
-  "cards.card-33": {
-    "kind": "image",
-    "path": "assets/cards/card-33.svg",
-    "bytes": 355,
-    "sha256": "b082b48036eb5a3c",
-    "tier": "race"
-  },
-  "cards.card-34": {
-    "kind": "image",
-    "path": "assets/cards/card-34.svg",
-    "bytes": 327,
-    "sha256": "d4a6101bdd05a01d",
-    "tier": "race"
-  },
-  "cards.card-35": {
-    "kind": "image",
-    "path": "assets/cards/card-35.svg",
-    "bytes": 342,
-    "sha256": "d29c3e9d1676004b",
-    "tier": "race"
-  },
-  "cards.card-36": {
-    "kind": "image",
-    "path": "assets/cards/card-36.svg",
-    "bytes": 380,
-    "sha256": "845af0358c6e77d0",
-    "tier": "race"
-  },
-  "cards.card-37": {
-    "kind": "image",
-    "path": "assets/cards/card-37.svg",
-    "bytes": 370,
-    "sha256": "87815dfd4e0eca73",
-    "tier": "race"
-  },
-  "cards.card-38": {
-    "kind": "image",
-    "path": "assets/cards/card-38.svg",
-    "bytes": 342,
-    "sha256": "7b9bbfb0b709c578",
-    "tier": "race"
-  },
-  "cards.card-39": {
-    "kind": "image",
-    "path": "assets/cards/card-39.svg",
-    "bytes": 352,
-    "sha256": "ead315f11131ef9a",
-    "tier": "race"
-  },
-  "cards.card-40": {
-    "kind": "image",
-    "path": "assets/cards/card-40.svg",
-    "bytes": 340,
-    "sha256": "807b8d50137c95ee",
-    "tier": "race"
-  },
   "icons.icon_01": {
     "kind": "image",
     "path": "assets/placeholder/icons/icon_01.webp",
@@ -1420,5 +1287,285 @@
     "sha256": "e63abb5ffcf99437",
     "tier": "result",
     "deferred": true
+  },
+  "art.cards.card-1": {
+    "kind": "image",
+    "path": "assets/art/cards/card-1.webp",
+    "bytes": 36858,
+    "sha256": "7ba869423229e28a",
+    "tier": "race"
+  },
+  "art.cards.card-10": {
+    "kind": "image",
+    "path": "assets/art/cards/card-10.webp",
+    "bytes": 27302,
+    "sha256": "66703e8d634d6d10",
+    "tier": "race"
+  },
+  "art.cards.card-11": {
+    "kind": "image",
+    "path": "assets/art/cards/card-11.webp",
+    "bytes": 32390,
+    "sha256": "1741e31e5782a2a1",
+    "tier": "race"
+  },
+  "art.cards.card-12": {
+    "kind": "image",
+    "path": "assets/art/cards/card-12.webp",
+    "bytes": 28182,
+    "sha256": "99689595cb94b2ba",
+    "tier": "race"
+  },
+  "art.cards.card-13": {
+    "kind": "image",
+    "path": "assets/art/cards/card-13.webp",
+    "bytes": 22146,
+    "sha256": "346ad4aa1b1de0b4",
+    "tier": "race"
+  },
+  "art.cards.card-14": {
+    "kind": "image",
+    "path": "assets/art/cards/card-14.webp",
+    "bytes": 29016,
+    "sha256": "92010c8ebb1f42a9",
+    "tier": "race"
+  },
+  "art.cards.card-15": {
+    "kind": "image",
+    "path": "assets/art/cards/card-15.webp",
+    "bytes": 29820,
+    "sha256": "5c81e5c2500223ca",
+    "tier": "race"
+  },
+  "art.cards.card-16": {
+    "kind": "image",
+    "path": "assets/art/cards/card-16.webp",
+    "bytes": 28662,
+    "sha256": "f94bbaaec24d1aab",
+    "tier": "race"
+  },
+  "art.cards.card-17": {
+    "kind": "image",
+    "path": "assets/art/cards/card-17.webp",
+    "bytes": 28552,
+    "sha256": "385381f597e5d265",
+    "tier": "race"
+  },
+  "art.cards.card-18": {
+    "kind": "image",
+    "path": "assets/art/cards/card-18.webp",
+    "bytes": 31524,
+    "sha256": "abcea0bf8ba8c3ab",
+    "tier": "race"
+  },
+  "art.cards.card-19": {
+    "kind": "image",
+    "path": "assets/art/cards/card-19.webp",
+    "bytes": 22550,
+    "sha256": "0e5c4e66a6c90435",
+    "tier": "race"
+  },
+  "art.cards.card-2": {
+    "kind": "image",
+    "path": "assets/art/cards/card-2.webp",
+    "bytes": 37290,
+    "sha256": "7e42c4d40af38537",
+    "tier": "race"
+  },
+  "art.cards.card-20": {
+    "kind": "image",
+    "path": "assets/art/cards/card-20.webp",
+    "bytes": 20436,
+    "sha256": "e7f29d0d3432ca87",
+    "tier": "race"
+  },
+  "art.cards.card-21": {
+    "kind": "image",
+    "path": "assets/art/cards/card-21.webp",
+    "bytes": 31262,
+    "sha256": "50517c2d9812e989",
+    "tier": "race"
+  },
+  "art.cards.card-22": {
+    "kind": "image",
+    "path": "assets/art/cards/card-22.webp",
+    "bytes": 26102,
+    "sha256": "afb628d88e5b5e47",
+    "tier": "race"
+  },
+  "art.cards.card-23": {
+    "kind": "image",
+    "path": "assets/art/cards/card-23.webp",
+    "bytes": 24642,
+    "sha256": "992f6dce1fdb3b1e",
+    "tier": "race"
+  },
+  "art.cards.card-24": {
+    "kind": "image",
+    "path": "assets/art/cards/card-24.webp",
+    "bytes": 30964,
+    "sha256": "17cb75f48990677e",
+    "tier": "race"
+  },
+  "art.cards.card-25": {
+    "kind": "image",
+    "path": "assets/art/cards/card-25.webp",
+    "bytes": 24286,
+    "sha256": "5e320f81f969d4d2",
+    "tier": "race"
+  },
+  "art.cards.card-26": {
+    "kind": "image",
+    "path": "assets/art/cards/card-26.webp",
+    "bytes": 37638,
+    "sha256": "b8ff59bd55e088ae",
+    "tier": "race"
+  },
+  "art.cards.card-27": {
+    "kind": "image",
+    "path": "assets/art/cards/card-27.webp",
+    "bytes": 23488,
+    "sha256": "cc5d599431a79ada",
+    "tier": "race"
+  },
+  "art.cards.card-28": {
+    "kind": "image",
+    "path": "assets/art/cards/card-28.webp",
+    "bytes": 26530,
+    "sha256": "9185b4894e0349a5",
+    "tier": "race"
+  },
+  "art.cards.card-29": {
+    "kind": "image",
+    "path": "assets/art/cards/card-29.webp",
+    "bytes": 23306,
+    "sha256": "89abc772e1bba0c4",
+    "tier": "race"
+  },
+  "art.cards.card-3": {
+    "kind": "image",
+    "path": "assets/art/cards/card-3.webp",
+    "bytes": 31662,
+    "sha256": "b2034d84d489f91b",
+    "tier": "race"
+  },
+  "art.cards.card-30": {
+    "kind": "image",
+    "path": "assets/art/cards/card-30.webp",
+    "bytes": 36508,
+    "sha256": "f8963d593e93bd3c",
+    "tier": "race"
+  },
+  "art.cards.card-31": {
+    "kind": "image",
+    "path": "assets/art/cards/card-31.webp",
+    "bytes": 27210,
+    "sha256": "d3b31be620455fea",
+    "tier": "race"
+  },
+  "art.cards.card-32": {
+    "kind": "image",
+    "path": "assets/art/cards/card-32.webp",
+    "bytes": 32904,
+    "sha256": "2ef6fef4d25d9d55",
+    "tier": "race"
+  },
+  "art.cards.card-33": {
+    "kind": "image",
+    "path": "assets/art/cards/card-33.webp",
+    "bytes": 26844,
+    "sha256": "19e9c49829b6804c",
+    "tier": "race"
+  },
+  "art.cards.card-34": {
+    "kind": "image",
+    "path": "assets/art/cards/card-34.webp",
+    "bytes": 25128,
+    "sha256": "199d88a9f75a96c0",
+    "tier": "race"
+  },
+  "art.cards.card-35": {
+    "kind": "image",
+    "path": "assets/art/cards/card-35.webp",
+    "bytes": 26196,
+    "sha256": "666686784824e3d1",
+    "tier": "race"
+  },
+  "art.cards.card-36": {
+    "kind": "image",
+    "path": "assets/art/cards/card-36.webp",
+    "bytes": 35426,
+    "sha256": "a97b521ea0724bf9",
+    "tier": "race"
+  },
+  "art.cards.card-37": {
+    "kind": "image",
+    "path": "assets/art/cards/card-37.webp",
+    "bytes": 38340,
+    "sha256": "86e2dd2d77de5d5c",
+    "tier": "race"
+  },
+  "art.cards.card-38": {
+    "kind": "image",
+    "path": "assets/art/cards/card-38.webp",
+    "bytes": 41968,
+    "sha256": "296f651325bc269a",
+    "tier": "race"
+  },
+  "art.cards.card-39": {
+    "kind": "image",
+    "path": "assets/art/cards/card-39.webp",
+    "bytes": 32004,
+    "sha256": "4804b11fa6a3cfba",
+    "tier": "race"
+  },
+  "art.cards.card-4": {
+    "kind": "image",
+    "path": "assets/art/cards/card-4.webp",
+    "bytes": 30124,
+    "sha256": "fd105e74dec80b3f",
+    "tier": "race"
+  },
+  "art.cards.card-40": {
+    "kind": "image",
+    "path": "assets/art/cards/card-40.webp",
+    "bytes": 32314,
+    "sha256": "98b78088a27204cb",
+    "tier": "race"
+  },
+  "art.cards.card-5": {
+    "kind": "image",
+    "path": "assets/art/cards/card-5.webp",
+    "bytes": 35672,
+    "sha256": "7f3bc7a8cabe9b34",
+    "tier": "race"
+  },
+  "art.cards.card-6": {
+    "kind": "image",
+    "path": "assets/art/cards/card-6.webp",
+    "bytes": 21372,
+    "sha256": "635bf0c429e15d10",
+    "tier": "race"
+  },
+  "art.cards.card-7": {
+    "kind": "image",
+    "path": "assets/art/cards/card-7.webp",
+    "bytes": 31880,
+    "sha256": "3a8a8078e7dfde8a",
+    "tier": "race"
+  },
+  "art.cards.card-8": {
+    "kind": "image",
+    "path": "assets/art/cards/card-8.webp",
+    "bytes": 22474,
+    "sha256": "8823ca74aced9006",
+    "tier": "race"
+  },
+  "art.cards.card-9": {
+    "kind": "image",
+    "path": "assets/art/cards/card-9.webp",
+    "bytes": 31956,
+    "sha256": "f05b5988c0b52344",
+    "tier": "race"
   }
 }
