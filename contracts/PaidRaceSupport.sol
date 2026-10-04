@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidCardRules} from "./PaidCardRules.sol";
-import {PaidRaceMotion} from "./PaidRaceMotion.sol";
-import {PaidRaceCardPlan} from "./PaidRaceCardPlan.sol";
-import {PaidCpuDeck} from "./PaidCpuDeck.sol";
-import {PaidDeck} from "./PaidDeck.sol";
-import {PaidDrawRules} from "./PaidDrawRules.sol";
-import {PaidProfiles} from "./PaidProfiles.sol";
-import {PaidSettlement} from "./PaidSettlement.sol";
+import {PaidCardRules} from "./libraries/PaidCardRules.sol";
+import {PaidRaceMotion} from "./libraries/PaidRaceMotion.sol";
+import {PaidRaceCardPlan} from "./libraries/PaidRaceCardPlan.sol";
+import {PaidCpuDeck} from "./libraries/PaidCpuDeck.sol";
+import {PaidDeck} from "./libraries/PaidDeck.sol";
+import {PaidDrawRules} from "./libraries/PaidDrawRules.sol";
+import {PaidProfiles} from "./libraries/PaidProfiles.sol";
+import {PaidSettlement} from "./libraries/PaidSettlement.sol";
 
 /// @notice Stateless numeric and card support for PaidRaceSolver: canonical card words, snapshot decisions,
 /// motion stretches, deck/choice derivation and settlement. The engine owns the ordered event lifecycle.

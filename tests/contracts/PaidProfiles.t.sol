@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidProfiles} from "../../contracts/PaidProfiles.sol";
+import {PaidProfiles} from "../../contracts/libraries/PaidProfiles.sol";
 
 contract PaidProfilesTest {
     function testFrozenCrossLanguageVector() public pure {

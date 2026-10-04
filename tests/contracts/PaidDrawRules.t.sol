@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidDrawRules} from "../../contracts/PaidDrawRules.sol";
+import {PaidDrawRules} from "../../contracts/libraries/PaidDrawRules.sol";
 
 contract PaidDrawRulesTest {
     function testTreasureRefreshAndForfeit() public pure {

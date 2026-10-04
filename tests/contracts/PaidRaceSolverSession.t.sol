@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPaidRaceSolver} from "../../contracts/IPaidRaceSolver.sol";
-import {PaidRaceEngine} from "../../contracts/PaidRaceEngine.sol";
+import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
+import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 import {PaidRaceSolver} from "../../contracts/PaidRaceSolver.sol";
 import {PonyGame} from "../../contracts/PonyGame.sol";
 import {PonyVault} from "../../contracts/PonyVault.sol";
-import {RacePayout} from "../../contracts/RacePayout.sol";
+import {RacePayout} from "../../contracts/libraries/RacePayout.sol";
 import {Eip2935, PonyVm, VmLog} from "./PonyGameBase.sol";
 import {PaidRaceVectorBase} from "./PaidRaceVectorBase.sol";
 

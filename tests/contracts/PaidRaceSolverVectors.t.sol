@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPaidRaceSolver} from "../../contracts/IPaidRaceSolver.sol";
-import {PaidCardRules} from "../../contracts/PaidCardRules.sol";
-import {PaidCpuDeck} from "../../contracts/PaidCpuDeck.sol";
-import {PaidDeck} from "../../contracts/PaidDeck.sol";
-import {PaidProfiles} from "../../contracts/PaidProfiles.sol";
-import {PaidRaceEngine} from "../../contracts/PaidRaceEngine.sol";
+import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
+import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
+import {PaidCpuDeck} from "../../contracts/libraries/PaidCpuDeck.sol";
+import {PaidDeck} from "../../contracts/libraries/PaidDeck.sol";
+import {PaidProfiles} from "../../contracts/libraries/PaidProfiles.sol";
+import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 import {PaidRaceSolver} from "../../contracts/PaidRaceSolver.sol";
 import {PaidRaceSupport} from "../../contracts/PaidRaceSupport.sol";
 import {FieldStretchProbe} from "./PaidRaceMotion.t.sol";

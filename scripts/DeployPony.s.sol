@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPaidRaceSolver} from "../contracts/IPaidRaceSolver.sol";
-import {PaidCardRules} from "../contracts/PaidCardRules.sol";
+import {IPaidRaceSolver} from "../contracts/interfaces/IPaidRaceSolver.sol";
+import {PaidCardRules} from "../contracts/libraries/PaidCardRules.sol";
 import {PonyGame} from "../contracts/PonyGame.sol";
 import {PonyVault} from "../contracts/PonyVault.sol";
 

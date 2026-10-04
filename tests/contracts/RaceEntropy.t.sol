@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {RaceEntropy} from "../../contracts/RaceEntropy.sol";
+import {RaceEntropy} from "../../contracts/libraries/RaceEntropy.sol";
 
 contract RaceEntropyTest {
     function testFrozenCrossLanguageVector() public pure {

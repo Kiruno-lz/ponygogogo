@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidCardRules} from "../../contracts/PaidCardRules.sol";
+import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
 
 contract PaidCardRulesTest {
     function testGeneratedCardRulesAndMasks() public pure {

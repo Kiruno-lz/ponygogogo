@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {RandomAnchor} from "../../contracts/RandomAnchor.sol";
+import {RandomAnchor} from "../../contracts/libraries/RandomAnchor.sol";
 import {Eip2935, PonyVm} from "./PonyGameBase.sol";
 
 contract AnchorHarness {

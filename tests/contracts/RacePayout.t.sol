@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {RacePayout} from "../../contracts/RacePayout.sol";
+import {RacePayout} from "../../contracts/libraries/RacePayout.sol";
 
 contract RacePayoutTest {
     function testGrossIncludesPrincipalAndRoundsDown() public pure {

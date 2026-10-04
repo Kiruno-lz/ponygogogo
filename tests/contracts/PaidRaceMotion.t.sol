@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PaidRaceMotion} from "../../contracts/PaidRaceMotion.sol";
-import {PaidCardRules} from "../../contracts/PaidCardRules.sol";
+import {PaidRaceMotion} from "../../contracts/libraries/PaidRaceMotion.sol";
+import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
 
 /// @notice Synthetic stretches for PaidRaceMotion: five running horses spaced inside the well radius, never crossing.
 contract FieldStretchProbe {

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPaidRaceSolver} from "./IPaidRaceSolver.sol";
+import {IPaidRaceSolver} from "../interfaces/IPaidRaceSolver.sol";
 import {PaidRaceCardPlan} from "./PaidRaceCardPlan.sol";
 import {PaidCardRules} from "./PaidCardRules.sol";
 import {PaidDrawRules} from "./PaidDrawRules.sol";
 import {PaidProfiles} from "./PaidProfiles.sol";
 import {PaidRaceMotion} from "./PaidRaceMotion.sol";
-import {PaidRaceSupport} from "./PaidRaceSupport.sol";
+import {PaidRaceSupport} from "../PaidRaceSupport.sol";
 import {PaidSwap} from "./PaidSwap.sol";
 import {RaceEntropy} from "./RaceEntropy.sol";
 

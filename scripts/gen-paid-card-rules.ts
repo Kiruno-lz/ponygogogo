@@ -7,7 +7,7 @@ import {
   PAID_RULESET_HASH, paidCardRuleTuple,
 } from '../src/race/paid/cardRules.ts'
 
-const target = fileURLToPath(new URL('../contracts/PaidCardRules.sol', import.meta.url))
+const target = fileURLToPath(new URL('../contracts/libraries/PaidCardRules.sol', import.meta.url))
 const check = process.argv.includes('--check')
 const fields = [
   'id', 'effect', 'rare', 'cpu', 'durationMs', 'bonusMode', 'pBps', 'fixedSpeed',

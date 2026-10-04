@@ -2,12 +2,12 @@
 pragma solidity ^0.8.28;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {AgentBudget} from "../../contracts/AgentBudget.sol";
-import {IPaidRaceSolver} from "../../contracts/IPaidRaceSolver.sol";
-import {PaidSeed} from "../../contracts/PaidSeed.sol";
+import {AgentBudget} from "../../contracts/abstracts/AgentBudget.sol";
+import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
+import {PaidSeed} from "../../contracts/libraries/PaidSeed.sol";
 import {PonyGame} from "../../contracts/PonyGame.sol";
 import {PonyVault} from "../../contracts/PonyVault.sol";
-import {RandomAnchor} from "../../contracts/RandomAnchor.sol";
+import {RandomAnchor} from "../../contracts/libraries/RandomAnchor.sol";
 import {MockPaidRaceSolver} from "./MockPaidRaceSolver.sol";
 import {Eip2935, PonyGameBase, VmLog} from "./PonyGameBase.sol";
 

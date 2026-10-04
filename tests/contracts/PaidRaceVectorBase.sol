@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPaidRaceSolver} from "../../contracts/IPaidRaceSolver.sol";
-import {PaidProfiles} from "../../contracts/PaidProfiles.sol";
-import {PaidRaceEngine} from "../../contracts/PaidRaceEngine.sol";
+import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
+import {PaidProfiles} from "../../contracts/libraries/PaidProfiles.sol";
+import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 
 /// @dev Cheatcodes for reading tests/vectors/paid-race-v4.json (the repo has no forge-std).
 interface VectorVm {

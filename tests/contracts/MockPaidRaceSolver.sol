@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPaidRaceSolver} from "../../contracts/IPaidRaceSolver.sol";
+import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
 
 /// @notice Configurable stand-in for PaidRaceSolver so the session protocol is testable without the race rules.
 /// @dev `solve` asserts the input shape IPaidRaceSolver promises (seed and every present choice's anchor sealed or

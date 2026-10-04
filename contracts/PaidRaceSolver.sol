@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IPaidRaceSolver} from "./IPaidRaceSolver.sol";
-import {PaidCardRules} from "./PaidCardRules.sol";
-import {PaidRaceEngine} from "./PaidRaceEngine.sol";
+import {IPaidRaceSolver} from "./interfaces/IPaidRaceSolver.sol";
+import {PaidCardRules} from "./libraries/PaidCardRules.sol";
+import {PaidRaceEngine} from "./libraries/PaidRaceEngine.sol";
 import {PaidRaceSupport} from "./PaidRaceSupport.sol";
 
 /// @notice Stateless paid ruleset v4 solver. Derives personalities and decks from the opening anchor
