@@ -20,7 +20,7 @@ import {
 } from './chain/paidGate.ts'
 import { PAID_STAKE_LABELS } from './chain/paidStakes.ts'
 import { wallet, type GameAccount, type WalletAccount } from './chain/wallet.ts'
-import { practiceRaceId, practiceSeed } from './practice.ts'
+import { practiceForcedSeed, practiceRaceId, practiceSeed } from './practice.ts'
 import type { RaceResult } from './race/core/types.ts'
 import { RaceDriver } from './race/driver.ts'
 import type { PaidRaceDriver } from './race/paidDriver.ts'
@@ -576,6 +576,9 @@ export default function App() {
             paidOpen={paidGate.open}
             paidHint={paidGate.hint && t(lang, paidGate.hint)}
             onBack={() => setPage('home')}
+            availablePonyIds={collection.availablePonyIds}
+            reducedMotion={settings.reducedMotion}
+            rngSeed={practiceForcedSeed(qs('seed')) ?? undefined}
             onRace={startRace}
           />
         )}

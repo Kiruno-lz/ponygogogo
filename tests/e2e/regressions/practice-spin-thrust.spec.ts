@@ -22,7 +22,10 @@ test('真实免费试玩取得 C-02 后显示玩家翻面与螺旋分镜，到�
   await expect(page.getByTestId('card-panel')).toBeVisible()
   const card = page.getByTestId('card-choice-0').locator('.card-root')
   await expect(card).toHaveAttribute('data-card', 'C-02')
-  expect(await page.evaluate(() => (window as any).__practiceSpinScene.ponies[0].spinThrust.visible)).toBe(false)
+  expect(await page.evaluate(() => {
+    const scene = (window as any).__practiceSpinScene
+    return scene.ponies[scene.driver.state.playerHorseId].spinThrust.visible
+  })).toBe(false)
   await card.click()
   await expect(page.getByTestId('buff-C-02')).toHaveCount(1)
   await expect.poll(() => page.evaluate(() => {
@@ -71,7 +74,7 @@ test('真实免费试玩取得 C-02 后显示玩家翻面与螺旋分镜，到�
     if (await skip.isVisible()) await skip.click()
     return page.evaluate((endTick) => {
       const scene = (window as any).__practiceSpinScene
-      return scene.driver.state.tick >= endTick && !scene.ponies[0].spinThrust.visible
+      return scene.driver.state.tick >= endTick && !scene.ponies[scene.driver.state.playerHorseId].spinThrust.visible
     }, facts.endTick)
   }, { timeout: 45_000 }).toBe(true)
   await expect(page.getByTestId('buff-C-02')).toHaveCount(0)

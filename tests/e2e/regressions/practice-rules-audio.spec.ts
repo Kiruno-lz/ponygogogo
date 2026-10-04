@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test'
 import { enterHome, open, startRace } from '../helpers.ts'
 
 for (const scenario of [
-  { name: '第一名', seed: '0x1392a0fad7b856b4280fa6a49b9f94b5c6750704fe174d8e69593c48a2ad66c3', rank: 1, jingle: 'audio.jingle_win' },
-  { name: '第四名', seed: '0x4fdb69ec1b941cfb03e40bb79d4b857d2b99eb097be86b4b2592842eb3f094f0', rank: 4, jingle: 'audio.jingle_lose' },
+  { name: '第一名', seed: '0x55854f87801942d6914cec9a4643de76a72b057254ce0a2d041dad7ae8c880bc', rank: 1, jingle: 'audio.jingle_win', pick: true },
+  { name: '第四名', seed: '0x5d837b839bafc6f78af9bdcc08bbec09ddda86dd49949cb66f70b7f0a59cc08b', rank: 4, jingle: 'audio.jingle_lose', pick: false },
 ]) test(`免费试玩${scenario.name}：玩家冲线播放正确旋律一次，电脑马和结算页不重复播放`, async ({ page }, testInfo) => {
   await open(page, `raceSpeed=16&seed=${scenario.seed}`)
   await enterHome(page)
@@ -23,7 +23,13 @@ for (const scenario of [
   const end = Date.now() + 90_000
   while (Date.now() < end && !await page.getByTestId('screen-result').isVisible()) {
     const skip = page.getByTestId('card-skip')
-    if (await skip.isVisible()) await skip.click()
+    if (await skip.isVisible()) {
+      if (scenario.pick) {
+        const choice = page.getByTestId('card-choice-0')
+        await expect(choice).toHaveCSS('opacity', '1')
+        await choice.locator('.card-root').click()
+      } else await skip.click()
+    }
     await page.waitForTimeout(100)
   }
   await expect(page.getByTestId('screen-result')).toBeVisible()

@@ -337,11 +337,20 @@ html, body, #root {
 .stamina-fill { transition: clip-path 90ms linear; }
 .exhausted-art .stamina-fill { filter: saturate(.3) brightness(.7); }
 .over-art .stamina-fill { filter: brightness(1.3); }
-.horse-choice { position: absolute; isolation: isolate; left: 58px; width: 340px; height: 116px; border: 0; padding: 0; background: none; color: #fff; cursor: pointer; outline-offset: -3px; }
+.pony-selection-column { position: absolute; isolation: isolate; left: 58px; top: 290px; width: 340px; height: 500px; overflow: hidden; }
+.horse-choice { position: absolute; left: 0; top: 0; z-index: 1; width: 178px; height: 116px; border: 0; padding: 0; background: none; color: #fff; cursor: pointer; outline-offset: -3px; }
 .horse-choice > .pony-portrait { position: absolute; z-index: 1; filter: none; left: 109px; top: -13.15625px; }
 .lane-pennant { position: absolute; left: 0; bottom: 7px; width: 101px; height: 74px; object-fit: contain; }
-.horse-choice .horse-ground-ring { position: absolute; z-index: 0; bottom: -12px; left: 90px; width: 194px; height: 48px; opacity: 0; pointer-events: none; }
-.horse-choice.selected .horse-ground-ring { opacity: 1; }
+.select-lane-flag { left: 58px; bottom: auto; pointer-events: none; }
+.selection-ground-ring { position: absolute; left: 0; top: 0; z-index: 0; width: 194px; height: 48px; pointer-events: none; }
+.pony-queue-arrow { position: absolute; left: 232px; width: 52px; height: 36px; border: 2px solid #e6bd65; border-radius: 12px; background: #80532c; color: #fff3cf; font-size: 24px; cursor: pointer; }
+.pony-queue-arrow:disabled { opacity: .35; cursor: default; }
+.pony-queue-arrow:focus-visible { outline: 3px solid #fff3cf; outline-offset: 3px; }
+.pony-queue-arrow.queue-up { top: 258px; }
+.pony-queue-arrow.queue-down { top: 797px; }
+.select-pony-ability { position: absolute; left: 282px; top: 123px; width: 435px; padding: 12px 16px; border: 2px solid #a98550; border-radius: 10px; background: rgba(247,239,222,.94); color: #4a2a14; font-size: 16px; line-height: 1.45; pointer-events: none; }
+.select-pony-ability strong { font-size: 19px; }
+.select-pony-ability p { margin: 5px 0 0; }
 .horse-choice:hover > .pony-portrait { filter: brightness(1.08) drop-shadow(0 0 5px #ffde83); }
 .horse-choice:focus-visible { outline: 3px solid #ffe39b; border-radius: 10px; }
 .bet-art-panel { position: absolute; left: 1259px; top: 72px; width: 360px; height: 475px; background: url('/assets/art/ui/bet-panel-trimmed.webp') center / 100% 100% no-repeat; padding: 64px 29px 18px 40px; color: #2c2019; font-family: 'Trebuchet MS', 'PingFang SC', sans-serif; font-style: italic; }

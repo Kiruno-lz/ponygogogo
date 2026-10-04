@@ -6,8 +6,12 @@ import { makeSeed } from './race/core/rng.ts'
 
 const FORCED_SEED = /^0x[0-9a-fA-F]{8,64}$/
 
+export function practiceForcedSeed(forced: string | null): string | null {
+  return forced && FORCED_SEED.test(forced) ? forced : null
+}
+
 export function practiceSeed(forced: string | null, entropy: number): string {
-  return forced && FORCED_SEED.test(forced) ? forced : makeSeed(entropy)
+  return practiceForcedSeed(forced) ?? makeSeed(entropy)
 }
 
 /** 本地局号：刻意不以 0x 开头，界面与海报都不会把它当成链上凭据 */
