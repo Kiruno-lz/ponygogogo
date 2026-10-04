@@ -70,7 +70,7 @@ export function SelectScreen(p: SelectScreenProps) {
     column.current?.getBoundingClientRect()
     const animations = column.current?.getAnimations({ subtree: true }).filter(a => a instanceof CSSTransition && a.transitionProperty === 'transform') ?? []
     if (animations.length) void Promise.allSettled(animations.map(a => a.finished)).then(finish)
-    const timer = window.setTimeout(finish, 550)
+    const timer = window.setTimeout(finish, 300)
     return () => { cancelled = true; window.clearTimeout(timer) }
   }, [input.serial, input.motion])
   const [tier, setTier] = useState(PRACTICE_TIER)
@@ -88,27 +88,30 @@ export function SelectScreen(p: SelectScreenProps) {
     {[0, 1, 2, 3, 4].map(lane => <img key={lane} className="lane-pennant select-lane-flag"
       src={`/assets/art/ui/flag-${lane}.webp`} alt={`${lane + 1}`} style={{ top: laneGroundY(lane) - 77 }} draggable={false}/>)}
     <button type="button" data-pony-queue data-testid="pony-queue-up" className="pony-queue-arrow queue-up"
-      aria-label={p.lang === 'zh' ? '队列上移' : 'Move queue up'} disabled={selection.windowStart >= selection.orderedPonyIds.length - 5}
-      onClick={() => send({ kind: 'scroll', direction: 1 })}>▲</button>
+      aria-label={p.lang === 'zh' ? '查看上方小马' : 'Previous ponies'} disabled={selection.windowStart === 0}
+      onClick={() => send({ kind: 'scroll', direction: -1 })}><img src="/assets/art/ui/queue-arrow-up.webp" alt="" draggable={false}/></button>
     <button type="button" data-pony-queue data-testid="pony-queue-down" className="pony-queue-arrow queue-down"
-      aria-label={p.lang === 'zh' ? '队列下移' : 'Move queue down'} disabled={selection.windowStart === 0}
-      onClick={() => send({ kind: 'scroll', direction: -1 })}>▼</button>
+      aria-label={p.lang === 'zh' ? '查看下方小马' : 'Next ponies'} disabled={selection.windowStart >= selection.orderedPonyIds.length - 5}
+      onClick={() => send({ kind: 'scroll', direction: 1 })}><img src="/assets/art/ui/queue-arrow-up.webp" alt="" draggable={false}/></button>
     <div ref={column} className="pony-selection-column" data-testid="pony-selection-column" data-motion={input.motion}
       role="group" aria-label={p.lang === 'zh' ? '选择小马' : 'Choose a pony'}>
       {horseId !== null && <img className="selection-ground-ring" data-testid="selection-ring"
         src="/assets/art/ui/gold-ring-trimmed.webp" alt="" draggable={false}
         style={{ transform: `translate(${portraitX(selectedLane(selection)) - 8}px, ${groundY(selectedLane(selection)) - 322}px)`,
-          transition: input.motion === 'ring' || input.motion === 'queue' ? 'transform 500ms ease-out' : 'none' }}/>}
+          transition: input.motion === 'ring' || input.motion === 'queue' ? 'transform 250ms ease-out' : 'none' }}/>}
       {selection.orderedPonyIds.map((id, index) => {
         const k = index - selection.windowStart
         if (k < -1 || k > 5) return null
         const lane = 4 - k, h = ponyById(id), visible = k >= 0 && k < 5
+        const movingQueue = input.motion === 'queue' || input.motion === 'queueFixedRing'
         return <button key={id} type="button" className="horse-choice" data-testid={`horse-${id}`} data-lane={lane}
           aria-label={p.lang === 'zh' ? h.name : h.nameEn} aria-pressed={id === horseId} aria-hidden={!visible}
           tabIndex={visible && (id === horseId || (horseId === null && k === 2)) ? 0 : -1}
           disabled={!visible} onClick={() => send({ kind: 'pick', ponyId: id })}
           style={{ transform: `translate(${portraitX(lane)}px, ${groundY(lane) - 402}px)`,
-            transition: input.motion === 'queue' || input.motion === 'queueFixedRing' ? 'transform 500ms ease-out' : 'none' }}>
+            // Keep adjacent sprites mounted for continuous frames, but never paint them at rest.
+            opacity: visible ? 1 : 0, visibility: visible || movingQueue ? 'visible' : 'hidden',
+            transition: movingQueue ? 'transform 250ms ease-out, opacity 250ms ease-out' : 'none' }}>
           <PonyPortrait horseId={id} width={178} action="idle" style={{ left: 0 }}/>
         </button>
       })}

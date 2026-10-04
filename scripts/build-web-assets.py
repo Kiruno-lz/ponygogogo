@@ -97,6 +97,7 @@ UI_KEEP = re.compile(
     | /(star|avatar|stamina)-reference(-blank|-empty)?\.png$
     | /(avatar|star-race)-source\.png$
     | /star-gogo-face\.png$
+    | /queue-arrow-up\.png$
     """,
     re.VERBOSE,
 )

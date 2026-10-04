@@ -166,6 +166,16 @@ describe('资源清单', () => {
     }
   })
 
+  test('实心队列箭头有 race 级清单项，实际大小和摘要一致', () => {
+    const entry = manifest['art.ui.queue-arrow-up']!
+    expect(entry).toBeDefined()
+    expect(entry.tier).toBe('race')
+    expect(entry.path).toBe('assets/art/ui/queue-arrow-up.webp')
+    const bytes = readFileSync(join(PUBLIC, entry.path))
+    expect(bytes.length).toBe(entry.bytes)
+    expect(createHash('sha256').update(bytes).digest('hex').slice(0, 16)).toBe(entry.sha256)
+  })
+
   test('进首页要等的两级控制在 2 MB 以内', () => {
     const blocking = Object.values(manifest)
       .filter((e) => e.tier === 'boot' || e.tier === 'home')

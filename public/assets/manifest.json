@@ -1420,5 +1420,12 @@
     "sha256": "e63abb5ffcf99437",
     "tier": "result",
     "deferred": true
+  },
+  "art.ui.queue-arrow-up": {
+    "kind": "image",
+    "path": "assets/art/ui/queue-arrow-up.webp",
+    "bytes": 35680,
+    "sha256": "ac08ec97819f224a",
+    "tier": "race"
   }
 }
