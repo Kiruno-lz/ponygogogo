@@ -351,6 +351,21 @@ html, body, #root {
 .select-pony-ability { position: absolute; left: 282px; top: 123px; width: 435px; padding: 12px 16px; border: 2px solid #a98550; border-radius: 10px; background: rgba(247,239,222,.94); color: #4a2a14; font-size: 16px; line-height: 1.45; pointer-events: none; }
 .select-pony-ability strong { font-size: 19px; }
 .select-pony-ability p { margin: 5px 0 0; }
+.collection-tabs { display: flex; gap: 12px; padding: 0 34px 18px; }
+.collection-tabs button { min-width: 130px; min-height: 48px; padding: 8px 20px; border: 2px solid #8b6743; border-radius: 10px; background: #dfc5a1; color: #4a2a14; font-size: 20px; font-weight: 700; cursor: pointer; }
+.collection-tabs button[aria-selected="true"] { background: #785334; color: #fff2d9; }
+.collection-tabs button:focus-visible { outline: 3px solid #d69625; outline-offset: 3px; }
+.pony-gallery { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 22px; padding: 0 34px 34px; }
+.pony-gallery-card { padding: 18px 22px; border: 3px solid #8b6743; border-radius: 14px; background: #f8e9d0; color: #4a2a14; }
+.pony-gallery-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pony-gallery-header h2 { margin: 0; font-size: 25px; }
+.pony-gallery-header span { font-size: 13px; white-space: nowrap; }
+.pony-gallery-image { display: block; width: 100%; height: 170px; object-fit: contain; }
+.pony-locked .pony-gallery-image { filter: grayscale(.75) brightness(.5); opacity: .75; }
+.pony-gallery-card h3 { margin: 8px 0; font-size: 20px; }
+.pony-gallery-card p { margin: 8px 0; font-size: 16px; line-height: 1.5; }
+.pony-gallery-card .pony-strategy { color: #855d37; }
+.pony-gallery-card small { font-size: 13px; color: #785334; }
 .horse-choice:hover > .pony-portrait { filter: brightness(1.08) drop-shadow(0 0 5px #ffde83); }
 .horse-choice:focus-visible { outline: 3px solid #ffe39b; border-radius: 10px; }
 .bet-art-panel { position: absolute; left: 1259px; top: 72px; width: 360px; height: 475px; background: url('/assets/art/ui/bet-panel-trimmed.webp') center / 100% 100% no-repeat; padding: 64px 29px 18px 40px; color: #2c2019; font-family: 'Trebuchet MS', 'PingFang SC', sans-serif; font-style: italic; }

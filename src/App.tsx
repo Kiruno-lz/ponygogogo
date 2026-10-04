@@ -618,7 +618,8 @@ export default function App() {
           lang={lang}
           onBack={() => setPage('home')}
           signedIn={account !== null}
-          ownedRareIds={collection.progress?.rareCardIds ?? null}
+          ownedRareIds={collection.ownedRareIds}
+          ownedPonyIds={collection.progress?.unlockedPonyIds ?? null}
           loading={collection.loading}
           error={collection.error}
           onUnlock={() => { void collection.unlock() }}
