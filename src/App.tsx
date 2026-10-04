@@ -13,8 +13,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { AudioManager } from './assets/audio.ts'
 import { AssetLoader, FailingAssetSource, type LoadProgress } from './assets/loader.ts'
 import { LocalAssetSource, fetchManifest, type AssetTier } from './assets/source.ts'
-import { decryptCollection } from './chain/collectionCipher.ts'
-import { readRemoteCollection } from './chain/collectionSync.ts'
 import { DEFAULT_PASSKEY_NAME, PONY_GAME_ADDRESS, PONY_VAULT_ADDRESS } from './chain/network.ts'
 import { formatMon } from './chain/amount.ts'
 import {
@@ -46,6 +44,7 @@ import { t } from './ui/i18n.ts'
 import { registerAudio } from './ui/sfx.ts'
 import { loadSettings, saveSettings, type GameSettings } from './ui/settings.ts'
 import { useGameFunds } from './ui/useGameFunds.ts'
+import { useCollectionProgress } from './ui/useCollectionProgress.ts'
 import { useStage } from './ui/useStage.ts'
 import { DESIGN_W, DESIGN_H } from './game/layout.ts'
 
@@ -86,9 +85,7 @@ export default function App() {
   /** 游戏账户（sma-b）；解析失败时为 null，错误在 gameError */
   const [gameAccount, setGameAccount] = useState<GameAccount | null>(null)
   const [gameError, setGameError] = useState<string | null>(null)
-  const [ownedRareIds, setOwnedRareIds] = useState<string[] | null>(null)
-  const [collectionBusy, setCollectionBusy] = useState(false)
-  const [collectionError, setCollectionError] = useState<string | null>(null)
+  const collection = useCollectionProgress(settings.lang, gameAccount?.address ?? null)
   const [walletBusy, setWalletBusy] = useState<WalletBusy>(null)
   const [walletError, setWalletError] = useState<string | null>(null)
   const [walletOpen, setWalletOpen] = useState(false)
@@ -259,8 +256,7 @@ export default function App() {
   const register = useCallback(async (userName: string) => {
     const seq = ++walletSeq.current
     const current = () => walletSeq.current === seq
-    setOwnedRareIds(null)
-    setCollectionError(null)
+    collection.reset()
     setWalletBusy('register')
     setWalletError(null)
     setGameAccount(null)
@@ -328,8 +324,7 @@ export default function App() {
   const login = useCallback(async () => {
     const seq = ++walletSeq.current
     const current = () => walletSeq.current === seq
-    setOwnedRareIds(null)
-    setCollectionError(null)
+    collection.reset()
     setWalletBusy('login')
     setWalletError(null)
     setGameAccount(null)
@@ -361,33 +356,9 @@ export default function App() {
     setGameAccount(null)
     setGameError(null)
     resetFunds()
-    setOwnedRareIds(null)
-    setCollectionError(null)
-    setCollectionBusy(false)
+    collection.reset()
     setWalletOpen(false)
   }, [resetFunds, resetPaid, paid])
-
-  const unlockCollection = useCallback(async () => {
-    if (!wallet.getAccount() || collectionBusy) return
-    const seq = walletSeq.current
-    setCollectionBusy(true)
-    setCollectionError(null)
-    let key: Uint8Array | null = null
-    try {
-      const identity = await wallet.openCollectionIdentity()
-      key = await wallet.deriveCollectionKey()
-      const remote = await readRemoteCollection(identity)
-      const ids = remote ? await decryptCollection(remote.envelope, key) : []
-      if (walletSeq.current === seq) setOwnedRareIds(ids)
-    } catch {
-      if (walletSeq.current === seq) {
-        setCollectionError(lang === 'zh' ? '图鉴同步失败，请重试。' : 'Collection sync failed. Please try again.')
-      }
-    } finally {
-      key?.fill(0)
-      if (walletSeq.current === seq) setCollectionBusy(false)
-    }
-  }, [collectionBusy, lang])
 
   /** 钱包面板的「刷新」：sma-b 之前没连上的话顺带重试一次解析 */
   const refreshWallet = useCallback(async () => {
@@ -641,10 +612,10 @@ export default function App() {
           lang={lang}
           onBack={() => setPage('home')}
           signedIn={account !== null}
-          ownedRareIds={ownedRareIds}
-          loading={collectionBusy}
-          error={collectionError}
-          onUnlock={() => { void unlockCollection() }}
+          ownedRareIds={collection.progress?.rareCardIds ?? null}
+          loading={collection.loading}
+          error={collection.error}
+          onUnlock={() => { void collection.unlock() }}
         />}
         {page === 'settings' && (
           <SettingsScreen
