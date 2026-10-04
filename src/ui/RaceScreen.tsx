@@ -166,14 +166,16 @@ export function RaceScreen(p: RaceScreenProps) {
 
   // 键盘输入
   useEffect(() => {
+    const isControl = (target: EventTarget | null) => target instanceof HTMLElement
+      && target.closest('input, select, textarea, button:not([data-testid="gogo"]), [contenteditable="true"]') !== null
     const down = (e: KeyboardEvent): void => {
-      if (e.code !== 'Space' || e.repeat) return
+      if (e.code !== 'Space' || e.repeat || isControl(e.target)) return
       e.preventDefault()
       if (p.driver.state.pending || confirmQuit) return
       p.driver.input({ kind: 'gogoDown' })
     }
     const up = (e: KeyboardEvent): void => {
-      if (e.code !== 'Space') return
+      if (e.code !== 'Space' || isControl(e.target)) return
       e.preventDefault()
       p.driver.input({ kind: 'gogoUp' })
     }

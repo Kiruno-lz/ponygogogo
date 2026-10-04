@@ -1,8 +1,10 @@
 import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { existsSync } from 'node:fs'
 import { encodeResult, decodeResult } from '../chain/codec.ts'
 import { posterContent } from '../export/poster.ts'
-import { Hud } from '../ui/Hud.tsx'
+import { HorseAvatar, Hud } from '../ui/Hud.tsx'
+import { PONY_CATALOG } from '../game/ponyCatalog.ts'
 import { RaceDriver } from './driver.ts'
 import { derivePaidCoreInput, solvePaidRace } from './paid/race.ts'
 import { FIXTURE_ANCHOR, FIXTURE_SEED } from './paid/testkit.ts'
@@ -11,6 +13,14 @@ import { idlePaidState } from './paidSnapshot.ts'
 const roster = [4, 2, 0, 1, 3] as const
 const input = { seed: FIXTURE_SEED, openAnchor: FIXTURE_ANCHOR, stakeTier: 1 as const,
   playerHorseId: 0, choices: [null, null, null] as const, roster }
+
+test('排行榜为所有九个角色提供真实头像资源', () => {
+  for (const pony of PONY_CATALOG) {
+    const html = renderToStaticMarkup(<HorseAvatar horseId={pony.ponyId} size={50}/>)
+    const path = /<img src="([^"]+)"/.exec(html)![1]!
+    expect(existsSync(new URL(`../../public${path}`, import.meta.url)), path).toBe(true)
+  }
+})
 
 test('explicit roster survives derivation, solving, practice snapshots and result', () => {
   expect(derivePaidCoreInput(input)).toHaveProperty('roster', roster)
