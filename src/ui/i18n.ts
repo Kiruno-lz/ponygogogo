@@ -127,7 +127,7 @@ const zh: Dict = {
   'select.free': '免费试玩',
   'select.freeWin': '免费试玩 · 不计奖金',
   'select.paidNotDeployed': '有奖合约尚未部署',
-  'select.paidRulesMismatch': '有奖赛道需要更新，请先试玩',
+  'select.paidRulesMismatch': '合约规则待更新，暂不支持下注',
   'select.paidChecking': '正在确认有奖合约…',
   'select.paidLogin': '登录后可参加有奖场次',
 
@@ -409,7 +409,7 @@ const en: Dict = {
   'select.free': 'Free practice',
   'select.freeWin': 'Free practice · no prize',
   'select.paidNotDeployed': 'Paid contracts not deployed yet',
-  'select.paidRulesMismatch': 'Paid track needs an update; practice is available',
+  'select.paidRulesMismatch': 'Paid contracts need updated rules',
   'select.paidChecking': 'Checking paid contracts…',
   'select.paidLogin': 'Sign in to join paid races',
 
