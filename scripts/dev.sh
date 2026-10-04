@@ -111,7 +111,7 @@ if [ "$DEV_CHAIN" = "anvil" ]; then
   PIDS+=($!)
   for i in $(seq 1 50); do
     if curl -sf -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' "$RPC" >/dev/null 2>&1; then
-      say "anvil 就绪 → $RPC（chainId 10143）"
+      say "anvil 就绪 → ${RPC}（chainId 10143）"
       break
     fi
     [ "$i" = 50 ] && die "anvil 启动超时，日志：$LOG_DIR/ponygogogo-anvil.log"
@@ -135,7 +135,7 @@ if [ "$DEV_CHAIN" = "anvil" ]; then
   bun --no-env-file scripts/dev-chain.ts --rpc "$RPC" --solver "$DEV_SOLVER" >"$LOG_DIR/ponygogogo-deploy.log" 2>&1 \
     || { tail -30 "$LOG_DIR/ponygogogo-deploy.log"; die "部署失败"; }
   SOLVER_KIND=$(bun --no-env-file -e "console.log(JSON.parse(require('fs').readFileSync('$STATE_DIR/anvil.json','utf8')).solverKind)")
-  say "已部署（求时器：$SOLVER_KIND）→ .env.anvil.local、$STATE_DIR/anvil.json"
+  say "已部署（求时器：${SOLVER_KIND}）→ .env.anvil.local、$STATE_DIR/anvil.json"
   if [ "$SOLVER_KIND" = "mock" ]; then
     bun --no-env-file scripts/dev-mock-oracle.ts >"$LOG_DIR/ponygogogo-oracle.log" 2>&1 &
     PIDS+=($!)
