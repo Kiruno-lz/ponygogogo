@@ -110,6 +110,28 @@ describe('snapshot', () => {
     expect(st.abilityBinding).toBeNull()
   })
 
+  test('gravity presentation samples the shared 250ms RK2 trace between steps and at expiry', () => {
+    const input = fixtureInput({ cpu: { 2: [10, 19, 20] } })
+    const result = solvePaidCore(input)
+    const gravityTrace = result.trace!
+    const well = gravityTrace.instances.find((i) => i.cardId === 10 && i.kind === 'equip')!
+    const frame = gravityTrace.keyframes[2]!.find((f) => f.tau0 >= well.startTau && f.tau1 - f.tau0 === 250n)!
+    expect(frame).toBeDefined()
+    for (const tau of [frame.tau0, frame.tau0 + 1n, frame.tau0 + 125n, frame.tau1 - 1n, frame.tau1, well.endTau! - 1n, well.endTau!]) {
+      const state = buildPaidSnapshot({
+        trace: gravityTrace, tau, playerHorseId: input.playerHorseId, stakeTier: 2, seed: input.seed,
+        panel: null, draw: null, playerDeck: input.playerDeck, finishTime: result.finishTime, raceOver: false,
+      })
+      for (let h = 0; h < 5; h++) {
+        const sample = sampleHorse(gravityTrace, h, tau)
+        expect(state.horses[h]).toMatchObject({
+          pos: demoPos(sample.pos), dist: demoPos(sample.dist), v: demoSpeed(sample.v), stamina: demoStamina(sample.stamina),
+        })
+      }
+      expect(state.effects.some((e) => e.sourceCardId === 'C-10' && e.ownerHorseId === 2)).toBe(tau < well.endTau!)
+    }
+  })
+
   test('equipment, wind and bombs reach the renderer helpers in their expected shape', () => {
     const late = trace.winds[0]!.tau + 1n
     const { effects, env } = effectsAt(trace, late, [false, false, false, false, false])

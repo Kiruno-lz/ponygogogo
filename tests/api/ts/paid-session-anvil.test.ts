@@ -27,6 +27,7 @@ import {
   classifyPaidChoice, solvePaidCore, type PaidChoiceSlot, type PaidChoiceSlots, type PaidCoreInput, type PaidSolveResult,
 } from '../../../src/race/paid/solver.ts'
 import { PAID_STAKE_WEI } from '../../../src/chain/paidStakes.ts'
+import { decodeInput, type PaidVectorCase } from '../../../src/race/paid/vectorCodec.ts'
 
 setDefaultTimeout(180_000)
 
@@ -158,6 +159,43 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     expect((code.length - 2) / 2).toBeLessThanOrEqual(131_072)
     expect(solverAbi().some((item) => item.type === 'function' && item.name === 'support')).toBe(false)
     expect(await pub.getTransactionCount({ address: solver })).toBe(1)
+  })
+
+  test('deployed hot core matches the display solver for single and overlapping 250ms gravity wells', async () => {
+    const cases = (JSON.parse(readFileSync(resolve(ROOT, 'tests/vectors/paid-race-v4.json'), 'utf8')) as { cases: PaidVectorCase[] }).cases
+    const inputs = [
+      decodeInput(cases.find((c) => c.name === 'derived-0')!.input),
+      derivePaidCoreInput({
+        seed: '0x8486a37a59c4f66a573ec56d925ee0ed39ad950970db563e1877bfbcd8205a5b',
+        openAnchor: '0xee2f19d2d601b98cfc8b613200766bb21cbc4294476db78e9372d2f52a7a7f2e',
+        stakeTier: 1, playerHorseId: 1, choices: [null, null, null],
+      }),
+    ]
+    for (const [index, core] of inputs.entries()) {
+      const ts = solvePaidCore(core)
+      const wells = ts.trace!.instances.filter((i) => i.cardId === 10 && i.kind === 'equip')
+      expect(wells.length).toBe(index === 0 ? 1 : 2)
+      expect(ts.trace!.keyframes.some((frames) => frames.some((f) => f.tau1 - f.tau0 === 250n))).toBe(true)
+      if (index === 1) expect(wells.some((a) => wells.some((b) => a !== b && a.startTau < b.endTau! && b.startTau < a.endTau!))).toBe(true)
+      const result = await clients().pub.readContract({ address: solver, abi: solverAbi(), functionName: 'solve', args: [{
+        seed: core.seed, openAnchor: core.openAnchor, stakeTier: 1, playerHorseId: core.playerHorseId,
+        choices: core.choices.map((choice) => choice === null
+          ? { present: false, txSec: 0, cardId: 0, refreshSlots: [], anchor: `0x${'0'.repeat(64)}` }
+          : { present: true, txSec: Number(choice.txSec), cardId: choice.cardId, refreshSlots: choice.refreshSlots, anchor: choice.anchor }),
+      }] }) as {
+        finishTime: number[]; finishWall: number[]; rawOrder: number[]; settlementOrder: number[];
+        playerRawRank: number; playerSettlementRank: number; acquired: number[]; eventCount: number; digest: Hex;
+      }
+      expect(result.finishTime.map(BigInt)).toEqual(ts.finishTime)
+      expect(result.finishWall.map(BigInt)).toEqual(ts.finishWall)
+      expect(result.rawOrder).toEqual(ts.rawOrder)
+      expect(result.settlementOrder).toEqual(ts.settlementOrder)
+      expect(result.playerRawRank).toBe(ts.rawRank)
+      expect(result.playerSettlementRank).toBe(ts.settlementRank)
+      expect(result.acquired).toEqual(ts.acquiredByCheckpoint)
+      expect(result.eventCount).toBe(ts.eventCount)
+      expect(result.digest).toBe(ts.digest)
+    }
   })
 
   /** Opens a session and returns the TS core input built from the chain's seed, T0 and open block hash. */

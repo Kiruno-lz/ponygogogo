@@ -1,6 +1,6 @@
 # 回归复现记录
 
-第一至四节对应本目录的 `countdown-overlay`、`wallet-busy`、`collection-locked-slots`、`modal-strictmode-close` 四个脚本，第五节的复现脚本在 `tests/e2e/specs/paid-race.spec.ts`，第六节对应 `gogo-exhausted`，第七节对应 `practice-spin-thrust`，`bunx playwright test --config tests/e2e/playwright.config.ts regressions/` 全量跑本目录。
+第一至四节对应本目录的 `countdown-overlay`、`wallet-busy`、`collection-locked-slots`、`modal-strictmode-close` 四个脚本，第五节的复现脚本在 `tests/e2e/specs/paid-race.spec.ts`，第六节对应 `gogo-exhausted`，第七节对应 `practice-spin-thrust`，第八节对应 `practice-gravity-trace`，`bunx playwright test --config tests/e2e/playwright.config.ts regressions/` 全量跑本目录。
 
 //TODO - 为 `anonymous-card-webkit`、`cosmetics-wind`、`equipment-card-selection`、`gogo-button-layout`、`gogo-camera`、`horse-selection`、`practice-rules-audio` 七个回归脚本补写缺陷现象、根因假设与关联 L1/L2 模块；判据是 `regressions/*.spec.ts` 每个文件在本文都有对应小节。
 
@@ -263,3 +263,27 @@ bash scripts/dev.sh stop
 - L3-R：本脚本覆盖真实免费试玩；`tests/e2e/specs/spin-thrust.spec.ts` 覆盖验收入口的挂点、起飞、减弱动效与到期。
 
 HUD 按来源卡去重，沿用原期限与 debuff 标签；飘字和音频消费比赛事件，视觉 payload 不产生事件。有奖比赛复用同一快照转换，本脚本不进行付费交易。
+
+---
+
+## 八、重力井 250 ms 规则与表现轨迹一致性
+
+脚本：`practice-gravity-trace.spec.ts`
+
+### 规则变更与回归风险
+
+重力井 RK2 基步由 50 ms 改为 250 ms，遇已知事件或首次越过时仍截断。若链上积分、前端预览或表现层独立保留旧步长，同一输入会得到不同位置、冲线时间与 digest。步长在 `PAID_CARD_GLOBALS.rkStepMs` 中定义，生成 Solidity 常量并参与规则哈希；练习与有奖驱动都采样共享求时器的轨迹。
+
+### 复现说明
+
+```bash
+PLAYWRIGHT_PORT=5186 bunx playwright test --config tests/e2e/playwright.config.ts regressions/practice-gravity-trace.spec.ts
+```
+
+固定 `seed=0x00000003`、玩家马 0，真实练习牌堆在第一面板槽位 2 提供 C-10。通过 UI 选择，逐帧读取正在运行的 RaceScene：五马位置、速度与体力须等于同刻规范轨迹的采样；井期出现完整 250 ms 步，装备贴图播放多帧，并在实例到期后消失。保存实际比赛截图，不注入效果或修改规则时钟。
+
+### 关联模块与证据边界
+
+- L1：`solver.gravity.test.ts` 独立重算 RK2 中点步骤、重叠井与事件截断；`paidSnapshot.test.ts` 核对步中间与到期快照；`paidDriver.test.ts` 核对付费展示的重叠井生产输入。
+- L2：`PaidRaceMotion.t.sol` 验证 1001 ms 为四个完整步加 1 ms 尾步，修改前失败；355 场 TS/Solidity 向量逐字段、事件和 digest 对照；`paid-session-anvil.test.ts` 在本地真实 Solver 核对单井与重叠井。
+- L3-R：本脚本覆盖真实练习展示，使用两种驱动共用的快照与 Phaser 装备渲染。测试网只读 state override 探针核对 80 场生产结果；不作为部署或真实智能账户付款证据。

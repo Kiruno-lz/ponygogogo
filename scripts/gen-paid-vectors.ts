@@ -219,7 +219,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
   }), 1, 6), 2, 10))
   // Adversarial gas cases (P3). Field time: every horse holds C-10 and C-13 (steals refresh a well for a full 10 s),
   // bombs and a death spread the horses so the wells rarely overlap; tier-3 personalities, CPU-eligible CPU decks.
-  // Found by a seeded search maximising stepCount; the theoretical ceiling is 10 wells × 10 s = 2000 steps.
+  // Found by a seeded search maximising stepCount; the fixed 100s field-work benchmark is 400 steps at 250ms (not a v4 worst-case proof).
   const tier3 = (base: bigint, acceleration: bigint, cap: bigint): PaidCoreProfile => ({ base, acceleration, cap })
   add('worst-field-time-wells-steals', pickAt(pickAt(pickAt(fixtureInput({
     playerHorseId: 4,

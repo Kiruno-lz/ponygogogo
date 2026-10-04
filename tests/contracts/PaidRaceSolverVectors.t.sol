@@ -136,8 +136,8 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorBase {
     /// The real-race chunk gates retain their independent 23.5M limit.
     function testRefreshedWellFieldWorkProjection() public {
         (uint256 field, uint256 steps,,) = new FieldStretchProbe().stretch(1, 150_000);
-        require(steps == 3000, "refreshed well field budget");
-        emit log_named_uint("field work projection (3000 one-well steps)", field);
+        require(steps == 600, "refreshed well field budget");
+        emit log_named_uint("field work projection (600 one-well steps)", field);
         require(field > 0, "field work was not measured");
     }
 

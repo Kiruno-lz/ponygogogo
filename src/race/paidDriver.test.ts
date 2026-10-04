@@ -4,11 +4,11 @@ import type { ClockEstimate } from '../chain/chainClock.ts'
 import type { ChoiceOutcome, PaidChoiceFact, PaidSessionFacts, PaidTxStep } from '../chain/paidSession.ts'
 import { derivePaidDeck, FULL_CARD_MASK } from './core/paidDeck.ts'
 import type { RaceEvent } from './core/types.ts'
-import { sampleHorse, tauAtWall } from './paid/trace.ts'
+import { sampleHorse, tauAtWall, wallAtTau } from './paid/trace.ts'
 import type { PaidCheckpointRecord } from './paid/solver.ts'
 import { ignoredChoiceOutcome, PaidRaceDriver, type SubmitChoice } from './paidDriver.ts'
 import { solveFromFacts } from './paidResult.ts'
-import { demoPos, paidCardKey } from './paidSnapshot.ts'
+import { demoPos, demoSpeed, demoStamina, paidCardKey } from './paidSnapshot.ts'
 
 const T0 = 1_790_000_000
 const TIMING = { latencyMs: 700, marginMs: 2000 }
@@ -100,6 +100,33 @@ describe('paid driver: canonical time and snapshots', () => {
     for (let h = 0; h < 5; h++) expect(r.driver.state.horses[h]!.pos).toBe(demoPos(sampleHorse(res.trace!, h, tau).pos))
     expect(r.driver.phase).toBe('racing')
     expect(r.events.filter((e) => e.type === 'checkpoint').length).toBe(0)
+  })
+
+  test('paid display samples the same 250ms overlapping-well trajectory as the contract oracle', () => {
+    // This production input also runs through the deployed Solver in paid-session-anvil.test.ts.
+    const f = facts('0xee2f19d2d601b98cfc8b613200766bb21cbc4294476db78e9372d2f52a7a7f2e', [null, null, null], 1, 1)
+    f.seed = '0x8486a37a59c4f66a573ec56d925ee0ed39ad950970db563e1877bfbcd8205a5b'
+    const result = solveFromFacts(f, {})
+    const trace = result.trace!
+    const wells = trace.instances.filter((i) => i.cardId === 10 && i.kind === 'equip')
+    const overlap = wells[1]!.startTau
+    const frame = trace.keyframes[1]!.find((s) => s.tau0 >= overlap && s.tau1 - s.tau0 === 250n)!
+    expect(frame).toBeDefined()
+    const r = rig(f)
+    r.driver.open(f)
+    for (const tau of [frame.tau0, frame.tau0 + 125n, frame.tau1, wells[0]!.endTau! - 1n, wells[1]!.endTau!]) {
+      const wall = Number(wallAtTau(trace, tau))
+      r.runTo(wall)
+      expect(r.driver.debugDisplay.wall).toBe(wall)
+      for (let h = 0; h < 5; h++) {
+        const expected = sampleHorse(trace, h, tau)
+        expect(r.driver.state.horses[h]).toMatchObject({
+          pos: demoPos(expected.pos), v: demoSpeed(expected.v), stamina: demoStamina(expected.stamina),
+        })
+      }
+      for (const well of wells) expect(r.driver.state.effects.some((e) => e.sourceCardId === 'C-10' && e.ownerHorseId === well.horse))
+        .toBe(well.startTau <= tau && tau < well.endTau!)
+    }
   })
 
   test('the visual countdown holds the picture at the start line, then the display catches up at ≤ 3× speed', () => {

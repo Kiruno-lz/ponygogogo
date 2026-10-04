@@ -35,7 +35,8 @@ function checkRk2Step(r: PaidSolveResult, tau: bigint): number {
   return running.length
 }
 
-test('one well: every full 50 ms step equals the frozen RK2 midpoint rule', () => {
+test('one well: every full 250 ms step equals the frozen RK2 midpoint rule', () => {
+  expect(RK_STEP_MS).toBe(250n)
   const r = solvePaidCore(fixtureInput({ cpu: { 2: [10, 20, 5] } }))
   const [well] = wellWindows(r)
   expect(well).toMatchObject({ owner: 2, to: well!.from + 10_000n })
@@ -43,7 +44,7 @@ test('one well: every full 50 ms step equals the frozen RK2 midpoint rule', () =
   expect(steps.every((f) => f.tau1 - f.tau0 <= RK_STEP_MS)).toBe(true)
   expect(r.stepCount).toBe(steps.length)
   const full = steps.filter((f) => f.tau1 - f.tau0 === RK_STEP_MS)
-  expect(full.length).toBeGreaterThan(150)
+  expect(full.length).toBeGreaterThan(30)
   for (const f of full.slice(0, 40)) expect(checkRk2Step(r, f.tau0)).toBe(5)
   // Outside the well the solver is analytic again: intervals longer than one step reappear.
   expect(r.trace!.keyframes[2]!.some((f) => f.tau0 >= well!.to && f.tau1 - f.tau0 > RK_STEP_MS)).toBe(true)

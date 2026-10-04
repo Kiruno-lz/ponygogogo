@@ -102,6 +102,7 @@ library PaidCardRules {
     uint8 internal constant CARD_COUNT = ${PAID_CARD_RULES.length};
     uint16 internal constant MIN_COST_FACTOR_BPS = ${PAID_CARD_GLOBALS.minCostFactorBps};
     uint32 internal constant BONUS_DEFAULT_MS = ${PAID_CARD_GLOBALS.bonusDefaultMs};
+    uint256 internal constant RK_STEP_MS = ${PAID_CARD_GLOBALS.rkStepMs};
 ${effects}
 
     struct Rule {

@@ -1,20 +1,20 @@
 {
-  "rulesetHash": "0x57f1149242930a98ef7819e90b5945887432efcc677578a290b19e355536af6e",
+  "rulesetHash": "0xbb2c9df7e6a29f0c6c54510063905c4652e08e0e987b262484cc77eb46dae876",
   "samples": 80,
   "policy": "Full pool, actual checkpoint windows; aim for both pieces, take C-05 if missing, refresh slot 0 once when needed, then choose a situational third card. AcquiredBoth counts cards received; triggered additionally checks actual overlap or a corresponding solver trigger. A forfeit is a consumed choice, not a card. This policy is not an optimal strategy or a payout guarantee.",
   "random": {
     "races": 80,
     "rawRanks": [
       9,
-      5,
-      14,
+      4,
+      15,
       17,
       35
     ],
     "settlementRanks": [
       9,
-      5,
-      14,
+      4,
+      15,
       17,
       35
     ],
@@ -34,8 +34,8 @@
       "refreshes": 7,
       "ranks": [
         7,
-        3,
-        14,
+        2,
+        15,
         20,
         36
       ]
@@ -53,9 +53,9 @@
       "refreshes": 6,
       "ranks": [
         8,
-        3,
-        18,
-        15,
+        2,
+        20,
+        14,
         36
       ]
     },
@@ -91,8 +91,8 @@
       "refreshes": 8,
       "ranks": [
         8,
-        5,
-        18,
+        4,
+        19,
         15,
         34
       ]
@@ -110,8 +110,8 @@
       "refreshes": 8,
       "ranks": [
         7,
-        3,
-        14,
+        2,
+        15,
         19,
         37
       ]
@@ -129,8 +129,8 @@
       "refreshes": 5,
       "ranks": [
         8,
-        4,
-        15,
+        3,
+        16,
         15,
         38
       ]
@@ -148,8 +148,8 @@
       "refreshes": 7,
       "ranks": [
         7,
-        3,
-        16,
+        2,
+        17,
         16,
         38
       ]
@@ -167,8 +167,8 @@
       "refreshes": 7,
       "ranks": [
         8,
-        3,
-        12,
+        2,
+        13,
         17,
         40
       ]
@@ -205,8 +205,8 @@
       "refreshes": 6,
       "ranks": [
         8,
-        3,
-        15,
+        2,
+        16,
         18,
         36
       ]
@@ -224,8 +224,8 @@
       "refreshes": 5,
       "ranks": [
         6,
-        4,
-        16,
+        3,
+        17,
         16,
         38
       ]
