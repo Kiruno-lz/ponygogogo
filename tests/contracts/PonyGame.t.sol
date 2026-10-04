@@ -85,19 +85,19 @@ contract PonyGameTest is PonyGameBase {
     function testConstructorFixesSolverRulesetAndPausedEntry() public {
         require(address(game.solver()) == address(solver) && game.rulesetHash() == RULESET, "binding");
         require(address(game.vault()) == address(vault) && game.owner() == address(this), "wiring");
-        PonyGame fresh = new PonyGame(address(this), solver);
+        PonyGame fresh = new PonyGame(address(this), solver, rewards);
         require(fresh.entryPaused(), "entry must start paused");
         vm.expectRevert(PonyGame.InvalidConfiguration.selector);
-        new PonyGame(address(this), IPaidRaceSolver(address(0xdead)));
+        new PonyGame(address(this), IPaidRaceSolver(address(0xdead)), rewards);
         MockPaidRaceSolver unnamed = new MockPaidRaceSolver(bytes32(0));
         vm.expectRevert(PonyGame.InvalidConfiguration.selector);
-        new PonyGame(address(this), unnamed);
+        new PonyGame(address(this), unnamed, rewards);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
-        new PonyGame(address(0), solver);
+        new PonyGame(address(0), solver, rewards);
     }
 
     function testBindVaultOnceToAVaultOfThisGame() public {
-        PonyGame fresh = new PonyGame(address(this), solver);
+        PonyGame fresh = new PonyGame(address(this), solver, rewards);
         fresh.setEntryPaused(false);
         vm.expectRevert(PonyGame.InvalidConfiguration.selector);
         vm.prank(ALICE);

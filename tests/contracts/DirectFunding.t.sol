@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 import {PonyGame} from "../../contracts/PonyGame.sol";
 import {PonyVault} from "../../contracts/PonyVault.sol";
+import {PonyRewards} from "../../contracts/PonyRewards.sol";
 import {MockPaidRaceSolver} from "./MockPaidRaceSolver.sol";
 
 interface FundingVm {
@@ -40,13 +41,16 @@ contract DirectFundingTest {
     FundingVm constant vm = FundingVm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
     PonyGame game;
     PonyVault vault;
+    PonyRewards rewards;
     MockPaidRaceSolver solver;
 
     function setUp() public {
         vm.roll(100);
         vm.warp(1_750_000_000);
         solver = new MockPaidRaceSolver(bytes32(uint256(1)));
-        game = new PonyGame(address(this), solver);
+        rewards = new PonyRewards(address(this));
+        game = new PonyGame(address(this), solver, rewards);
+        rewards.setGame(address(game), true);
         vault = new PonyVault(address(game), address(this));
         game.bindVault(vault);
         vm.deal(address(this), 100 ether);

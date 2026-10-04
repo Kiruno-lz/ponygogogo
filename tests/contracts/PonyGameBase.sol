@@ -5,6 +5,7 @@ import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
 import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
 import {PonyGame} from "../../contracts/PonyGame.sol";
 import {PonyVault} from "../../contracts/PonyVault.sol";
+import {PonyRewards} from "../../contracts/PonyRewards.sol";
 import {MockPaidRaceSolver} from "./MockPaidRaceSolver.sol";
 
 struct VmLog {
@@ -70,13 +71,16 @@ abstract contract PonyGameBase {
     MockPaidRaceSolver internal solver;
     PonyGame internal game;
     PonyVault internal vault;
+    PonyRewards internal rewards;
 
     function setUp() public virtual {
         vm.roll(START_BLOCK);
         vm.warp(START_TIME);
         vm.etch(Eip2935.HISTORY, Eip2935.RUNTIME);
         solver = new MockPaidRaceSolver(RULESET);
-        game = new PonyGame(address(this), solver);
+        rewards = new PonyRewards(address(this));
+        game = new PonyGame(address(this), solver, rewards);
+        rewards.setGame(address(game), true);
         vault = new PonyVault(address(game), address(this));
         game.bindVault(vault);
         vm.deal(address(this), HOUSE);

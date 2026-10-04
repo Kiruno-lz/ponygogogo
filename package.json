@@ -13,6 +13,7 @@
     "check:paid-cards": "bun scripts/gen-paid-card-rules.ts --check",
     "check:paid-vectors": "bun scripts/gen-paid-vectors.ts --check",
     "check:pony-rules": "bun scripts/gen-pony-rules.ts --check",
+    "check:reward-rules": "bun scripts/gen-reward-rules.ts --check",
     "check:contracts": "bun scripts/check-contract-sizes.ts",
     "check:solver-monad": "bun --no-env-file scripts/measure-paid-solver.ts",
     "assets": "python3 scripts/build-web-assets.py",

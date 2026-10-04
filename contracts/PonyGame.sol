@@ -11,6 +11,8 @@ import {PaidSeed} from "./libraries/PaidSeed.sol";
 import {PonyVault} from "./PonyVault.sol";
 import {RacePayout} from "./libraries/RacePayout.sol";
 import {RandomAnchor} from "./libraries/RandomAnchor.sol";
+import {RewardRules} from "./libraries/RewardRules.sol";
+import {PonyRewards} from "./PonyRewards.sol";
 
 /// @notice 会话协议 v2: paid sessions, choice records, random-anchor sealing, authoritative settlement and forfeits.
 /// There are no refunds: a session that can never settle is forfeited by its player (payout 0).
@@ -20,6 +22,7 @@ import {RandomAnchor} from "./libraries/RandomAnchor.sol";
 /// (有奖规则 v3), which ignores a rule-breaking choice.
 contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
     error InvalidConfiguration();
+    error InsufficientRewardGas();
     error EntryPaused();
     error InvalidEntry();
     error StakeValueMismatch();
@@ -106,6 +109,7 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
     }
 
     IPaidRaceSolver public immutable solver;
+    PonyRewards public immutable rewards;
     bytes32 public immutable rulesetHash;
     PonyVault public vault;
     bool public entryPaused = true;
@@ -116,6 +120,7 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
     mapping(bytes32 => Session) internal _sessions;
 
     event VaultBound(address indexed vault);
+    event RewardsBound(address indexed rewards);
     event EntryPauseChanged(bool paused);
     event SessionOpened(
         bytes32 indexed sessionId,
@@ -151,12 +156,14 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
     );
     event SessionForfeited(bytes32 indexed sessionId, address indexed player, uint256 stake, uint8 reason);
 
-    constructor(address owner_, IPaidRaceSolver solver_) Ownable(owner_) {
-        if (address(solver_).code.length == 0) revert InvalidConfiguration();
+    constructor(address owner_, IPaidRaceSolver solver_, PonyRewards rewards_) Ownable(owner_) {
+        if (address(solver_).code.length == 0 || address(rewards_).code.length == 0) revert InvalidConfiguration();
         bytes32 ruleset = solver_.rulesetHash();
         if (ruleset == bytes32(0)) revert InvalidConfiguration();
         solver = solver_;
+        rewards = rewards_;
         rulesetHash = ruleset;
+        emit RewardsBound(address(rewards_));
     }
 
     // ---------------------------------------------------------------- admin
@@ -238,6 +245,7 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
     /// sealed or still readable. No deadline once sealed.
     function settleSession(bytes32 sessionId) external nonReentrant returns (uint256 payout) {
         Session storage session = _openSession(sessionId);
+        if (gasleft() < RewardRules.GAS_RESERVE) revert InsufficientRewardGas();
         IPaidRaceSolver.RaceInput memory input = _raceInput(session);
         _seal(sessionId, session, input);
         IPaidRaceSolver.RaceResult memory result = solver.solve(input);
@@ -252,6 +260,12 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
         address player = session.player;
         session.state = STATE_SETTLED;
         delete sessionOf[player];
+        // The grant runs before the payout: settleStake pays the player with an uncapped call, so a player
+        // contract whose receive() burns gas would otherwise decide this check and revert a valid settlement.
+        // The reserve still stops a keeper from starving the grant, and settleStake never reverts on a failed
+        // player transfer, so settlement success stays decided by the Vault alone.
+        if (gasleft() < RewardRules.GAS_RESERVE) revert InsufficientRewardGas();
+        _grantCollectible(sessionId, player);
         payout = vault.settleStake(sessionId, payout);
         emit SessionSettled(
             sessionId,
@@ -264,6 +278,27 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
             result.digest,
             result.acquired
         );
+    }
+
+    event CollectibleSkipped(bytes32 indexed sessionId);
+
+    /// @dev Collection randomness is deliberately independent of race outcomes and payouts.
+    function _grantCollectible(bytes32 sessionId, address player) private {
+        uint256 owned;
+        try rewards.ownedMask{gas: 20000}(player) returns (uint256 mask) {
+            owned = mask;
+        } catch {
+            emit CollectibleSkipped(sessionId);
+            return;
+        }
+        bytes32 seed =
+            keccak256(abi.encode(blockhash(block.number - 1), block.chainid, address(this), sessionId, player));
+        (bool granted, uint8 kind, uint8 id) = RewardRules.draw(seed, owned);
+        if (!granted) return;
+        try rewards.record{gas: RewardRules.RECORD_GAS}(sessionId, player, kind, id) {}
+        catch {
+            emit CollectibleSkipped(sessionId);
+        }
     }
 
     /// @notice Closes a session that can never settle with payout 0: the stake goes to house liquidity and the

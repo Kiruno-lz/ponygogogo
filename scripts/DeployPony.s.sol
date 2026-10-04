@@ -5,6 +5,7 @@ import {IPaidRaceSolver} from "../contracts/interfaces/IPaidRaceSolver.sol";
 import {PaidCardRules} from "../contracts/libraries/PaidCardRules.sol";
 import {PonyGame} from "../contracts/PonyGame.sol";
 import {PonyVault} from "../contracts/PonyVault.sol";
+import {PonyRewards} from "../contracts/PonyRewards.sol";
 
 /// @dev The subset of Foundry script cheatcodes used here (the repo has no forge-std).
 interface DeployVm {
@@ -38,6 +39,7 @@ contract DeployPony {
     address internal constant CONSOLE = 0x000000000000000000636F6e736F6c652e6c6f67;
 
     error MissingSolver();
+    error DeploymentFailed();
     error RulesetMismatch();
     error InvalidDeployerKey();
 
@@ -47,6 +49,7 @@ contract DeployPony {
         address solverAddress = vm.envOr("PONY_SOLVER", address(0));
         uint256 houseFund = vm.envOr("HOUSE_FUND_WEI", uint256(0));
         bool unpause = vm.envOr("UNPAUSE", uint256(0)) == 1;
+        address rewardsAddress = vm.envOr("PONY_REWARDS", address(0));
         bytes memory solverCode;
         if (solverAddress == address(0)) {
             try vm.getCode("PaidRaceSolver.sol:PaidRaceSolver") returns (bytes memory code) {
@@ -62,8 +65,12 @@ contract DeployPony {
         if (solverAddress == address(0)) solverAddress = _create(solverCode);
         solver = IPaidRaceSolver(solverAddress);
         if (solver.rulesetHash() != PaidCardRules.RULESET_HASH) revert RulesetMismatch();
-        game = new PonyGame(deployer, solver);
-        vault = new PonyVault(address(game), deployer);
+        PonyRewards rewards = rewardsAddress == address(0)
+            ? PonyRewards(_create(abi.encodePacked(vm.getCode("PonyRewards.sol:PonyRewards"), abi.encode(deployer))))
+            : PonyRewards(rewardsAddress);
+        game = PonyGame(_create(abi.encodePacked(vm.getCode("PonyGame.sol:PonyGame"), abi.encode(deployer, solver, rewards))));
+        rewards.setGame(address(game), true);
+        vault = PonyVault(payable(_create(abi.encodePacked(vm.getCode("PonyVault.sol:PonyVault"), abi.encode(address(game), deployer)))));
         game.bindVault(vault);
         if (houseFund != 0) vault.fundHouse{value: houseFund}();
         if (unpause) game.setEntryPaused(false);
@@ -73,6 +80,7 @@ contract DeployPony {
         _log("solver", address(solver));
         _log("game", address(game));
         _log("vault", address(vault));
+        _log("rewards", address(rewards));
         _log("rulesetHash", game.rulesetHash());
         _log("houseLiquidity", vault.houseLiquidity());
         _log("entryPaused", game.entryPaused() ? 1 : 0);
@@ -90,7 +98,7 @@ contract DeployPony {
         assembly ("memory-safe") {
             deployed := create(0, add(code, 0x20), mload(code))
         }
-        if (deployed == address(0)) revert MissingSolver();
+        if (deployed == address(0)) revert DeploymentFailed();
     }
 
     function _log(string memory label, address value) private view {

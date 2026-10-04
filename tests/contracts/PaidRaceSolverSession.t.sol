@@ -6,6 +6,7 @@ import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 import {PaidRaceSolver} from "../../contracts/PaidRaceSolver.sol";
 import {PonyGame} from "../../contracts/PonyGame.sol";
 import {PonyVault} from "../../contracts/PonyVault.sol";
+import {PonyRewards} from "../../contracts/PonyRewards.sol";
 import {RacePayout} from "../../contracts/libraries/RacePayout.sol";
 import {Eip2935, PonyVm, VmLog} from "./PonyGameBase.sol";
 import {PaidRaceVectorBase} from "./PaidRaceVectorBase.sol";
@@ -26,13 +27,16 @@ contract PaidRaceSolverSessionTest is PaidRaceVectorBase {
     PaidRaceSolver internal solver;
     PonyGame internal game;
     PonyVault internal vault;
+    PonyRewards internal rewards;
 
     function setUp() public {
         chain.roll(START_BLOCK);
         chain.warp(START_TIME);
         chain.etch(Eip2935.HISTORY, Eip2935.RUNTIME);
         solver = new PaidRaceSolver();
-        game = new PonyGame(address(this), solver);
+        rewards = new PonyRewards(address(this));
+        game = new PonyGame(address(this), solver, rewards);
+        rewards.setGame(address(game), true);
         vault = new PonyVault(address(game), address(this));
         game.bindVault(vault);
         chain.deal(address(this), 100 ether);
