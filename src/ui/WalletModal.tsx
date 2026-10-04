@@ -1,5 +1,5 @@
 /**
- * 钱包管理面板：游戏账户（sma-b）地址、签名账户（根 EOA）地址、网络、原生 MON 余额，
+ * 钱包管理面板：游戏账户（sma-b）地址、网络、原生 MON 余额，
  * 账户迁入的交易状态、给游戏账户领测试币、把签名账户的余额迁入、导出助记词，以及索引器里的最近战绩
  * （只读、只作展示，未配置索引器时不出现）。
  * 助记词只活在这个组件的局部 state 里：面板一卸载就随组件消失，不写任何持久存储。
@@ -12,7 +12,7 @@ import { ENVIO_GRAPHQL_URL } from '../chain/history.ts'
 import { shouldOfferMigration } from '../chain/migration.ts'
 import { CHAIN, CURRENCY, explorerTxUrl } from '../chain/network.ts'
 import { isTxBusy, type TxState } from '../chain/txStatus.ts'
-import type { GameAccount, MigrationOutcome, WalletAccount } from '../chain/wallet.ts'
+import type { GameAccount, MigrationOutcome } from '../chain/wallet.ts'
 import { Chip, WoodButton } from './Button.tsx'
 import { t, type Lang } from './i18n.ts'
 import { RecentRaces } from './RecentRaces.tsx'
@@ -22,12 +22,10 @@ import { walletErrorText } from './walletError.ts'
 type Pending = 'refresh' | 'faucet' | 'export' | null
 
 export function WalletModal({
-  lang, account, gameAccount, gameError, funds, rootBalance, tx,
+  lang, gameAccount, gameError, funds, rootBalance, tx,
   onRefresh, onFaucet, onExport, onMigrate, onClose,
 }: {
   lang: Lang
-  /** 根 EOA：签名者，只作次要信息展示 */
-  account: WalletAccount
   /** sma-b；null = 还在解析或解析失败 */
   gameAccount: GameAccount | null
   gameError: string | null
@@ -112,13 +110,6 @@ export function WalletModal({
               <span className="mono wallet-full-address" data-testid="wallet-address">{gameAccount.address}</span>
               <Chip label={t(lang, copied ? 'wallet.copied' : 'wallet.copy')} onClick={copyAddress} />
             </> : <span data-testid="wallet-address-pending">{gameError ?? t(lang, 'wallet.resolving')}</span>}
-            <small>{t(lang, 'wallet.gameAccountHint')}</small>
-          </dd>
-
-          <dt className="wallet-secondary">{t(lang, 'wallet.signer')}</dt>
-          <dd className="wallet-secondary">
-            <span className="mono wallet-signer-address" data-testid="wallet-signer-address">{account.address}</span>
-            <small>{t(lang, 'wallet.signerHint')}</small>
           </dd>
 
           <dt>{t(lang, 'wallet.balance')}</dt>

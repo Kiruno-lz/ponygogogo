@@ -42,6 +42,7 @@ export async function addAuthenticator(page: Page): Promise<void> {
 }
 
 export type ChainStub = {
+  signerAddress: () => Address | null
   faucetCalls: () => number
   faucetAddresses: () => string[]
   alchemyRequests: () => number
@@ -68,6 +69,7 @@ export async function stubChain(
   const raw: Array<{ from: Address; to: Address; value: bigint }> = []
   const faucetAddresses: string[] = []
   let alchemyRequests = 0
+  let signerAddress: Address | null = null
   let block = 1000
   const key = (a: string) => a.toLowerCase()
   const hex = (v: bigint | number) => `0x${v.toString(16)}`
@@ -94,6 +96,7 @@ export async function stubChain(
       const reply = (payload: object) => route.fulfill({ status: 200, headers: JSON_HEADERS, body: JSON.stringify({ jsonrpc: '2.0', id: req.id, ...payload }) })
       if (alchemy === 'down') return reply({ error: { code: -32000, message: 'stubbed Alchemy outage' } })
       if (req.method === 'wallet_requestAccount' && req.params?.[0]?.signerAddress) {
+        signerAddress = getAddress(req.params[0].signerAddress)
         return reply({ result: { accountAddress: smaFor(req.params[0].signerAddress), id: '3061cc5f-1f96-48a9-ab45-41faad2dd23b' } })
       }
       return reply({ error: { code: -32601, message: `stub does not answer ${req.method}` } })
@@ -152,6 +155,7 @@ export async function stubChain(
   )
 
   return {
+    signerAddress: () => signerAddress,
     faucetCalls: () => faucetAddresses.length,
     faucetAddresses: () => [...faucetAddresses],
     alchemyRequests: () => alchemyRequests,
@@ -170,20 +174,21 @@ export async function registerAs(page: Page, name: string): Promise<void> {
   await expect(page.getByTestId('wallet-panel')).toBeVisible({ timeout: 30_000 })
 }
 
-/** 读出当前游戏账户（sma-b）与签名账户（根 EOA）的完整地址，读完把面板收起来 */
-export async function readAddresses(page: Page): Promise<{ game: string; signer: string }> {
+/** Read the signer from the intercepted Alchemy request, independently of the wallet UI. */
+export async function readAddresses(page: Page, chain: ChainStub): Promise<{ game: string; signer: string }> {
+  const signer = chain.signerAddress()
+  if (!signer) throw new Error('No signer has resolved a game account')
+  return { game: await readAddress(page), signer }
+}
+
+/** 读出当前游戏账户（sma-b）的完整地址，读完把面板收起来 */
+export async function readAddress(page: Page): Promise<string> {
   await page.getByTestId('wallet-open').click()
   await expect(page.getByTestId('wallet-modal')).toBeVisible()
   const game = (await page.getByTestId('wallet-address').innerText()).trim()
-  const signer = (await page.getByTestId('wallet-signer-address').innerText()).trim()
   await page.getByRole('button', { name: /^关闭$|^Close$/ }).click()
   await expect(page.getByTestId('wallet-modal')).toBeHidden()
-  return { game, signer }
-}
-
-/** 读出当前游戏账户（sma-b）的完整地址 */
-export async function readAddress(page: Page): Promise<string> {
-  return (await readAddresses(page)).game
+  return game
 }
 
 /** 退出登录：入口在首页木牌上，钱包面板里没有这个按钮 */

@@ -12,7 +12,7 @@ import { ONE_MON, addAuthenticator, logout, readAddress, readAddresses, register
 
 const SHOT = 'tests/e2e/screenshots'
 
-test('钱包动线：取名注册 → 游戏账户领币 → 两个地址与智能账户余额 → 导出助记词 → 退出 → 登录回同一账户', async ({ page }) => {
+test('钱包动线：取名注册 → 游戏账户领币 → 账户与余额 → 导出助记词 → 退出 → 登录回同一账户', async ({ page }) => {
   const errors = await noConsoleErrors(page)
   await addAuthenticator(page)
   const chain = await stubChain(page)
@@ -43,7 +43,8 @@ test('钱包动线：取名注册 → 游戏账户领币 → 两个地址与智�
   await page.getByTestId('wallet-open').click()
   await expect(page.getByTestId('wallet-modal')).toBeVisible()
   const game = (await page.getByTestId('wallet-address').innerText()).trim()
-  const signer = (await page.getByTestId('wallet-signer-address').innerText()).trim()
+  const signer = chain.signerAddress()!
+  await expect(page.getByTestId('wallet-signer-address')).toHaveCount(0)
   expect(game).toMatch(/^0x[0-9a-fA-F]{40}$/)
   expect(signer).toMatch(/^0x[0-9a-fA-F]{40}$/)
   // 游戏账户是签名者拥有的另一个地址，测试币只发给它
@@ -62,7 +63,7 @@ test('钱包动线：取名注册 → 游戏账户领币 → 两个地址与智�
   await page.getByRole('button', { name: /^关闭$|^Close$/ }).click()
 
   // 木牌上的摘要就是游戏账户，不是签名账户
-  await expect(page.getByTestId('wallet-label')).toHaveText(`${game.slice(0, 6)}…${game.slice(-4)}`)
+  await expect(page.getByTestId('wallet-label')).toHaveText(`${game.slice(0, 10)}…${game.slice(-4)}`)
 
   // --- 导出助记词：二次验证通行密钥后给出 24 个词 ---
   await page.getByTestId('wallet-open').click()
@@ -88,7 +89,7 @@ test('钱包动线：取名注册 → 游戏账户领币 → 两个地址与智�
   await page.getByRole('button', { name: /^登录|Sign in/ }).first().click()
   await expect(page.getByTestId('wallet-panel')).toBeVisible({ timeout: 30_000 })
   await expect(page.getByTestId('balance')).toContainText('1.00 MON')
-  expect(await readAddresses(page)).toEqual({ game, signer })
+  expect(await readAddresses(page, chain)).toEqual({ game, signer })
   // 登录不再领一次水
   expect(chain.faucetCalls()).toBe(1)
 
@@ -103,7 +104,7 @@ test('签名账户里的旧余额迁入游戏账户：已提交 → 已入块，
   await enterHome(page)
   await registerAs(page, '迁移')
   await expect(page.getByTestId('balance')).toContainText('1.00 MON', { timeout: 30_000 })
-  const { game, signer } = await readAddresses(page)
+  const { game, signer } = await readAddresses(page, chain)
 
   // 早期版本把测试币领到了签名账户
   chain.credit(signer, 2n * ONE_MON)

@@ -82,7 +82,7 @@ test('游戏账户连不上：注册仍成功，不领水、不谎报余额，�
 
   await page.getByTestId('wallet-open').click()
   await expect(page.getByTestId('wallet-address-pending')).toHaveText(/游戏账户暂时连不上|Could not reach your game account/)
-  await expect(page.getByTestId('wallet-signer-address')).toHaveText(/^0x[0-9a-fA-F]{40}$/)
+  await expect(page.getByTestId('wallet-signer-address')).toHaveCount(0)
   await expect(page.getByTestId('wallet-balance')).toHaveText('—')
   await expect(page.getByRole('button', { name: /^领取测试币$|^Get test MON$/ })).toBeDisabled()
   await page.screenshot({ path: `${SHOT}/fail-game-account.png` })

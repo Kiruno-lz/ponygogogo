@@ -39,3 +39,23 @@ test('玩家第一名和第二名播放胜利旋律，其余名次播放失败�
     'audio.jingle_win', 'audio.jingle_win', 'audio.jingle_lose', 'audio.jingle_lose', 'audio.jingle_lose',
   ])
 })
+
+test('电脑马获得卡、装备、风或到达发牌点都不播放玩家获得音效', () => {
+  expect(raceEventSounds([
+    { type: 'cardPicked', horseId: 0, cardId: 'C-07', tick: 10 },
+    { type: 'equipOn', horseId: 0, equipId: 'rocket', slot: 'torso', tick: 10 },
+    { type: 'checkpoint', horseId: 0, mark: 1, tick: 10 },
+    { type: 'steal', from: 3, to: 0, equipId: 'rocket', tick: 10 },
+    { type: 'wind', horseId: 0, dir: 1, tick: 10 },
+  ], 3)).toEqual([])
+})
+
+test('非零玩家槽位保留获得音效，CPU 的装备事件不吞掉玩家同帧音效', () => {
+  expect(raceEventSounds([
+    { type: 'equipOn', horseId: 0, equipId: 'rocket', slot: 'torso', tick: 10 },
+    { type: 'equipOn', horseId: 3, equipId: 'rocket', slot: 'torso', tick: 10 },
+    { type: 'cardPicked', horseId: 3, cardId: 'C-07', tick: 10 },
+    { type: 'checkpoint', horseId: 3, mark: 1, tick: 10 },
+    { type: 'wind', horseId: 3, dir: -1, tick: 10 },
+  ], 3)).toEqual(['audio.sfx_equip', 'audio.sfx_card_pick', 'audio.sfx_checkpoint', 'audio.sfx_card_refresh'])
+})

@@ -277,8 +277,11 @@ export function Hud(p: HudProps) {
 }
 
 export function HorseAvatar({ horseId, size }: { horseId: number; size: number }) {
+  // The initial five have dedicated head crops; later roles use their shared portrait artwork.
+  const image = horseId < 5 ? `/assets/art/ui/leaderboard-avatar-${horseId}.webp`
+    : `/assets/art/ponies/${horseId}-portrait.webp`
   return <div className="horse-avatar" style={{ width: size, height: size }}>
-    <img src={`/assets/art/ui/leaderboard-avatar-${horseId}.webp`} alt={ponyById(horseId).name} draggable={false}/>
+    <img src={image} alt={ponyById(horseId).name} draggable={false}/>
   </div>
 }
 

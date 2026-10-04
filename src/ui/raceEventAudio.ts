@@ -17,10 +17,14 @@ export function raceEventSound(type: RaceEvent['type']): string | undefined {
   return RACE_EVENT_SOUNDS[type]
 }
 
-export function raceEventSounds(events: readonly RaceEvent[]): string[] {
+export function raceEventSounds(events: readonly RaceEvent[], playerHorseId = 0): string[] {
   const sounds: string[] = []
   let equipmentSoundUsed = false
   for (const event of events) {
+    // Acquisition sounds belong to the player, even when CPUs receive cards in the same frame.
+    if ((event.type === 'cardPicked' || event.type === 'checkpoint' || event.type === 'equipOn' || event.type === 'wind')
+      && event.horseId !== playerHorseId) continue
+    if (event.type === 'steal' && event.to !== playerHorseId) continue
     const sound = raceEventSound(event.type)
     if (!sound) continue
     if (sound === 'audio.sfx_equip') {
