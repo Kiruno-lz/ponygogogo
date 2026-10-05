@@ -349,6 +349,26 @@
     "/assets/placeholder/ui/panel_parchment": [
       950,
       462
+    ],
+    "/assets/art/ponies/5-plaque-portrait": [
+      126,
+      126
+    ],
+    "/assets/art/ponies/6-plaque-portrait": [
+      137,
+      137
+    ],
+    "/assets/art/ponies/7-plaque-portrait": [
+      130,
+      130
+    ],
+    "/assets/art/ponies/8-plaque-portrait": [
+      117,
+      117
+    ],
+    "/assets/art/ponies/1-plaque-portrait": [
+      155,
+      155
     ]
   },
   "seenAt": {
@@ -785,6 +805,26 @@
     ],
     "/assets/placeholder/ui/panel_parchment": [
       "settings"
+    ],
+    "/assets/art/ponies/5-plaque-portrait": [
+      "select",
+      "race"
+    ],
+    "/assets/art/ponies/6-plaque-portrait": [
+      "select",
+      "race"
+    ],
+    "/assets/art/ponies/7-plaque-portrait": [
+      "select",
+      "race"
+    ],
+    "/assets/art/ponies/8-plaque-portrait": [
+      "select",
+      "race"
+    ],
+    "/assets/art/ponies/1-plaque-portrait": [
+      "select",
+      "race"
     ]
   }
 }

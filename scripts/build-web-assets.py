@@ -367,7 +367,7 @@ def main() -> int:
                 "sha256": hashlib.sha256(data).hexdigest()[:16],
                 "tier": it.tier,
             }
-            if re.fullmatch(r"art/(?:ponies/\d+-(?:idle|running|idle-0|portrait)|result/hero-\d+|share/horse-\d+)\.webp", it.rel):
+            if re.fullmatch(r"art/(?:ponies/\d+-(?:idle|running|idle-0|portrait|plaque-portrait)|result/hero-\d+|share/horse-\d+)\.webp", it.rel):
                 entry['deferred'] = True
             if it.rel.endswith(".mp3"):
                 ogg_key = key
