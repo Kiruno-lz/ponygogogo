@@ -625,7 +625,7 @@ html, body, #root {
 .collectible-keep img { display: block; width: 100%; height: 100%; object-fit: fill; pointer-events: none; }
 .collectible-keep span { position: absolute; inset: 0; display: grid; place-items: center; padding-bottom: 1%; -webkit-text-stroke: calc(var(--collectible-unit) * .05) #512800; }
 .card-collectible .collectible-card-icon { position: absolute; top: 14%; left: 7%; width: 86%; height: 57%; object-fit: contain; }
-.card-collectible .collectible-card-name { position: absolute; top: 71.5%; left: 14%; width: 72%; height: 11%; display: flex; align-items: center; justify-content: center; white-space: nowrap;
+.card-collectible .collectible-card-name { position: absolute; top: 69.97%; left: 20.05%; width: 59.9%; height: 11%; display: flex; align-items: center; justify-content: center; white-space: nowrap;
   font-family: 'Songti SC', 'Noto Serif SC', 'STSong', Georgia, serif; font-size: calc(var(--collectible-unit, 4px) * 6.1); line-height: 1.05; font-weight: 900;
   color: #542801; -webkit-text-stroke: calc(var(--collectible-unit) * .035) #542801; }
 .collectible-card-name > span { flex: none; }
