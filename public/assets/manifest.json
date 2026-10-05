@@ -1574,5 +1574,45 @@
     "bytes": 35680,
     "sha256": "ac08ec97819f224a",
     "tier": "race"
+  },
+  "art.ponies.5-plaque-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/5-plaque-portrait.webp",
+    "bytes": 19194,
+    "sha256": "6f1bcad5fb86fe8d",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.6-plaque-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/6-plaque-portrait.webp",
+    "bytes": 16154,
+    "sha256": "526f9612ceffa93c",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.7-plaque-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/7-plaque-portrait.webp",
+    "bytes": 13886,
+    "sha256": "446533e9905fb097",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.8-plaque-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/8-plaque-portrait.webp",
+    "bytes": 24096,
+    "sha256": "43254643e417fd2e",
+    "tier": "race",
+    "deferred": true
+  },
+  "art.ponies.1-plaque-portrait": {
+    "kind": "image",
+    "path": "assets/art/ponies/1-plaque-portrait.webp",
+    "bytes": 19478,
+    "sha256": "91335585b5e5b857",
+    "tier": "race",
+    "deferred": true
   }
 }

@@ -39,6 +39,7 @@ import { RaceScreen } from './ui/RaceScreen.tsx'
 import { SelectScreen } from './ui/SelectScreen.tsx'
 import { normalizeRoster } from './game/ponyCatalog.ts'
 import { EffectShowcaseScreen } from './ui/EffectShowcaseScreen.tsx'
+import { CollectionSyncNotice } from './ui/CollectionSyncNotice.tsx'
 import { SettingsScreen } from './ui/SettingsScreen.tsx'
 import { TierGate } from './ui/TierGate.tsx'
 import { t } from './ui/i18n.ts'
@@ -737,7 +738,9 @@ export default function App() {
           />
         )}
 
-        {(notice || (page !== 'collection' && collection.error) || (page === 'home' && paid.resumeError)) && (
+        {!notice && page !== 'collection' && collection.error && <CollectionSyncNotice
+          error={collection.error} loading={collection.loading} onRetry={collection.unlock} lang={lang}/>}
+        {(notice || (!collection.error && page === 'home' && paid.resumeError)) && (
           <div
             data-testid="notice"
             role={collection.error || paid.resumeError ? 'alert' : 'status'}
@@ -754,10 +757,7 @@ export default function App() {
               zIndex: 200,
             }}
           >
-            {notice ?? collection.error ?? t(lang, 'resume.readFailed', { reason: paid.resumeError ?? '' })}
-            {!notice && collection.error && <button type="button" className="chip" disabled={collection.loading} onClick={collection.unlock}>
-              {t(lang, 'grant.retrySync')}
-            </button>}
+            {notice ?? t(lang, 'resume.readFailed', { reason: paid.resumeError ?? '' })}
             {!notice && !collection.error && paid.resumeError && <button type="button" className="chip" onClick={() => void checkResume()}>
               {t(lang, 'resume.retry')}
             </button>}

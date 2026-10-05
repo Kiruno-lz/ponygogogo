@@ -109,6 +109,20 @@ describe('动态拼接的资源族', () => {
     }
   })
 
+  test('生成的名牌近景独立出片，校验 manifest 指纹与按需加载', () => {
+    const manifest = JSON.parse(readFileSync(join(PUBLIC, 'assets/manifest.json'), 'utf8'))
+    for (const id of [1, 5, 6, 7, 8]) {
+      const key = `art.ponies.${id}-plaque-portrait`
+      const entry = manifest[key]
+      expect(entry?.path).toBe(`assets/art/ponies/${id}-plaque-portrait.webp`)
+      const bytes = readFileSync(join(PUBLIC, entry.path))
+      expect(entry.sha256).toBe(createHash('sha256').update(bytes).digest('hex').slice(0, 16))
+      expect(entry.bytes).toBe(bytes.length)
+      expect(entry.tier).toBe('race')
+      expect(entry.deferred).toBe(true)
+    }
+  })
+
   // 运行时不读 -idle-0（海报用 art/share/horse-N），它只是 scripts/prepare-spin-thrust.py 的输入
   test('海报静帧：每匹马一张', () => {
     for (const p of PONY_CATALOG) {

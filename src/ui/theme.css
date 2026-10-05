@@ -325,10 +325,12 @@ html, body, #root {
 .select-track { position: absolute; inset: 0; width: 1619px; height: 971px; }
 .select-start-line { position: absolute; left: 379px; top: 356px; width: 20px; height: 413px; background: #fff5db; opacity: .72; filter: blur(3px); }
 .player-plaque { position: absolute; left: 35px; top: 25px; width: 218px; height: 222px; pointer-events: none; }
-.player-plaque > img:first-child { width: 100%; height: 100%; object-fit: contain; }
-.player-plaque > span { position: absolute; left: 40px; right: 17px; bottom: 24px; text-align: center; font-family: 'Trebuchet MS', sans-serif; font-size: 25px; font-style: italic; font-weight: 800; color: #20170f; transform: rotate(-7deg); }
-.player-plaque .plaque-pony { position: absolute; width: 146px; height: 148px; object-fit: contain; left: 43px; top: 43px; clip-path: polygon(8% 0, 88% 0, 100% 85%, 0 88%); }
-.player-plaque > .source-name { opacity: 0; }
+.player-plaque .plaque-background, .player-plaque .plaque-frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.player-plaque .plaque-frame { z-index: 2; clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, 24% 30%, 24% 72%, 84% 66%, 86% 16%, 54% 19%, 53% 25%, 42% 30%, 24% 30%); }
+.player-plaque .plaque-window { position: absolute; inset: 0; z-index: 1; clip-path: polygon(24% 30%, 24% 72%, 84% 66%, 86% 16%, 54% 19%, 53% 25%, 42% 30%); }
+.player-plaque > span { position: absolute; z-index: 3; left: 40px; right: 17px; bottom: 24px; text-align: center; font-family: 'Trebuchet MS', sans-serif; font-size: 25px; font-style: italic; font-weight: 800; color: #20170f; transform: rotate(-7deg); }
+.player-plaque .plaque-pony { position: absolute; z-index: 1; object-fit: contain; }
+.collection-sync-notice { position: absolute; left: 460px; top: 15px; width: 680px; padding: 29px 24px; text-align: center; font-size: 20px; font-weight: 700; z-index: 200; }
 .stamina-art { position: absolute; left: 263px; top: 27px; width: 380px; height: 83px; pointer-events: none; }
 .stamina-art > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
 .stamina-empty { filter: none; }
@@ -351,6 +353,7 @@ html, body, #root {
 .pony-queue-arrow.queue-down { top: 747px; }
 .effect-showcase-controls, .effect-showcase-grants { position: absolute; z-index: 90; padding: 12px; border: 2px solid #a98550; border-radius: 12px; color: #fff4df; background: rgba(44, 29, 20, .92); font: 600 15px 'PingFang SC', sans-serif; }
 .effect-showcase-controls { left: 760px; top: 14px; width: 468px; display: flex; flex-direction: column; gap: 8px; }
+.effect-showcase-controls.showcase-result-controls { left: auto; right: 14px; width: auto; }
 .effect-showcase-grants { left: 400px; bottom: 52px; max-width: 745px; }
 .showcase-control-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .showcase-control-row label { display: inline-flex; align-items: center; gap: 6px; }
