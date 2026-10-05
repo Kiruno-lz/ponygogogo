@@ -228,7 +228,11 @@ def group_key(rel: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--pony', type=int, choices=range(9), nargs='+', help='Rebuild only these character assets in an existing manifest')
-    pony_ids = parser.parse_args().pony
+    parser.add_argument('--running-only', action='store_true', help='With --pony, rebuild only running sheets')
+    args = parser.parse_args()
+    pony_ids = args.pony
+    if args.running_only and pony_ids is None:
+        parser.error('--running-only requires --pony')
     if not SRC.is_dir():
         print(f"找不到素材母版目录 {SRC}", file=sys.stderr)
         return 1
@@ -324,6 +328,8 @@ def main() -> int:
         manifest = json.loads(manifest_path.read_text())
         wanted = {f'art/ponies/{pony}-{suffix}.webp' for pony in pony_ids for suffix in ('idle', 'running', 'idle-0', 'portrait')}
         wanted |= {f'art/{folder}/{prefix}-{pony}.webp' for pony in pony_ids for folder, prefix in (('result','hero'),('share','horse'))}
+        if args.running_only:
+            wanted = {f'art/ponies/{pony}-running.webp' for pony in pony_ids}
         items = [item for item in items if item.rel in wanted]
         if {item.rel for item in items} != wanted:
             raise ValueError('Incomplete character source assets: ' + ', '.join(sorted(wanted - {item.rel for item in items})))
