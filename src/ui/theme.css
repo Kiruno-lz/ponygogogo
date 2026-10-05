@@ -405,7 +405,7 @@ html, body, #root {
 .select-back .zh { font-size: 16px; letter-spacing: 0; }
 .btn-star { background-image: url('/assets/art/ui/star-reference.webp'); background-size: contain; background-repeat: no-repeat; }
 .btn-star .big { font-family: 'Trebuchet MS', 'Arial Black', sans-serif; font-style: italic; color: #1f1b14; text-shadow: none; font-weight: 1000; }
-.pony-portrait { background-repeat: no-repeat; animation: pony-idle 1.2s steps(8, jump-none) infinite; }
+.pony-portrait { background-repeat: no-repeat; animation: pony-idle 2s steps(8, jump-none) infinite; }
 @keyframes pony-idle { to { background-position: 100% 0; } }
 .reduced .pony-portrait { animation: none; }
 @media (prefers-reduced-motion: reduce) { .pony-portrait { animation: none; } }
