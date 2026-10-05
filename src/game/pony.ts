@@ -3,6 +3,7 @@ import Phaser from 'phaser'
 import type { HorseProfile } from './horses.ts'
 import { ponyById } from './ponyCatalog.ts'
 import { decodeImage } from './images.ts'
+import { advancePonyAnimation, PONY_FRAME_COUNT } from './ponyAnimation.ts'
 import {
   EFFECT_TEXTURES,
   HEAD_COSMETIC_TEXTURES,
@@ -19,7 +20,6 @@ import {
 export const PONY_SCALE = 0.75
 const FRAME_W = 256
 const FRAME_H = 192
-const FRAME_COUNT = 8
 
 export function ponyTextureKeys(horseId: number): { running: string; idle: string } {
   return { running: `pony_running_${horseId}`, idle: `pony_idle_${horseId}` }
@@ -131,12 +131,12 @@ export class PonySprite extends Phaser.GameObjects.Container {
 
   tickAnim(dtMs: number, speedRatio: number, airborne: boolean, stopped: boolean): void {
     const action = stopped ? 'idle' : 'running'
-    this.phase += dtMs * (stopped ? .005 : .005 + speedRatio * .017)
+    this.phase = advancePonyAnimation(this.phase, dtMs, stopped, speedRatio)
     if (action !== this.action) {
       this.action = action
       this.torso.setTexture(ponyTextureKeys(this.opts.profile.horseId)[action])
     }
-    this.torso.setFrame(Math.floor(this.phase / (Math.PI * 2) * FRAME_COUNT) % FRAME_COUNT)
+    this.torso.setFrame(Math.floor(this.phase) % PONY_FRAME_COUNT)
     const targetLift = airborne ? -46 : 0
     this.liftY += (targetLift - this.liftY) * Math.min(1, dtMs / 90)
     this.updateRootTransform()

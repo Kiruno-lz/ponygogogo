@@ -103,8 +103,8 @@
   "art.ponies.0-running": {
     "kind": "image",
     "path": "assets/art/ponies/0-running.webp",
-    "bytes": 111414,
-    "sha256": "d692a09ccb4c662a",
+    "bytes": 98738,
+    "sha256": "0ae7459fdeef2a08",
     "tier": "race",
     "deferred": true
   },
@@ -135,8 +135,8 @@
   "art.ponies.1-running": {
     "kind": "image",
     "path": "assets/art/ponies/1-running.webp",
-    "bytes": 89104,
-    "sha256": "b347b68061a563fb",
+    "bytes": 79560,
+    "sha256": "941aecc1d6c44050",
     "tier": "race",
     "deferred": true
   },
@@ -167,8 +167,8 @@
   "art.ponies.2-running": {
     "kind": "image",
     "path": "assets/art/ponies/2-running.webp",
-    "bytes": 97866,
-    "sha256": "5d0671e863c7ca1c",
+    "bytes": 90366,
+    "sha256": "70f9fe33c3ccdc82",
     "tier": "race",
     "deferred": true
   },
@@ -199,8 +199,8 @@
   "art.ponies.3-running": {
     "kind": "image",
     "path": "assets/art/ponies/3-running.webp",
-    "bytes": 82068,
-    "sha256": "123d550d917dafcb",
+    "bytes": 79518,
+    "sha256": "dda62ea55885a3c1",
     "tier": "race",
     "deferred": true
   },
@@ -231,8 +231,8 @@
   "art.ponies.4-running": {
     "kind": "image",
     "path": "assets/art/ponies/4-running.webp",
-    "bytes": 104534,
-    "sha256": "1f2e3bde205857d1",
+    "bytes": 90706,
+    "sha256": "84d03029300488dd",
     "tier": "race",
     "deferred": true
   },
@@ -1123,8 +1123,8 @@
   "art.ponies.8-running": {
     "kind": "image",
     "path": "assets/art/ponies/8-running.webp",
-    "bytes": 64834,
-    "sha256": "be1a17045a2d1c24",
+    "bytes": 62714,
+    "sha256": "6a4db058517e869e",
     "tier": "race",
     "deferred": true
   },
@@ -1147,48 +1147,48 @@
   "art.ponies.5-idle-0": {
     "kind": "image",
     "path": "assets/art/ponies/5-idle-0.webp",
-    "bytes": 10498,
-    "sha256": "67660ac886aebc6b",
+    "bytes": 11510,
+    "sha256": "8197161786f0b930",
     "tier": "race",
     "deferred": true
   },
   "art.ponies.5-idle": {
     "kind": "image",
     "path": "assets/art/ponies/5-idle.webp",
-    "bytes": 80582,
-    "sha256": "75cd4058bdab95c9",
+    "bytes": 89242,
+    "sha256": "25c777b56e8bbfed",
     "tier": "race",
     "deferred": true
   },
   "art.ponies.5-portrait": {
     "kind": "image",
     "path": "assets/art/ponies/5-portrait.webp",
-    "bytes": 20632,
-    "sha256": "9fbb4e6c38281e7b",
+    "bytes": 20354,
+    "sha256": "013245daba610436",
     "tier": "race",
     "deferred": true
   },
   "art.ponies.5-running": {
     "kind": "image",
     "path": "assets/art/ponies/5-running.webp",
-    "bytes": 73366,
-    "sha256": "1fb86fd258d0951d",
+    "bytes": 75850,
+    "sha256": "d49067bf96bfa5a6",
     "tier": "race",
     "deferred": true
   },
   "art.result.hero-5": {
     "kind": "image",
     "path": "assets/art/result/hero-5.webp",
-    "bytes": 27682,
-    "sha256": "8c1522e124b9c551",
+    "bytes": 27182,
+    "sha256": "99c30758f653b02c",
     "tier": "result",
     "deferred": true
   },
   "art.share.horse-5": {
     "kind": "image",
     "path": "assets/art/share/horse-5.webp",
-    "bytes": 44016,
-    "sha256": "0d62fe5927adb462",
+    "bytes": 43396,
+    "sha256": "8f40d5824a3e556e",
     "tier": "result",
     "deferred": true
   },
@@ -1219,8 +1219,8 @@
   "art.ponies.6-running": {
     "kind": "image",
     "path": "assets/art/ponies/6-running.webp",
-    "bytes": 76750,
-    "sha256": "dbc85ac78fd896e3",
+    "bytes": 75334,
+    "sha256": "6f695628c3e86d48",
     "tier": "race",
     "deferred": true
   },
@@ -1267,8 +1267,8 @@
   "art.ponies.7-running": {
     "kind": "image",
     "path": "assets/art/ponies/7-running.webp",
-    "bytes": 56726,
-    "sha256": "c9de53f3f3ae5f0e",
+    "bytes": 57482,
+    "sha256": "b35e8d334ec03589",
     "tier": "race",
     "deferred": true
   },
