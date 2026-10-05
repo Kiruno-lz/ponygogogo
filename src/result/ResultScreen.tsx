@@ -73,6 +73,7 @@ export interface PaidResultView {
 
 export interface ResultScreenProps {
   lang: Lang
+  reducedMotion?: boolean
   result: RaceResult
   paid?: PaidResultView
   onAgain: () => void
@@ -284,7 +285,7 @@ export function ResultScreen(p: ResultScreenProps) {
         )}
       </div>
       {shareOpen && <SharePosterDialog lang={p.lang} result={p.result} paid={p.paid} onClose={() => setShareOpen(false)} />}
-      {shownGrant && <CollectibleDialog grant={shownGrant} lang={p.lang} sync={p.collectionSync} onClose={() => setShownGrant(null)}/>}
+      {shownGrant && <CollectibleDialog grant={shownGrant} lang={p.lang} reducedMotion={p.reducedMotion} sync={p.collectionSync} onClose={() => setShownGrant(null)}/>}
     </div>
   )
 }
