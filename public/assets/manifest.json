@@ -1123,8 +1123,8 @@
   "art.ponies.8-running": {
     "kind": "image",
     "path": "assets/art/ponies/8-running.webp",
-    "bytes": 64834,
-    "sha256": "be1a17045a2d1c24",
+    "bytes": 62714,
+    "sha256": "6a4db058517e869e",
     "tier": "race",
     "deferred": true
   },
