@@ -353,6 +353,7 @@ html, body, #root {
 .pony-queue-arrow.queue-down { top: 747px; }
 .effect-showcase-controls, .effect-showcase-grants { position: absolute; z-index: 90; padding: 12px; border: 2px solid #a98550; border-radius: 12px; color: #fff4df; background: rgba(44, 29, 20, .92); font: 600 15px 'PingFang SC', sans-serif; }
 .effect-showcase-controls { left: 760px; top: 14px; width: 468px; display: flex; flex-direction: column; gap: 8px; }
+.effect-showcase-controls.showcase-result-controls { left: auto; right: 14px; width: auto; }
 .effect-showcase-grants { left: 400px; bottom: 52px; max-width: 745px; }
 .showcase-control-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .showcase-control-row label { display: inline-flex; align-items: center; gap: 6px; }

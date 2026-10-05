@@ -6,6 +6,8 @@ import { EFFECT_SHOWCASE_SCENARIOS, EffectShowcaseDriver, type ShowcaseEntry } f
 import { PONY_CATALOG } from '../game/ponyCatalog.ts'
 import { PAID_CARD_POOL, paidCardDef } from '../race/cards/paidCards.ts'
 import { CollectibleDialog } from '../result/CollectibleDialog.tsx'
+import { ResultScreen } from '../result/ResultScreen.tsx'
+import { paidChoiceNoteKeys, paidRaceResult } from '../race/paidResult.ts'
 import { RaceScreen } from './RaceScreen.tsx'
 import { SelectScreen } from './SelectScreen.tsx'
 import { t, type Lang } from './i18n.ts'
@@ -27,6 +29,7 @@ export function EffectShowcaseScreen({ lang, reducedMotion, audio, urls, onBack 
   const [grantPony, setGrantPony] = useState(GRANT_PONIES[0]!.ponyId)
   const [grantCard, setGrantCard] = useState(RARE_CARDS[0]!.cardId)
   const [grant, setGrant] = useState<CollectibleGrant | null>(null)
+  const [showResult, setShowResult] = useState(false)
   const driver = useMemo(() => entry ? new EffectShowcaseDriver(scenario, { ...entry, windDirection }) : null,
     [scenario, entry, windDirection, replay])
   const isReduced = reducedMotion || forceReduced
@@ -39,6 +42,24 @@ export function EffectShowcaseScreen({ lang, reducedMotion, audio, urls, onBack 
   }
   const previewGrant = (assetKind: CollectibleGrant['assetKind'], assetId: number) => {
     setGrant({ assetKind, assetId, player: zeroAddress, sessionId: `0x${'00'.repeat(32)}` })
+  }
+  const returnToRace = () => {
+    if (!paused) driver?.resume()
+    setShowResult(false)
+  }
+
+  if (showResult && driver) {
+    const solved = driver.canonicalResult()
+    const input = driver.replayInput
+    const result = paidRaceResult(`showcase:${scenario}`, input.seed, input.playerHorseId, solved)
+    return <div className="screen effect-showcase" data-testid="screen-effect-showcase">
+      <ResultScreen lang={lang} result={result} onHome={onBack}
+        onAgain={() => { setReplay(n => n + 1); setPaused(false); setShowResult(false) }}
+        choiceNotes={paidChoiceNoteKeys(solved).map(key => key ? t(lang, key) : null)}/>
+      <section className="effect-showcase-controls showcase-result-controls" aria-label={t(lang, 'effectShowcase.title')}>
+        <button type="button" onClick={returnToRace}>{t(lang, 'effectShowcase.returnToShowcase')}</button>
+      </section>
+    </div>
   }
 
   return <div className="screen effect-showcase" data-testid="screen-effect-showcase">
@@ -53,6 +74,7 @@ export function EffectShowcaseScreen({ lang, reducedMotion, audio, urls, onBack 
       <div className="showcase-control-row">
         <strong>{t(lang, 'effectShowcase.title')}</strong>
         <button type="button" onClick={onBack}>{t(lang, 'effectShowcase.back')}</button>
+        <button type="button" disabled={!driver} onClick={() => { driver?.pause(); setShowResult(true) }}>{t(lang, 'effectShowcase.previewResult')}</button>
         {driver && <button type="button" onClick={() => { setEntry(null); setPaused(false) }}>{t(lang, 'effectShowcase.selectPony')}</button>}
       </div>
       <select aria-label={t(lang, 'effectShowcase.scenario')} value={scenario}
