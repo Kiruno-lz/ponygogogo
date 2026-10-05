@@ -111,6 +111,6 @@ export function EffectShowcaseScreen({ lang, reducedMotion, audio, urls, onBack 
         <button type="button" onClick={() => previewGrant('rareCard', Number(grantCard.slice(2)))}>{t(lang, 'effectShowcase.previewCard')}</button>
       </div>
     </section>
-    {grant && <CollectibleDialog grant={grant} lang={lang} onClose={() => setGrant(null)}/>}
+    {grant && <CollectibleDialog grant={grant} lang={lang} reducedMotion={isReduced} onClose={() => setGrant(null)}/>}
   </div>
 }

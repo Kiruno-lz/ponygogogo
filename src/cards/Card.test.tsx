@@ -53,6 +53,19 @@ describe('Card as a button', () => {
     expect(root).toContain('role="button"')
     expect(root).not.toContain('aria-describedby=')
   })
+
+  test('collectible presentation retains the name without rules or a missing description reference', () => {
+    const html = renderToStaticMarkup(<Card def={DEF} lang="zh" size="collectible" onClick={() => undefined} />)
+    expect(html).toContain('card-collectible')
+    expect(html).toContain('collectible-card-icon')
+    expect(html).toContain('collectible-card-name')
+    expect(html).not.toContain('collectible-card-description')
+    expect(html).not.toContain('aria-describedby=')
+    expect(html).toContain(DEF.name.zh)
+    expect(html).not.toContain(DEF.desc.zh)
+    expect(html).not.toContain('card_frame_common.webp')
+    expect(html).not.toContain('card_frame_rare.webp')
+  })
 })
 
 describe('activateOnKey', () => {

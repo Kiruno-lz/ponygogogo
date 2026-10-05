@@ -650,6 +650,7 @@ export default function App() {
         {page === 'result' && shownResult && (
           <ResultScreen
             lang={lang}
+            reducedMotion={settings.reducedMotion}
             result={shownResult}
             paid={paidMeta ? paidView : undefined}
             collectionSync={paidMeta ? { loading: collection.loading, error: collection.error, onRetry: collection.unlock } : undefined}

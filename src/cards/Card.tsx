@@ -3,7 +3,7 @@ import { cardIconUrl } from '../race/cards/iconUrl.ts'
  * 卡面只有一套实现。选牌时的候选牌、HUD 上生效中的牌、结算页回顾的牌
  * 是同一个组件的三种状态，不是三套画法。
  */
-import { useId, type CSSProperties, type ReactNode } from 'react'
+import { useId, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { CardView } from '../race/cards/types.ts'
 import type { Lang } from '../ui/i18n.ts'
 import { t } from '../ui/i18n.ts'
@@ -31,9 +31,9 @@ function pct(v: number, total: number): string {
   return `${(v / total) * 100}%`
 }
 
-export type CardSize = 'choice' | 'hud' | 'review' | 'gallery'
+export type CardSize = 'choice' | 'hud' | 'review' | 'gallery' | 'collectible'
 
-const HEIGHTS: Record<CardSize, number> = { choice: 430, hud: 74, review: 210, gallery: 330 }
+const HEIGHTS: Record<CardSize, number> = { choice: 430, hud: 74, review: 210, gallery: 330, collectible: 330 }
 
 export interface CardProps {
   def: CardView
@@ -46,6 +46,41 @@ export interface CardProps {
   onClick?: () => void
   footer?: ReactNode
   badge?: ReactNode
+}
+
+function CollectibleCardName({ name }: { name: string }) {
+  const box = useRef<HTMLSpanElement>(null)
+  const text = useRef<HTMLSpanElement>(null)
+  useLayoutEffect(() => {
+    const container = box.current!
+    const label = text.current!
+    const fit = () => {
+      // Use layout sizes, unaffected by the reveal's rotation and breathing scale.
+      if (!container.clientWidth || !container.clientHeight) return
+      const maxSize = parseFloat(getComputedStyle(container).fontSize)
+      label.style.fontSize = `${maxSize}px`
+      const fits = () => label.scrollWidth <= container.clientWidth - 1 && label.offsetHeight <= container.clientHeight - 1
+      if (fits()) return
+      // Measure each candidate: fixed letter spacing does not shrink with the font.
+      let low = 0
+      let high = maxSize
+      while (high - low > .1) {
+        const candidate = (low + high) / 2
+        label.style.fontSize = `${candidate}px`
+        if (fits()) low = candidate
+        else high = candidate
+      }
+      label.style.fontSize = `${low}px`
+    }
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(container)
+    let active = true
+    void document.fonts.ready.then(() => { if (active) fit() })
+    document.fonts.addEventListener('loadingdone', fit)
+    return () => { active = false; observer.disconnect(); document.fonts.removeEventListener('loadingdone', fit) }
+  }, [name])
+  return <span ref={box} className="h-title collectible-card-name"><span ref={text}>{name}</span></span>
 }
 
 export function Card({
@@ -71,7 +106,7 @@ export function Card({
   const descId = useId()
   // 两种形态共用的根属性：E2E 与排版检查器靠 card-root / data-card / data-quality 找卡面
   const root = {
-    className: 'card-root',
+    className: `card-root${size === 'collectible' ? ' card-collectible' : ''}`,
     'data-card': def.cardId,
     'data-quality': def.quality,
     style: {
@@ -87,7 +122,13 @@ export function Card({
     } satisfies CSSProperties,
   }
 
-  const face = (
+  // The reveal template contains its illustrated frame. Keep card data and accessible semantics here.
+  const face = size === 'collectible' ? <>
+    <img className="collectible-card-icon" src={cardIconUrl(def.art.icon)} alt="" draggable={false}
+      style={{ filter: def.art.tint ? `hue-rotate(${def.art.tint}deg) saturate(1.25)` : undefined }}/>
+    <CollectibleCardName name={def.name[lang]}/>
+    {footer}
+  </> : (
     <>
       <img
         src={f.src}
@@ -204,7 +245,7 @@ export function Card({
       tabIndex={0}
       aria-label={def.name[lang]}
       // 按钮的子树对读屏是展示性的：效果描述要显式挂成说明，否则只读得到卡名
-      aria-describedby={compact ? undefined : descId}
+      aria-describedby={compact || size === 'collectible' ? undefined : descId}
       onClick={onClick}
       onKeyDown={(e) => activateOnKey(e, onClick)}
     >
