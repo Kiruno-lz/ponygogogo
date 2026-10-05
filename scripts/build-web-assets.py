@@ -228,7 +228,10 @@ def group_key(rel: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--pony', type=int, choices=range(9), nargs='+', help='Rebuild only these character assets in an existing manifest')
-    pony_ids = parser.parse_args().pony
+    parser.add_argument('--collectibles', action='store_true', help='Rebuild only the reward reveal textures in an existing manifest')
+    args = parser.parse_args()
+    pony_ids = args.pony
+    incremental = pony_ids is not None or args.collectibles
     if not SRC.is_dir():
         print(f"找不到素材母版目录 {SRC}", file=sys.stderr)
         return 1
@@ -237,7 +240,7 @@ def main() -> int:
             print(f"缺少 {tool}：{hint}", file=sys.stderr)
             return 1
 
-    if pony_ids is None:
+    if not incremental:
         subprocess.run(["bun", str(ROOT / "scripts/prepare-share-qr.ts")], check=True)
     raw = json.loads(SIZES_FILE.read_text())
     # 实测表的 key 是不带扩展名的运行时路径 /assets/art/...，换算成相对母版根的路径。
@@ -269,6 +272,8 @@ def main() -> int:
         group_tier[g] = t if cur is None else min([cur, t], key=TIER_ORDER.index)
 
     def tier_of(rel: str) -> str:
+        if rel.startswith('art/collectibles/'):
+            return 'result'
         g = group_key(stem(rel))
         if g in group_tier:
             return group_tier[g]
@@ -307,7 +312,7 @@ def main() -> int:
     # 一张都不降采样、产物悄悄变大——所以在这里把它变成一次响亮的失败。
     shipped_groups = {group_key(stem(str(it.src.relative_to(SRC)))) for it in items if it.kind == "image"}
     both = shipped_groups & set(by_group)
-    if by_group and len(both) < len(by_group) * 0.8:
+    if not incremental and by_group and len(both) < len(by_group) * 0.8:
         print(
             f"显示尺寸表里只有 {len(both)}/{len(by_group)} 组能对上出片清单。"
             f"多半是键的格式变了（扩展名、目录层级），或者 display-sizes.json 过期。\n"
@@ -317,21 +322,28 @@ def main() -> int:
         return 1
 
     manifest_path = OUT / 'manifest.json'
-    if pony_ids is not None:
-        # Incremental character work must not re-encode unrelated music/fonts or remove live assets.
+    if incremental:
+        # Incremental artwork must not re-encode unrelated music/fonts or remove live assets.
         if not manifest_path.exists():
-            raise ValueError('--pony requires an existing complete asset manifest')
+            raise ValueError('Incremental asset builds require an existing complete asset manifest')
         manifest = json.loads(manifest_path.read_text())
-        wanted = {f'art/ponies/{pony}-{suffix}.webp' for pony in pony_ids for suffix in ('idle', 'running', 'idle-0', 'portrait')}
-        wanted |= {f'art/{folder}/{prefix}-{pony}.webp' for pony in pony_ids for folder, prefix in (('result','hero'),('share','horse'))}
+        wanted = set()
+        if pony_ids is not None:
+            wanted |= {f'art/ponies/{pony}-{suffix}.webp' for pony in pony_ids for suffix in ('idle', 'running', 'idle-0', 'portrait')}
+            wanted |= {f'art/{folder}/{prefix}-{pony}.webp' for pony in pony_ids for folder, prefix in (('result','hero'),('share','horse'))}
+        if args.collectibles:
+            wanted |= {f'art/collectibles/{name}.webp' for name in ('front-pony-titled', 'front-card-titled', 'keep-button', 'back', 'confetti')}
+            for legacy in ('front', 'front-pony', 'front-card'):
+                manifest.pop(f'art.collectibles.{legacy}', None)
+                (OUT / f'art/collectibles/{legacy}.webp').unlink(missing_ok=True)
         items = [item for item in items if item.rel in wanted]
         if {item.rel for item in items} != wanted:
-            raise ValueError('Incomplete character source assets: ' + ', '.join(sorted(wanted - {item.rel for item in items})))
+            raise ValueError('Incomplete incremental source assets: ' + ', '.join(sorted(wanted - {item.rel for item in items})))
     elif OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True, exist_ok=True)
 
-    if pony_ids is None:
+    if not incremental:
         manifest: dict[str, dict] = {}
     src_bytes = out_bytes = 0
     resized = 0

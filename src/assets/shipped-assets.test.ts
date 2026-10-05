@@ -198,6 +198,17 @@ describe('资源清单', () => {
     }
   })
 
+  test('收藏揭晓的正背面与彩带纹理在 result 级预取，摘要与产物匹配', () => {
+    for (const name of ['front-pony-titled', 'front-card-titled', 'keep-button', 'back', 'confetti']) {
+      const entry = manifest[`art.collectibles.${name}`]
+      expect(entry).toBeDefined()
+      expect(entry.tier).toBe('result')
+      const bytes = readFileSync(join(PUBLIC, entry.path))
+      expect(bytes.byteLength).toBe(entry.bytes)
+      expect(createHash('sha256').update(bytes).digest('hex').slice(0, 16)).toBe(entry.sha256)
+    }
+  })
+
   test('实心队列箭头有 race 级清单项，实际大小和摘要一致', () => {
     const entry = manifest['art.ui.queue-arrow-up']!
     expect(entry).toBeDefined()

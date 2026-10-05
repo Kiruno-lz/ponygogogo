@@ -1574,5 +1574,40 @@
     "bytes": 35680,
     "sha256": "ac08ec97819f224a",
     "tier": "race"
+  },
+  "art.collectibles.back": {
+    "kind": "image",
+    "path": "assets/art/collectibles/back.webp",
+    "bytes": 469268,
+    "sha256": "5406f373bdbde282",
+    "tier": "result"
+  },
+  "art.collectibles.confetti": {
+    "kind": "image",
+    "path": "assets/art/collectibles/confetti.webp",
+    "bytes": 282450,
+    "sha256": "4519d8e979834414",
+    "tier": "result"
+  },
+  "art.collectibles.keep-button": {
+    "kind": "image",
+    "path": "assets/art/collectibles/keep-button.webp",
+    "bytes": 141900,
+    "sha256": "79c14bf32b392c97",
+    "tier": "result"
+  },
+  "art.collectibles.front-card-titled": {
+    "kind": "image",
+    "path": "assets/art/collectibles/front-card-titled.webp",
+    "bytes": 172510,
+    "sha256": "c2378332e7716c31",
+    "tier": "result"
+  },
+  "art.collectibles.front-pony-titled": {
+    "kind": "image",
+    "path": "assets/art/collectibles/front-pony-titled.webp",
+    "bytes": 148056,
+    "sha256": "dd5ac38cf6f72e13",
+    "tier": "result"
   }
 }
