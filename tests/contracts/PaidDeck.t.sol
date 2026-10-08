@@ -14,7 +14,7 @@ contract PaidDeckTest {
         bytes32 seed = bytes32(uint256(0x1111111111111111111111111111111111111111111111111111111111111111));
         bytes32 anchor = bytes32(uint256(0x2222222222222222222222222222222222222222222222222222222222222222));
         uint8[14] memory deck = PaidDeck.derive(seed, anchor);
-        uint8[14] memory expected = [uint8(19), 35, 12, 34, 10, 14, 26, 6, 18, 3, 17, 37, 30, 21];
+        uint8[14] memory expected = [uint8(20), 34, 13, 33, 11, 15, 26, 6, 19, 3, 18, 37, 35, 10];
         uint256 seen;
         for (uint256 i; i < 14; ++i) {
             require(deck[i] == expected[i], "deck vector");

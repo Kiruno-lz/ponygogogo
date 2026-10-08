@@ -6,6 +6,8 @@ test('all forty generated card icons load and their bilingual copy fits',async({
  await page.getByRole('button',{name:'all cards',exact:true}).click()
  for(const lang of ['zh','en']) {
   await expect(page.locator('.card-root')).toHaveCount(40)
+  await expect(page.locator('.card-root[data-quality="common"]')).toHaveCount(27)
+  await expect(page.locator('.card-root[data-quality="rare"]')).toHaveCount(13)
   await page.locator('.card-root img').evaluateAll(imgs=>Promise.all(imgs.map(img=>(img as HTMLImageElement).decode())))
   const sources=await page.locator('.card-root img[src*="/art/cards/"]').evaluateAll(imgs=>imgs.map(img=>(img as HTMLImageElement).src))
   expect(new Set(sources).size).toBe(40)

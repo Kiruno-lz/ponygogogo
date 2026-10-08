@@ -5,12 +5,12 @@ import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
 
 contract PaidCardRulesTest {
     function testGeneratedCardRulesAndMasks() public pure {
-        require(PaidCardRules.RARE_MASK == 0xf6e232973e && PaidCardRules.CPU_MASK == 0xbfefe3fae3, "eligibility masks");
+        require(PaidCardRules.RARE_MASK == 0x9610120356 && PaidCardRules.CPU_MASK == 0xbfefe3fae3, "eligibility masks");
         require(
-            PaidCardRules.TABLE_HASH == 0x2fb8024634b4478068c7ee65317fbdcbe37194623bc3fc60758e1211de251923, "table hash"
+            PaidCardRules.TABLE_HASH == 0x8d04622d542d2f8e03c201fb75b949d94b87b5151ec0bc8aaf9b86bd4aa627c7, "table hash"
         );
         require(
-            PaidCardRules.RULESET_HASH == 0xafc2e111c19575634167bc7478a7a75ba0d3eb1133b1c0080309437b862634e1,
+            PaidCardRules.RULESET_HASH == 0x7271273e3c1dd20d5754cff56b114b736063bc8c15956858ef89687a70f40f8c,
             "ruleset hash"
         );
         PaidCardRules.Rule memory gravity = PaidCardRules.get(10);
@@ -21,7 +21,7 @@ contract PaidCardRulesTest {
         PaidCardRules.Rule memory wheel = PaidCardRules.get(11);
         require(wheel.periodMs == 1_000 && wheel.count == 3 && wheel.fixedSpeed == 100, "wheel schedule");
         PaidCardRules.Rule memory rage = PaidCardRules.get(26);
-        require(rage.effect == PaidCardRules.EFFECT_RAGE && rage.rare && rage.cpu, "rage");
+        require(rage.effect == PaidCardRules.EFFECT_RAGE && !rage.rare && rage.cpu, "rage");
     }
 
     /// @dev The packed get() decodes to exactly the TS table (the generator hashes the same ABI encoding with viem).
