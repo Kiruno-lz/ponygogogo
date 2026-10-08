@@ -7,10 +7,10 @@ contract PaidCardRulesTest {
     function testGeneratedCardRulesAndMasks() public pure {
         require(PaidCardRules.RARE_MASK == 0x9610120356 && PaidCardRules.CPU_MASK == 0xbfefe3fae3, "eligibility masks");
         require(
-            PaidCardRules.TABLE_HASH == 0xf4d427d2de6ef0c94cfcbf2ff3b9c8550335035ece2c643b122fb37c6bd06f28, "table hash"
+            PaidCardRules.TABLE_HASH == 0x0aaa341ca75aedcc2a4c83b300312c7dfc1739278a37a146730d5e7b1cf937e0, "table hash"
         );
         require(
-            PaidCardRules.RULESET_HASH == 0xeeaa0e4ce206bb23c12366e9b37be8950e8e2af3de6d7f5d69bdabc99cef716a,
+            PaidCardRules.RULESET_HASH == 0x6378623098ec1be1026bb5a663baf5890d3fe02da549708afa1de3facfa371b6,
             "ruleset hash"
         );
         PaidCardRules.Rule memory gravity = PaidCardRules.get(10);
@@ -22,6 +22,9 @@ contract PaidCardRulesTest {
         require(wheel.periodMs == 1_000 && wheel.count == 3 && wheel.fixedSpeed == 100, "wheel schedule");
         PaidCardRules.Rule memory rage = PaidCardRules.get(26);
         require(rage.effect == PaidCardRules.EFFECT_RAGE && !rage.rare && rage.cpu, "rage");
+        PaidCardRules.Rule memory coatGate = PaidCardRules.get(29);
+        require(coatGate.effect == PaidCardRules.EFFECT_COAT_GATE && coatGate.rare, "coat gate identity");
+        require(coatGate.pBps == 20_000 && coatGate.regenBonusBps == 15_000, "coat gate thresholds");
     }
 
     /// @dev The packed get() decodes to exactly the TS table (the generator hashes the same ABI encoding with viem).

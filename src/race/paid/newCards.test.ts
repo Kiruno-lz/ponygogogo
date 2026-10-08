@@ -95,7 +95,7 @@ describe('C-22..C-40 actual race effects', () => {
   test('C-29 historical color thresholds accumulate recovery and speed', () => {
     const r = played([19, 29, 20]), t = start(r, 29), u = start(r, 20)
     expect(sampleHorse(r.trace!, H, t).pBps).toBe(0n)
-    expect(sampleHorse(r.trace!, H, u).pBps).toBe(6000n)
+    expect(sampleHorse(r.trace!, H, u).pBps).toBe(20_000n)
     expect(frame(r, u).stamina.regen).toBe(25_000n)
   })
   test('C-30 recycles shortest remaining equipment, leaving the other slot', () => {

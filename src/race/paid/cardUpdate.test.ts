@@ -138,7 +138,7 @@ test('death preserves fixed base speed without resetting card effects', () => {
 test('C29 counts obtained hair types and retains recovery when the second type grants speed', () => {
   for (const ids of [[19,29,20],[19,20,29],[29,19,20]]) {
     const r=run(ids), last=at(r,ids[2]!)
-    expect(sampleHorse(r.trace!,H,last).pBps).toBe(6000n)
+    expect(sampleHorse(r.trace!,H,last).pBps).toBe(20_000n)
     expect(frame(r,last).stamina.regen).toBe(25000n)
     if (ids[1]===29) {
       expect(sampleHorse(r.trace!,H,at(r,29)).pBps).toBe(0n)
