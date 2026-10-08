@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { encodeAbiParameters, keccak256 } from 'viem'
+import { PLAYER_BALANCE, PLAYER_BALANCE_HASH } from '../src/race/paid/playerBalance.ts'
 import {
   CARD_EFFECT, CARD_MAIN_FUNCTION, PAID_CARD_GLOBALS, PAID_CARD_RULES, PAID_CARD_RULES_HASH, PAID_CPU_MASK, PAID_RARE_MASK,
   PAID_RULESET_HASH, LEGACY_PAID_RULESET_HASH, paidCardRuleTuple,
@@ -9,6 +10,31 @@ import {
 
 const target = fileURLToPath(new URL('../contracts/libraries/PaidCardRules.sol', import.meta.url))
 const check = process.argv.includes('--check')
+const playerTarget = fileURLToPath(new URL('../contracts/libraries/PlayerBalance.sol', import.meta.url))
+const playerConstants = {
+  START_SPEED: PLAYER_BALANCE.startSpeed,
+  ACCELERATION: PLAYER_BALANCE.acceleration,
+  SPEED_CAP: PLAYER_BALANCE.speedCap,
+  STAMINA_CAPACITY: PLAYER_BALANCE.staminaCapacity * 1_000_000,
+  EXHAUST_RELEASE: PLAYER_BALANCE.exhaustRelease * 1_000_000,
+  COST_PER_MS: PLAYER_BALANCE.staminaCostPerSecond * 1000,
+  REGEN_PER_MS: PLAYER_BALANCE.staminaRegenPerSecond * 1000,
+  EXHAUST_REGEN_PER_MS: PLAYER_BALANCE.exhaustRegenPerSecond * 1000,
+  EXHAUST_SPEED_CAP_MILLI: PLAYER_BALANCE.exhaustSpeedCap * 1000,
+  OVERCAP_COST_DIVISOR: PLAYER_BALANCE.overcapCostDivisor,
+}
+const playerSource = execFileSync('forge', ['fmt', '--raw', '-'], { encoding: 'utf8', input: `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+/// @notice Generated from src/race/paid/playerBalance.ts by scripts/gen-paid-card-rules.ts.
+library PlayerBalance {
+    bytes32 internal constant TABLE_HASH = ${PLAYER_BALANCE_HASH};
+${Object.entries(playerConstants).map(([key, value]) => `    uint256 internal constant ${key} = ${value};`).join('\n')}
+}
+` })
+if (check) {
+  if (readFileSync(playerTarget, 'utf8') !== playerSource) throw new Error('PLAYER_BALANCE_STALE')
+} else writeFileSync(playerTarget, playerSource)
 const fields = [
   'id', 'effect', 'rare', 'cpu', 'durationMs', 'bonusMode', 'pBps', 'fixedSpeed',
   'staminaMicro', 'regenBonusBps', 'costMultiplierBps', 'slot', 'radiusMicro',
@@ -89,6 +115,9 @@ const effects = Object.entries(CARD_EFFECT).map(([name, id]) => {
   const symbol = name.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase()
   return `    uint8 internal constant EFFECT_${symbol} = ${id};`
 }).join('\n')
+const flameLayers = PAID_CARD_RULES[10]!.flameLayers!
+const mileageStages = PAID_CARD_RULES[39]!.baseStages!
+const packedMileageStages = mileageStages.reduce((word, value) => (word << 16n) | BigInt.asUintN(16, BigInt(value)), 0n)
 
 const source = `// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
@@ -127,6 +156,17 @@ ${fields.map((field, i) => `        ${types[i]} ${field};`).join('\n')}
         return uint8(lo >> 152);
     }
 
+    function flameLayer(uint256 stage) internal pure returns (uint256) {
+        if (stage >= ${flameLayers.length}) revert InvalidCard();
+        return uint8(uint256(${hex(flameLayers.reduce((w,v)=>(w<<8n)|BigInt(v),0n), flameLayers.length)}) >> (8 * (${flameLayers.length - 1} - stage)));
+    }
+
+    /// @notice C-40 fixed base-speed values, generated from its canonical baseStages.
+    function mileageSpeed(uint256 stage) internal pure returns (int256) {
+        if (stage >= ${mileageStages.length}) revert InvalidCard();
+        return int16(uint16(uint256(${hex(packedMileageStages, mileageStages.length * 2)}) >> (16 * (${mileageStages.length - 1} - stage))));
+    }
+
     function decode(uint256 hi, uint256 lo) internal pure returns (Rule memory rule) {
 ${decode}
     }
@@ -135,7 +175,7 @@ ${decode}
         if (id == 0 || id > CARD_COUNT) revert InvalidCard();
         bytes memory data = hex"${packed}";
         assembly ("memory-safe") {
-            let at := add(add(data, 0x20), shl(6, sub(id, 1)))
+            let at := add(add(data, 0x20), shl(6, sub(and(id, 255), 1)))
             hi := mload(at)
             lo := mload(add(at, 0x20))
         }

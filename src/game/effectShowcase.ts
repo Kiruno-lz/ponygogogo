@@ -18,9 +18,9 @@ export type ShowcaseEntry = { playerHorseId: number; roster: readonly number[]; 
 /** Only fixture inputs live here. Every outcome, effect lifetime and event comes from the production solver. */
 function showcaseInput(cardId: number, entry: ShowcaseEntry): PaidCoreInput {
   const sequence = cardId === 13 ? [19, 13]
-    : cardId === 29 ? [19, 29]
+    : cardId === 29 ? [19, 29, 20]
       : cardId === 30 || cardId === 32 ? [7, cardId]
-        : cardId === 37 || cardId === 38 ? [2, cardId]
+        : cardId === 37 ? [2, cardId]
           : cardId === 31 || cardId === 27 || cardId === 33 ? [cardId, 7]
             : cardId === 28 ? [28, 1]
               : cardId === 39 ? [39, 0] : [cardId]

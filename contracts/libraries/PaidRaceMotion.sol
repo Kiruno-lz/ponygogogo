@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import {PaidCardRules} from "./PaidCardRules.sol";
 import {PonyRules} from "./PonyRules.sol";
 import {PaidProfiles} from "./PaidProfiles.sol";
+import {PlayerBalance} from "./PlayerBalance.sol";
 
 /// @notice Hot path of the paid-race solver (有奖规则 v2 「运动区间」「重力井数值积分」): the per-horse motion state, the
 /// caches that only change at events, and the loop that advances all running horses from one event to the next.
@@ -29,11 +30,11 @@ library PaidRaceMotion {
     uint256 internal constant CHECKPOINT_MICRO = 25_000_000_000;
     uint256 internal constant BPS = 10_000;
     uint256 internal constant MIN_COST = PaidCardRules.MIN_COST_FACTOR_BPS;
-    uint256 internal constant HORSE_WORDS = 40;
+    uint256 internal constant HORSE_WORDS = 48;
     uint256 internal constant STAMINA_CAPACITY = 1_000_000_000;
     uint256 internal constant COST_PER_MS = 24_000;
     uint256 internal constant REGEN_PER_MS = 10_000;
-    /// @dev Exhaustion penalty E = 10 units/s, in mu/s.
+    /// @dev Legacy/opponent exhaustion penalty E = 10 units/s, in mu/s.
     uint256 internal constant EXHAUST_PENALTY_MILLI = 10_000;
     uint256 internal constant RK_STEP_MS = PaidCardRules.RK_STEP_MS;
     uint256 internal constant NEVER = 0xffffffff;
@@ -83,6 +84,15 @@ library PaidRaceMotion {
         uint256 delta;
         int256 aggCost;
         uint256 nextDist;
+        uint256 staminaCapacity;
+        uint256 exhaustRelease;
+        uint256 baseCost;
+        uint256 baseRegen;
+        uint256 exhaustRegen;
+        uint256 overcapCostDivisor;
+        uint256 exhaustCapMilli;
+        int256 baseBonus;
+        uint256 recoveryAccel;
     }
 
     uint256 internal constant H_POS = 0x000;
@@ -120,6 +130,15 @@ library PaidRaceMotion {
     uint256 internal constant H_DELTA = 0x4a0;
     uint256 internal constant H_AGG_COST = 0x4c0;
     uint256 internal constant H_NEXT_DIST = 0x4e0;
+    uint256 internal constant H_STAMINA_CAPACITY = 0x500;
+    uint256 internal constant H_EXHAUST_RELEASE = 0x520;
+    uint256 internal constant H_BASE_COST = 0x540;
+    uint256 internal constant H_BASE_REGEN = 0x560;
+    uint256 internal constant H_EXHAUST_REGEN = 0x580;
+    uint256 internal constant H_OVERCAP_DIVISOR = 0x5a0;
+    uint256 internal constant H_EXHAUST_CAP = 0x5c0;
+    uint256 internal constant H_BASE_BONUS = 0x5e0;
+    uint256 internal constant H_RECOVERY_ACCEL = 0x600;
 
     struct Bomb {
         uint256 pos;
@@ -194,7 +213,8 @@ library PaidRaceMotion {
         Horse[5] memory horses,
         PaidProfiles.Profile[5] memory profiles,
         uint256[5] memory words,
-        uint256 unfinishedTau
+        uint256 unfinishedTau,
+        uint256 balancedPlayer
     ) internal pure {
         assembly ("memory-safe") {
             for { let i := 0 } lt(i, 5) { i := add(i, 1) } {
@@ -213,6 +233,30 @@ library PaidRaceMotion {
                 mstore(add(h, H_FINISH_WALL), NEVER)
             }
         }
+        for (uint256 i; i < 5; ++i) {
+            Horse memory h = horses[i];
+            h.staminaCapacity = STAMINA_CAPACITY;
+            h.exhaustRelease = STAMINA_CAPACITY;
+            h.baseCost = COST_PER_MS;
+            h.baseRegen = REGEN_PER_MS;
+            h.exhaustRegen = REGEN_PER_MS;
+            h.overcapCostDivisor = 1;
+            if (balancedPlayer != NONE) {
+                h.exhaustRelease = PlayerBalance.EXHAUST_RELEASE;
+                h.exhaustRegen = PlayerBalance.EXHAUST_REGEN_PER_MS;
+                h.exhaustCapMilli = PlayerBalance.EXHAUST_SPEED_CAP_MILLI;
+            }
+            if (i == balancedPlayer) {
+                h.staminaCapacity = PlayerBalance.STAMINA_CAPACITY + ((words[i] >> 160) & 0xffff) * 1_000_000;
+                h.s = h.staminaCapacity;
+                h.exhaustRelease = PlayerBalance.EXHAUST_RELEASE;
+                h.baseCost = PlayerBalance.COST_PER_MS;
+                h.baseRegen = PlayerBalance.REGEN_PER_MS;
+                h.exhaustRegen = PlayerBalance.EXHAUST_REGEN_PER_MS;
+                h.exhaustCapMilli = PlayerBalance.EXHAUST_SPEED_CAP_MILLI;
+                h.overcapCostDivisor = PlayerBalance.OVERCAP_COST_DIVISOR;
+            }
+        }
     }
 
     /// @dev Only gated role percentages are cached here. Counts and slot IDs remain authoritative in Horse.
@@ -221,8 +265,8 @@ library PaidRaceMotion {
         internal
         pure
     {
-        uint256 light = PonyRules.LIGHT;
         uint256 airborne = PonyRules.AIRBORNE;
+        uint256 longEquipment = PonyRules.LONG_EQUIPMENT;
         assembly ("memory-safe") {
             for { let i := 0 } lt(i, 5) { i := add(i, 1) } {
                 let offset := shl(5, i)
@@ -230,12 +274,20 @@ library PaidRaceMotion {
                 mstore(add(h, H_NEXT_DIST), 0)
                 let word := mload(add(words, offset))
                 let ability := and(shr(128, word), 0xff)
-                let equipped :=
-                    or(mload(add(h, H_EQUIP)), or(mload(add(h, add(H_EQUIP, 0x20))), mload(add(h, add(H_EQUIP, 0x40)))))
                 let active :=
                     or(
-                        and(eq(ability, light), iszero(equipped)),
-                        and(eq(ability, airborne), iszero(iszero(mload(add(h, H_AGG_AIR)))))
+                        and(eq(ability, airborne), iszero(iszero(mload(add(h, H_AGG_AIR))))),
+                        and(
+                            eq(ability, longEquipment),
+                            iszero(
+                                iszero(
+                                    or(
+                                        or(mload(add(h, H_EQUIP)), mload(add(h, add(H_EQUIP, 32)))),
+                                        mload(add(h, add(H_EQUIP, 64)))
+                                    )
+                                )
+                            )
+                        )
                     )
                 let p := mul(active, and(shr(112, word), 0xffff))
                 let cached := add(previous, offset)
@@ -269,15 +321,16 @@ library PaidRaceMotion {
                             let s := mload(add(h, H_S))
                             let due := 0
                             switch mload(add(h, H_EXHAUSTED))
-                            case 1 { due := iszero(lt(s, STAMINA_CAPACITY)) }
+                            case 1 { due := iszero(lt(s, mload(add(h, H_EXHAUST_RELEASE)))) }
                             default {
                                 switch mload(add(h, H_OVERCAP))
-                                case 1 { due := iszero(gt(s, STAMINA_CAPACITY)) }
+                                case 1 { due := iszero(gt(s, mload(add(h, H_STAMINA_CAPACITY)))) }
                                 default {
                                     let factor := add(BPS, mload(add(h, H_AGG_COST)))
                                     if slt(factor, minCost) { factor := minCost }
-                                    let cost := div(mul(COST_PER_MS, factor), BPS)
-                                    let regen := div(mul(REGEN_PER_MS, add(BPS, mload(add(h, H_AGG_REGEN)))), BPS)
+                                    let cost := div(mul(mload(add(h, H_BASE_COST)), factor), BPS)
+                                    let regen :=
+                                        div(mul(mload(add(h, H_BASE_REGEN)), add(BPS, mload(add(h, H_AGG_REGEN)))), BPS)
                                     due := and(and(lt(regen, cost), iszero(mload(add(h, H_AGG_WIRED)))), iszero(s))
                                 }
                             }
@@ -333,7 +386,8 @@ library PaidRaceMotion {
                 let exhausted := mload(add(h, H_EXHAUSTED))
                 let b := mload(add(h, H_B))
                 let cap := mload(add(h, H_CAP))
-                let accel := mload(add(h, H_ACCEL))
+                let accel := mload(add(h, H_RECOVERY_ACCEL))
+                if iszero(accel) { accel := mload(add(h, H_ACCEL)) }
                 at := NEVER
                 if and(iszero(mload(add(h, H_AT_CAP))), and(iszero(exhausted), and(gt(accel, 0), lt(b, cap)))) {
                     at := add(now_, ceilDiv(sub(cap, b), accel))
@@ -343,13 +397,15 @@ library PaidRaceMotion {
                 switch exhausted
                 case 1 {
                     dt := 0
-                    if lt(s, STAMINA_CAPACITY) { dt := ceilDiv(sub(STAMINA_CAPACITY, s), regen) }
+                    let release := mload(add(h, H_EXHAUST_RELEASE))
+                    if lt(s, release) { dt := ceilDiv(sub(release, s), regen) }
                 }
                 default {
                     switch mload(add(h, H_OVERCAP))
                     case 1 {
                         dt := 0
-                        if gt(s, STAMINA_CAPACITY) { dt := ceilDiv(sub(s, STAMINA_CAPACITY), cost) }
+                        let capacity := mload(add(h, H_STAMINA_CAPACITY))
+                        if gt(s, capacity) { dt := ceilDiv(sub(s, capacity), cost) }
                     }
                     default {
                         if and(lt(regen, cost), iszero(mload(add(h, H_AGG_WIRED)))) {
@@ -378,7 +434,7 @@ library PaidRaceMotion {
                     // and an exhausted horse at capacity exits in the same ms): the lazy stamina fold relies on it.
                     if and(
                         iszero(or(mload(add(h, H_EXHAUSTED)), mload(add(h, H_OVERCAP)))),
-                        gt(mload(add(h, H_S)), STAMINA_CAPACITY)
+                        gt(mload(add(h, H_S)), mload(add(h, H_STAMINA_CAPACITY)))
                     ) {
                         mstore(0, invariant)
                         revert(0, 4)
@@ -391,15 +447,19 @@ library PaidRaceMotion {
                     {
                         let factor := add(BPS, mload(add(h, H_AGG_COST)))
                         if slt(factor, minCost) { factor := minCost }
-                        cost := div(mul(COST_PER_MS, factor), BPS)
+                        cost := div(mul(mload(add(h, H_BASE_COST)), factor), BPS)
                     }
-                    let regen := div(mul(REGEN_PER_MS, add(BPS, mload(add(h, H_AGG_REGEN)))), BPS)
+                    if mload(add(h, H_OVERCAP)) { cost := div(cost, mload(add(h, H_OVERCAP_DIVISOR))) }
+                    let baseRegen := mload(add(h, H_BASE_REGEN))
+                    if mload(add(h, H_EXHAUSTED)) { baseRegen := mload(add(h, H_EXHAUST_REGEN)) }
+                    let regen := div(mul(baseRegen, add(BPS, mload(add(h, H_AGG_REGEN)))), BPS)
                     mstore(add(h, H_COST), cost)
                     mstore(add(h, H_REGEN), regen)
                     mstore(add(h, H_P_STATIC), staticP(h, i, sx))
                     let aEff := 0
                     if and(iszero(mload(add(h, H_EXHAUSTED))), lt(mload(add(h, H_B)), mload(add(h, H_CAP)))) {
-                        aEff := mload(add(h, H_ACCEL))
+                        aEff := mload(add(h, H_RECOVERY_ACCEL))
+                        if iszero(aEff) { aEff := mload(add(h, H_ACCEL)) }
                     }
                     mstore(add(h, H_A_EFF), aEff)
                     mstore(add(h, H_FIXED_MILLI), mul(mload(add(h, H_FIXED)), 1000))
@@ -433,7 +493,7 @@ library PaidRaceMotion {
         assembly ("memory-safe") {
             // Δpos over dt ms at multiplier mu: analytic while not exhausted, constant speed while exhausted.
             function delta(h, mu, dt) -> d {
-                let b := mload(add(h, H_B))
+                let b := add(mload(add(h, H_B)), mul(mload(add(h, H_BASE_BONUS)), 1000))
                 let fixed_ := mload(add(h, H_FIXED_MILLI))
                 switch mload(add(h, H_EXHAUSTED))
                 case 0 {
@@ -447,14 +507,16 @@ library PaidRaceMotion {
                         b := add(b, mul(mload(add(h, H_A_EFF)), zero))
                     }
                     d := add(
-                        div(mul(mu, add(mul(shl(1, b), dt), mul(mload(add(h, H_A_EFF)), mul(dt, dt)))), 20000),
+                        sdiv(mul(mu, add(mul(shl(1, b), dt), mul(mload(add(h, H_A_EFF)), mul(dt, dt)))), 20000),
                         mul(fixed_, dt)
                     )
                     if slt(d, 0) { d := 0 }
                 }
                 default {
-                    let v := add(div(mul(b, mu), BPS), mload(add(h, H_FIXED_MILLI)))
-                    if sgt(v, EXHAUST_PENALTY_MILLI) { d := mul(sub(v, EXHAUST_PENALTY_MILLI), dt) }
+                    let v := add(sdiv(mul(b, mu), BPS), mload(add(h, H_FIXED_MILLI)))
+                    let penalty := EXHAUST_PENALTY_MILLI
+                    if mload(add(h, H_EXHAUST_CAP)) { penalty := 0 }
+                    if sgt(v, penalty) { d := mul(sub(v, penalty), dt) }
                 }
             }
             // Smallest dt in [1, hi] with delta >= n (firstReach); delta is non-decreasing in dt.
@@ -567,7 +629,8 @@ library PaidRaceMotion {
                     switch mload(add(h, H_EXHAUSTED))
                     case 1 {
                         st := add(st, mul(regen, span))
-                        if gt(st, STAMINA_CAPACITY) { st := STAMINA_CAPACITY }
+                        let capacity := mload(add(h, H_STAMINA_CAPACITY))
+                        if gt(st, capacity) { st := capacity }
                     }
                     default {
                         switch mload(add(h, H_OVERCAP))
@@ -582,10 +645,12 @@ library PaidRaceMotion {
                             }
                             default {
                                 st := add(st, mul(sub(regen, cost), span))
-                                if gt(st, STAMINA_CAPACITY) { st := STAMINA_CAPACITY }
+                                let capacity := mload(add(h, H_STAMINA_CAPACITY))
+                                if gt(st, capacity) { st := capacity }
                             }
                         }
                     }
+                    if and(mload(add(h, H_AGG_WIRED)), lt(st, 1000000)) { st := 1000000 }
                     mstore(add(h, H_S), st)
                 }
             }

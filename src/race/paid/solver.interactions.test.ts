@@ -70,12 +70,12 @@ describe('death, respawn and bombs', () => {
     expect(pro.trace!.bombs.find((b) => b.lane === 1)!.goneTau).toBeNull()
   })
 
-  test('death clears the accumulated K', () => {
+  test('death preserves permanent fixed base-speed contributions', () => {
     const r = solvePaidCore(fixtureInput({ cpu: { 0: [2, 17, 20] } }))
     const death = r.events.find((e) => e.code === EV_DEATH && e.horse === 0)!
     const frames = r.trace!.keyframes[0]!
-    expect(frames.find((f) => f.tau1 === death.tau)!.motion.fixed).toBe(10n)
-    expect(frames.find((f) => f.tau0 === death.tau)!.motion).toMatchObject({ fixed: 0n, b: 0n })
+    expect(frames.find((f) => f.tau1 === death.tau)!.motion.baseBonus).toBe(100n)
+    expect(frames.find((f) => f.tau0 === death.tau)!.motion).toMatchObject({ fixed: 0n, baseBonus: 100n, b: 0n })
   })
 })
 
@@ -145,9 +145,9 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
     const loot = r.trace!.instances.find((i) => i.horse === 2 && i.cardId === 11)!
     expect(loot).toMatchObject({ startTau: steal.tau, plannedEndTau: steal.tau + 30_000n, slot: 2 })
     const thiefBursts = r.events.filter((e) => e.code === EV_WHEEL_BURST && e.horse === 2)
-    expect(thiefBursts[0]!.tau).toBe(steal.tau + 7_000n)
-    // K already earned by the victim stays with the victim.
-    expect(r.trace!.keyframes[0]!.find((f) => f.tau0 === steal.tau)!.motion.fixed).toBe(20n)
+    expect(thiefBursts[0]!.tau).toBe(steal.tau)
+    // Removing the wheel removes all extra speed earned from that equipment.
+    expect(r.trace!.keyframes[0]!.find((f) => f.tau0 === steal.tau)!.motion.fixed).toBe(0n)
     expect(sampleStatus(r.trace!, 0, steal.tau).airborne).toBe(false)
   })
 
@@ -183,8 +183,8 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
     expect(windAt(r.trace!, first!.tau - 1n)).toBeNull()
     expect(windAt(r.trace!, second!.tau)!.bps).toBe(-1_000n)
     const t = r.trace!
-    expect(sampleHorse(t, 0, second!.tau - 1n).pBps).toBe(2_000n + 1_000n)
-    expect(sampleHorse(t, 0, second!.tau).pBps).toBe(2_000n - 1_000n)
+    expect(sampleHorse(t, 0, second!.tau - 1n).pBps).toBe(1_000n + 1_000n)
+    expect(sampleHorse(t, 0, second!.tau).pBps).toBe(1_000n - 1_000n)
     expect(sampleHorse(t, 2, second!.tau).pBps).toBe(0n)
   })
 

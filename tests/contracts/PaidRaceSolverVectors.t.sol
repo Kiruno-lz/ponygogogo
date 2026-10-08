@@ -43,7 +43,7 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
     function testVectorFileHeader() public view {
         string memory file = vm.readFile(VECTOR_FILE);
         require(
-            vm.parseJsonBytes32(file, ".meta.rulesetHash") == PaidCardRules.LEGACY_RULESET_HASH, "legacy ruleset hash"
+            vm.parseJsonBytes32(file, ".meta.rulesetHash") == PaidCardRules.RULESET_HASH, "current card ruleset hash"
         );
         uint256 count = _cases().length;
         require(count == vm.parseJsonUint(file, ".meta.count"), "count");
@@ -350,6 +350,7 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
         PaidProfiles.Profile[5] memory profiles = PaidProfiles.derive(
             input.seed, input.openAnchor, input.stakeTier, input.playerHorseId
         );
+        profiles[input.playerHorseId] = PaidProfiles.Profile(1200, 12, 1800);
         uint8[14] memory deck = PaidDeck.derive(input.seed, input.openAnchor);
         for (uint256 h; h < 5; ++h) {
             require(

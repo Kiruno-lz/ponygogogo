@@ -14,13 +14,16 @@ contract PaidRaceNewCardsTest {
     function testStaminaPaymentBoundariesUseRealCardPlan() public pure {
         uint256[4] memory stamina = [uint256(0), 150_000_000, 300_000_000, 1_000_000_000];
         uint256[4] memory paid = [uint256(0), 150_000_000, 300_000_000, 300_000_000];
-        uint256[4] memory bps = [uint256(0), 1750, 3500, 3500];
+
         uint256[5] memory horses;
         uint256[3] memory equipment;
         for (uint256 i; i < 4; ++i) {
             horses[1] = stamina[i] << 128;
             (uint256[] memory actions,) = PaidRaceCardPlan.plan(22, 1, horses, equipment);
-            require(uint64(actions[0] >> 48) == paid[i] && uint64(actions[1] >> 48) == bps[i], "payment boundary");
+            require(
+                uint64(actions[0] >> 48) == paid[i] && uint64(actions[1] >> 48) == 1000,
+                "flat extra speed independent of payment"
+            );
         }
     }
 
@@ -35,7 +38,7 @@ contract PaidRaceNewCardsTest {
         (uint256[] memory actions,) = PaidRaceCardPlan.plan(34, 1, horses, equipment);
         require(uint64(actions[1] >> 48) == 3, "eligible tie target");
         (actions,) = PaidRaceCardPlan.plan(36, 1, horses, equipment);
-        require(actions.length == 5 && uint8(actions[0] >> 8) == 1, "finished horse excluded from feast");
+        require(actions.length == 6 && uint8(actions[0] >> 8) == 0, "all five horses must receive feast");
     }
 
     function testPercentageAndFixedPoolsGive44UnitsPerSecond() public pure {
@@ -65,11 +68,19 @@ contract PaidRaceNewCardsTest {
             uint8(actions[0]) == PaidRaceCardPlan.RECYCLE && uint64(actions[0] >> 48) == 2, "recycling tie instance id"
         );
         (actions,) = PaidRaceCardPlan.plan(32, 0, horses, equipment);
-        require(actions.length == 3, "refresh must not create fallback buff with equipment");
+        require(actions.length == 6, "one refresh and independent buff per equipment");
         for (uint256 i; i < 3; ++i) {
             require(
-                uint8(actions[i]) == PaidRaceCardPlan.RENEW && uint64(actions[i] >> 48) == uint8(equipment[i]),
+                uint8(actions[2 * i]) == PaidRaceCardPlan.RENEW && uint64(actions[2 * i] >> 48) == uint8(equipment[i]),
                 "all equipment slots"
+            );
+            require(
+                uint8(actions[2 * i + 1]) == PaidRaceCardPlan.BUFF && uint64(actions[2 * i + 1] >> 48) == 1000,
+                "independent ten percent"
+            );
+            require(
+                uint32(actions[2 * i + 1] >> 16) == PaidCardRules.get(uint8(equipment[i] >> 8)).durationMs,
+                "equipment full duration"
             );
         }
     }
@@ -130,37 +141,67 @@ contract PaidRaceNewCardsTest {
         );
     }
 
-    function _burstState() private returns (PaidRaceEngine.State memory st) {
+    function _extraSpeedState() private returns (PaidRaceEngine.State memory st) {
         st = _lifecycleState();
         st.instanceCount = 1;
         st.instances[0].active = true;
-        st.instances[0].kind = PaidRaceEngine.KIND_WATCH;
-        st.instances[0].cardId = 38;
-        st.instances[0].end = 50_000;
+        st.instances[0].kind = PaidRaceEngine.KIND_FIXED;
+        st.instances[0].cardId = 22;
+        st.instances[0].end = 14000;
         st.instances[0].slot = PaidRaceEngine.NO_SLOT;
-        PaidRaceEngine._kill(st, 0, 1000);
-        require(st.horses[0].fixedK == 120 && !st.instances[0].active, "first death burst");
-        PaidRaceEngine._expire(st, 1, 6000);
+        st.instances[0].fixedDelta = 1000;
+        st.horses[0].fixedK = 1000;
+        st.instNext[0] = 14000;
     }
 
-    function testSecondDeathClearsFixedBurstWithoutLaterDoubleSubtraction() public {
-        PaidRaceEngine.State memory st = _burstState();
+    function testDeathPreservesTimedExtraSpeedUntilOriginalDeadline() public {
+        PaidRaceEngine.State memory st = _extraSpeedState();
         PaidRaceEngine._kill(st, 0, 7000);
         require(
-            st.horses[0].fixedK == 0 && !st.instances[2].active && st.instances[2].fixedDelta == 0,
-            "second death retained burst"
+            st.horses[0].b == 0 && st.horses[0].fixedK == 1000 && st.instances[0].active, "death cleared card effect"
         );
-        require(st.instNext[2] == PaidRaceEngine.NEVER, "expired contribution remained scheduled");
-        // The original deadline is not scheduled anymore, so the solver will never expire this contribution twice.
+        require(st.instNext[0] == 14000, "death reset original deadline");
+        PaidRaceEngine._expire(st, 0, 14000);
+        require(st.horses[0].fixedK == 0 && !st.instances[0].active, "extra speed did not expire once");
     }
 
-    function testFixedDeadlineAndDeathAtSameInstantKeepSignedPoolAtZero() public {
-        PaidRaceEngine.State memory st = _burstState();
-        st.horses[0].fixedK += 10; // an independent historical wheel burst
-        PaidRaceEngine._expire(st, 2, 31_000);
-        require(st.horses[0].fixedK == 10, "expiry removed unrelated fixed speed");
-        PaidRaceEngine._kill(st, 0, 31_000);
-        require(st.horses[0].fixedK == 0 && st.instances[2].fixedDelta == 0, "same-instant death double subtraction");
+    function testExtraSpeedDeadlineAndDeathAtSameInstantKeepPoolAtZero() public {
+        PaidRaceEngine.State memory st = _extraSpeedState();
+        st.horses[0].fixedK += 100; // a separate extra-speed contribution
+        PaidRaceEngine._expire(st, 0, 14000);
+        require(st.horses[0].fixedK == 100, "expiry removed unrelated extra speed");
+        PaidRaceEngine._kill(st, 0, 14000);
+        require(st.horses[0].fixedK == 100 && st.instances[0].fixedDelta == 0, "death removed unrelated extra speed");
+    }
+
+    function testC38PreventsExhaustionInProductionSolve() public {
+        PaidRaceEngine.CoreInput memory input;
+        input.playerHorseId = 1;
+        input.playerDeck = [uint8(38), 19, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
+        for (uint256 h; h < 5; ++h) {
+            input.profiles[h] = PaidProfiles.Profile(600, 0, 600);
+            input.cpuDecks[h] = [uint8(19), 20, 5];
+        }
+        input.choices[0] = IPaidRaceSolver.ChoiceInput(true, 42, 38, new uint8[](0), bytes32(uint256(1)));
+        PaidRaceEngine.Options memory opts;
+        opts.logEvents = true;
+        PaidRaceEngine.Result memory r = PaidRaceEngine.solve(input, opts);
+        uint256 triggerTau;
+        bool restored;
+        for (uint256 i; i < r.eventCount; ++i) {
+            if ((r.eventMeta[i] >> 40) & 0xff != 1) continue;
+            uint256 code = r.eventMeta[i] & 0xff;
+            if (code == 29 && uint256(r.eventArgs[i]) / 256 == 38) triggerTau = (r.eventMeta[i] >> 8) & 0xffffffff;
+            if (code == 30 && r.eventArgs[i] == 250000000) restored = true;
+        }
+        require(triggerTau != 0 && restored, "exhaustion reserve did not trigger");
+        for (uint256 i; i < r.eventCount; ++i) {
+            require(
+                !((r.eventMeta[i] & 0xff) == 24 && ((r.eventMeta[i] >> 40) & 0xff) == 1
+                        && ((r.eventMeta[i] >> 8) & 0xffffffff) == triggerTau),
+                "entered intercepted exhaustion"
+            );
+        }
     }
 
     function testMileageCardRunsInSolidity() public {
@@ -181,11 +222,11 @@ contract PaidRaceNewCardsTest {
             uint256 code = result.eventMeta[i] & 0xff;
             uint256 horse = (result.eventMeta[i] >> 40) & 0xff;
             if (horse != 1) continue;
-            if (code == 34 && result.eventArgs[i] == -20) debt = true;
+            if (code == 34 && result.eventArgs[i] == -200) debt = true;
             if (code == 29 && uint256(result.eventArgs[i]) / 256 == 40) ++growth;
         }
         emit log_named_uint("debt", debt ? 1 : 0);
         emit log_named_uint("growth", growth);
-        require(debt && growth == 3, "mileage debt and three growth events");
+        require(debt && growth == 4, "mileage debt and four private growth stages");
     }
 }

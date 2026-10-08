@@ -6,6 +6,9 @@ import { cardIconUrl } from '../race/cards/iconUrl.ts'
  */
 import { useEffect, useRef, useState } from 'react'
 import { SIM_HZ, STAMINA_MAX, TRACK_LEN } from '../race/core/constants.ts'
+import { fx } from '../race/core/fixed.ts'
+import { PLAYER_BALANCE } from '../race/paid/playerBalance.ts'
+import { ponyRule } from '../race/paid/ponyRules.ts'
 import type { EffectInstance, RaceState } from '../race/core/types.ts'
 import { hexCss } from '../game/horses.ts'
 import { ponyById, ponyIdAt } from '../game/ponyCatalog.ts'
@@ -155,11 +158,12 @@ export function Hud(p: HudProps) {
   const st = p.state
   const player = st.horses[st.playerHorseId]!
   const slots = buildSlots(st, player.horseId, p.lang)
-  const staminaPct = Math.max(0, Math.min(1.2, player.stamina / STAMINA_MAX))
+  const staminaMax = st.roster ? fx(PLAYER_BALANCE.staminaCapacity + (ponyRule(st.roster[st.playerHorseId]!).staminaCapacityDelta ?? 0)) : STAMINA_MAX
+  const staminaPct = Math.max(0, Math.min(1.2, player.stamina / staminaMax))
   const exhausted = st.effects.some(
     (e) => e.ownerHorseId === player.horseId && e.payload.statusId === 'exhausted',
   )
-  const over = player.stamina > STAMINA_MAX
+  const over = player.stamina > staminaMax
 
   const board = [...st.horses].sort((a, b) => {
     if (a.finished && b.finished) return a.rank - b.rank

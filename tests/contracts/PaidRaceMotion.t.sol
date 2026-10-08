@@ -55,6 +55,12 @@ contract FieldStretchProbe {
             horse.accel = 12;
             horse.aEff = 12;
             horse.s = PaidRaceMotion.STAMINA_CAPACITY;
+            horse.staminaCapacity = PaidRaceMotion.STAMINA_CAPACITY;
+            horse.exhaustRelease = PaidRaceMotion.STAMINA_CAPACITY;
+            horse.baseCost = PaidRaceMotion.COST_PER_MS;
+            horse.baseRegen = PaidRaceMotion.REGEN_PER_MS;
+            horse.exhaustRegen = PaidRaceMotion.REGEN_PER_MS;
+            horse.overcapCostDivisor = 1;
             horse.cost = h == 2 ? 12_000 : 24_000; // one rocket: net stays negative, one horse clamps at 0
             horse.regen = h == 4 ? 30_000 : 10_000; // one horse regenerates above its cost: clamps at capacity
             horse.pStatic = 1_000;
@@ -131,7 +137,23 @@ contract PaidRaceMotionTest {
         require(_word(h, PaidRaceMotion.H_FINISH_TIME) == 29, "finishTime offset");
         require(_word(h, PaidRaceMotion.H_FINISH_WALL) == 30, "finishWall offset");
         require(PaidRaceMotion.H_FINISH_TIME == 0x220 && PaidRaceMotion.H_FINISH_WALL == 0x240, "finish offsets");
-        require(PaidRaceMotion.HORSE_WORDS * 32 == PaidRaceMotion.H_NEXT_DIST + 32, "raw ABI size");
+        require(PaidRaceMotion.HORSE_WORDS * 32 == PaidRaceMotion.H_BASE_BONUS + 32, "raw ABI size");
+        h.staminaCapacity = 300_000_000;
+        h.exhaustRelease = 135_000_000;
+        h.baseCost = 20_000;
+        h.baseRegen = 10_000;
+        h.exhaustRegen = 15_000;
+        h.overcapCostDivisor = 2;
+        h.exhaustCapMilli = 1_200_000;
+        h.recoveryAccel = 150;
+        require(_word(h, PaidRaceMotion.H_STAMINA_CAPACITY) == 300_000_000, "stamina capacity offset");
+        require(_word(h, PaidRaceMotion.H_EXHAUST_RELEASE) == 135_000_000, "exhaust release offset");
+        require(_word(h, PaidRaceMotion.H_BASE_COST) == 20_000, "base cost offset");
+        require(_word(h, PaidRaceMotion.H_BASE_REGEN) == 10_000, "base regen offset");
+        require(_word(h, PaidRaceMotion.H_EXHAUST_REGEN) == 15_000, "exhaust regen offset");
+        require(_word(h, PaidRaceMotion.H_OVERCAP_DIVISOR) == 2, "overcap divisor offset");
+        require(_word(h, PaidRaceMotion.H_EXHAUST_CAP) == 1_200_000, "exhaust cap offset");
+        require(_word(h, PaidRaceMotion.H_RECOVERY_ACCEL) == 150, "recovery accel offset");
         uint256[27] memory offsets = [
             PaidRaceMotion.H_POS,
             PaidRaceMotion.H_DIST,

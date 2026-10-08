@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
 import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
+import {PaidProfiles} from "../../contracts/libraries/PaidProfiles.sol";
 import {PaidRaceCold} from "../../contracts/libraries/PaidRaceCold.sol";
 import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 
@@ -18,6 +19,7 @@ contract LegacyCoreSolverProbe is IPaidRaceSolver {
         PaidRaceEngine.CoreInput memory core;
         (core.profiles, core.playerDeck, core.cpuDecks) =
             PaidRaceCold.derive(input.seed, input.openAnchor, input.stakeTier, input.playerHorseId);
+        core.profiles[input.playerHorseId] = PaidProfiles.Profile(1200, 12, 1800);
         core.playerHorseId = input.playerHorseId;
         core.seed = input.seed;
         core.openAnchor = input.openAnchor;

@@ -474,7 +474,7 @@ describe('paid driver: reconciliation and accessors', () => {
     const rec2 = r.driver.preview()!.result.checkpoints[1]!
     expect(rec2.mode).toBe('manual')
     r.runTo(Number(rec2.openSec) * 1000 + 10)
-    expect(r.driver.state.refreshCredits).toBe(1)
+    expect(r.driver.state.refreshCredits).toBe(3)
     r.driver.input({ kind: 'refresh', slot: 1 })
     // a pick in the same frame already sees the refreshed offer
     const deck = derivePaidDeck(keccak256(toHex('p7-driver-seed')), anchor, FULL_CARD_MASK)
@@ -483,8 +483,8 @@ describe('paid driver: reconciliation and accessors', () => {
     const refreshed = r.driver.state.pending!
     expect(refreshed.refreshesUsed).toEqual([1])
     expect(refreshed.candidates[1]).toBe(replacement)
-    expect(r.driver.state.refreshCredits).toBe(0)
-    r.driver.input({ kind: 'refresh', slot: 2 })
+    expect(r.driver.state.refreshCredits).toBe(2)
+    r.driver.input({ kind: 'refresh', slot: 1 })
     r.runTo(r.local + 16)
     expect(r.driver.state.pending!.refreshesUsed).toEqual([1])
     // the card refreshed away is no longer pickable; the replacement is

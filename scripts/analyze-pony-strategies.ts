@@ -29,7 +29,7 @@ function compatible(pony:number,card:number,seen:Set<string>):boolean {
   const rule=paidCardRule(card)
   switch(pony) {
     case 0:return rule.rare
-    case 1:return rule.slot === undefined
+    case 1:return rule.effect === 'refresh'
     case 2:return rule.slot !== undefined
     case 3:return !seen.has(rule.mainFunction)
     case 4:return rule.effect === 'airborneSpeed' || rule.effect === 'wheel'

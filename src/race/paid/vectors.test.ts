@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { LEGACY_PAID_RULESET_HASH } from './cardRules.ts'
+import { PAID_RULESET_HASH } from './cardRules.ts'
 import { EV_CARD, EV_EXHAUST_ENTER, EV_EXHAUST_EXIT, PAID_CHOICE_INVALID_NAMES } from './events.ts'
 import { checkPaidChoice, classifyPaidChoice, type PaidChoiceSlots } from './solver.ts'
 import { decodeInput, encodeInput, solveVectorCase, type PaidVectorCase, type PaidVectorRace } from './vectorCodec.ts'
@@ -11,9 +11,9 @@ const file = JSON.parse(readFileSync(new URL('../../../tests/vectors/paid-race-v
   cases: PaidVectorCase[]
 }
 
-describe('paid ruleset v4 cross-language vectors', () => {
+describe('current paid-card cross-language vectors', () => {
   test('file header', () => {
-    expect(file.meta.rulesetHash).toBe(LEGACY_PAID_RULESET_HASH)
+    expect(file.meta.rulesetHash).toBe(PAID_RULESET_HASH)
     expect(file.cases.length).toBe(file.meta.count)
     expect(file.cases.length).toBeGreaterThanOrEqual(250)
     expect(new Set(file.cases.map((c) => c.name)).size).toBe(file.cases.length)
