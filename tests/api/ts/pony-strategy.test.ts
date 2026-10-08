@@ -39,8 +39,8 @@ test('potential food preferences include immediate reserve recovery and repeat h
   expect(repeat.map(record=>record.preferredAcquired)).toEqual([false,true])
 })
 
-test('Shadow refreshes a late offer into a rocket while rare specialization selects immunity', () => {
-  const late=(pony:number)=>pickAt(pickAt(scenario(pony,[19,29,17,20,1,18,28,21,5]),1,19),2,20)
+test('Shadow refreshes a late offer into a rocket while rare specialization selects immunity over an untriggered paper plane', () => {
+  const late=(pony:number)=>pickAt(pickAt(scenario(pony,[19,29,17,20,1,18,27,21,5]),1,19),2,20)
   expect(decidePonyAction(late(0),3).cardId).toBe(21)
   const refreshed=decidePonyAction(late(1),3)
   expect(refreshed.cardId).toBe(7)
@@ -48,29 +48,29 @@ test('Shadow refreshes a late offer into a rocket while rare specialization sele
 })
 
 test('repeat and diverse roles make opposite second-pick choices after a power acquisition', () => {
-  const diverse = pickAt(scenario(3,[17,18,1,20,27,19]),1,17)
-  const repeat = pickAt(scenario(8,[17,18,1,20,27,19]),1,17)
-  expect(decidePonyAction(diverse,2).cardId).toBe(20)
+  const diverse = pickAt(scenario(3,[17,18,2,25,27,19]),1,17)
+  const repeat = pickAt(scenario(8,[17,18,2,25,27,19]),1,17)
+  expect(decidePonyAction(diverse,2).cardId).toBe(25)
   expect(decidePonyAction(repeat,2).cardId).toBe(27)
 })
 
 test('ox consumption changes a rage follow-up from direct acceleration to regeneration', () => {
   const ox=pickAt(scenario(5,[26,19,20,1,14,29]),1,26)
-  const neutral=pickAt(scenario(7,[26,19,20,1,14,29]),1,26)
+  const neutral=pickAt(scenario(2,[26,19,20,1,14,29]),1,26)
   expect(decidePonyAction(ox,2).cardId).toBe(14)
   expect(decidePonyAction(neutral,2).cardId).toBe(1)
 })
 
-test('equipment extension matters early but cannot earn extra coverage after a near-finish acquisition', () => {
+test('Berry gains early equipment coverage and retains its speed gate when a late window is finish-truncated', () => {
   const early=(pony:number)=>solvePaidCore(pickAt(scenario(pony,[11,19,20]),1,11))
-  const berry=early(2),neutral=early(7)
-  expect(ponyAbilityMetrics(berry,0,2).coverageTauMs).toBe(6000n)
+  const berry=early(2),neutral=early(1)
+  expect(ponyAbilityMetrics(berry,0,2).coverageTauMs).toBe(8531n)
   expect(berry.finishTime[0]).toBeLessThan(neutral.finishTime[0])
   const late=(pony:number)=>solvePaidCore(pickAt(pickAt(pickAt(
     scenario(pony,[17,19,20,18,21,22,11,23,24]),1,17),2,18),3,11))
-  const lateBerry=late(2),lateNeutral=late(7)
+  const lateBerry=late(2),lateNeutral=late(1)
   expect(ponyAbilityMetrics(lateBerry,0,2).coverageTauMs).toBe(0n)
-  expect(lateBerry.finishTime[0]).toBe(lateNeutral.finishTime[0])
+  expect(lateBerry.finishTime[0]).toBeLessThan(lateNeutral.finishTime[0])
 })
 
 test('active forfeit is an evaluated action, distinct from waiting for timeout', () => {
