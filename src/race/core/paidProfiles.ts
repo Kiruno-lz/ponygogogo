@@ -14,7 +14,8 @@ const BASE_DOMAIN = keccak256(toBytes('horse.base'))
 const ACCEL_DOMAIN = keccak256(toBytes('horse.acceleration'))
 const CAP_DOMAIN = keccak256(toBytes('horse.cap'))
 
-const TIERS = [
+/** Records without a roster: the stake tier picked the CPU personality ranges. */
+const LEGACY_TIERS = [
   { base: [1120, 1240], acceleration: [10, 13], cap: [1700, 1840] },
   { base: [1180, 1300], acceleration: [11, 14], cap: [1780, 1920] },
   { base: [1240, 1360], acceleration: [12, 15], cap: [1860, 2000] },
@@ -26,11 +27,16 @@ function sample(seed: Hex, anchor: Hex, domain: Hex, group: number, range: reado
   return lo + Number(chainEntropy(seed, anchor, 0, domain, BigInt(group)) % BigInt(hi - lo + 1))
 }
 
-/** Four opponent personalities are independent of the chosen visual horse ID. */
+/**
+ * Four opponent personalities are independent of the chosen visual horse ID. Roster rules give every CPU the player
+ * baseline plus a cap offset; the stake tier is validated but only shapes legacy personalities.
+ */
 export function derivePaidProfiles(seed: Hex, anchor: Hex, stakeTier: PaidTier, playerHorseId: number, legacy = false): PaidProfile[] {
   if (playerHorseId < 0 || playerHorseId > 4 || !Number.isInteger(playerHorseId)) throw new Error('INVALID_HORSE')
   if (stakeTier < 1 || stakeTier > 4 || !Number.isInteger(stakeTier)) throw new Error('INVALID_TIER')
-  const tier = TIERS[stakeTier - 1]
+  const tier = LEGACY_TIERS[stakeTier - 1]
+  // Read at call time so calibration can override the offset range in-process.
+  const capRange = [PLAYER_BALANCE.speedCap + PLAYER_BALANCE.cpuCapOffsetMin, PLAYER_BALANCE.speedCap + PLAYER_BALANCE.cpuCapOffsetMax] as const
   const profiles: PaidProfile[] = []
   let group = 0
   for (let horseId = 0; horseId < 5; horseId++) {
@@ -38,11 +44,11 @@ export function derivePaidProfiles(seed: Hex, anchor: Hex, stakeTier: PaidTier, 
       profiles.push(legacy ? LEGACY_PLAYER_PAID_PROFILE : PLAYER_PAID_PROFILE)
       continue
     }
-    profiles.push({
+    profiles.push(legacy ? {
       base: sample(seed, anchor, BASE_DOMAIN, group, tier.base),
       acceleration: sample(seed, anchor, ACCEL_DOMAIN, group, tier.acceleration),
       cap: sample(seed, anchor, CAP_DOMAIN, group, tier.cap),
-    })
+    } : { ...PLAYER_PAID_PROFILE, cap: sample(seed, anchor, CAP_DOMAIN, group, capRange) })
     group++
   }
   return profiles

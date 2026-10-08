@@ -9,6 +9,7 @@ import {PaidProfiles} from "../../contracts/libraries/PaidProfiles.sol";
 import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 import {PaidRaceSolver} from "../../contracts/PaidRaceSolver.sol";
 import {LegacyCoreSolverProbe} from "./LegacyCoreSolverProbe.sol";
+import {LegacyPaidProfiles} from "./legacy/LegacyPaidProfiles.sol";
 import {FieldStretchProbe} from "./PaidRaceMotion.t.sol";
 import {PaidRaceVectorAssertions} from "./PaidRaceVectorAssertions.sol";
 
@@ -347,10 +348,9 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
         PaidRaceEngine.CoreInput memory core,
         IPaidRaceSolver.RaceInput memory input
     ) internal pure {
-        PaidProfiles.Profile[5] memory profiles = PaidProfiles.derive(
+        PaidProfiles.Profile[5] memory profiles = LegacyPaidProfiles.derive(
             input.seed, input.openAnchor, input.stakeTier, input.playerHorseId
         );
-        profiles[input.playerHorseId] = PaidProfiles.Profile(1200, 12, 1800);
         uint8[14] memory deck = PaidDeck.derive(input.seed, input.openAnchor);
         for (uint256 h; h < 5; ++h) {
             require(

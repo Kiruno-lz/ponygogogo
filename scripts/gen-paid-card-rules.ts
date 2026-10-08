@@ -22,6 +22,8 @@ const playerConstants = {
   EXHAUST_REGEN_PER_MS: PLAYER_BALANCE.exhaustRegenPerSecond * 1000,
   EXHAUST_SPEED_CAP_MILLI: PLAYER_BALANCE.exhaustSpeedCap * 1000,
   OVERCAP_COST_DIVISOR: PLAYER_BALANCE.overcapCostDivisor,
+  CPU_CAP_OFFSET_MIN: PLAYER_BALANCE.cpuCapOffsetMin,
+  CPU_CAP_OFFSET_MAX: PLAYER_BALANCE.cpuCapOffsetMax,
 }
 const playerSource = execFileSync('forge', ['fmt', '--raw', '-'], { encoding: 'utf8', input: `// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;

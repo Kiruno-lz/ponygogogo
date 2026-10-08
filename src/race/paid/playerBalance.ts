@@ -12,6 +12,9 @@ export const PLAYER_BALANCE = {
   exhaustRegenPerSecond: 15,
   exhaustSpeedCap: 1200,
   overcapCostDivisor: 2,
+  /** Roster-rule CPUs run this baseline; each CPU's cap adds a uniform offset in [min, max] from the opening anchor. */
+  cpuCapOffsetMin: 100,
+  cpuCapOffsetMax: 500,
 } as const
 
 export const PLAYER_BALANCE_HASH = keccak256(toBytes(JSON.stringify(PLAYER_BALANCE)))

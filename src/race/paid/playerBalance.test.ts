@@ -15,15 +15,10 @@ function currentInput() {
   return fixtureInput({ roster, playerHorseId: 0, profiles })
 }
 
-test('player starts at 300, accelerates at 150 and caps at 1800; opponent profiles remain frozen', () => {
+test('player starts at 300, accelerates at 150 and caps at 1800; opponents share the start and stamina model', () => {
   const profiles = derivePaidProfiles(FIXTURE_SEED, FIXTURE_ANCHOR, 2, 1)
-  expect(profiles).toEqual([
-    { base: 1212, acceleration: 14, cap: 1913 },
-    { base: 300, acceleration: 150, cap: 1800 },
-    { base: 1245, acceleration: 12, cap: 1853 },
-    { base: 1237, acceleration: 11, cap: 1802 },
-    { base: 1254, acceleration: 14, cap: 1786 },
-  ])
+  expect(profiles[1]).toEqual({ base: 300, acceleration: 150, cap: 1800 })
+  expect(profiles.map(p => [p.base, p.acceleration])).toEqual(Array.from({ length: 5 }, () => [300, 150]))
   const result = solvePaidCore(currentInput()), trace = result.trace!
   expect(sampleHorse(trace, 0, 0n)).toMatchObject({ b: 300_000n, v: 300_000n, stamina: 300_000_000n })
   expect(sampleHorse(trace, 0, 10_000n)).toMatchObject({ b: 1_800_000n, v: 1_800_000n, dist: 10_500_000_000n, stamina: 200_000_000n })
@@ -31,8 +26,8 @@ test('player starts at 300, accelerates at 150 and caps at 1800; opponent profil
   expect(sampleHorse(trace, 0, 18_056n).stamina).toBe(119_440_000n)
   for (let h = 1; h < 5; h++) {
     const stamina = trace.keyframes[h][0].stamina
-    expect(stamina.s).toBe(1_000_000_000n)
-    expect(stamina.cost).toBe(h === 4 ? 26_400n : 24_000n)
+    expect(stamina).toMatchObject({ s: 300_000_000n, capacity: 300_000_000n, exhaustRelease: 135_000_000n, overcapCostDivisor: 2n })
+    expect(stamina.cost).toBe(h === 4 ? 22_000n : 20_000n)
     expect(stamina.regen).toBe(10_000n)
   }
 })
@@ -87,7 +82,7 @@ test('full-speed death recovery from zero at 150 takes 12 seconds and loses 1080
   expect(1_800_000n * 12_000n - motionDelta(recovery, 12_000n)).toBe(10_800_000_000n)
 })
 
-test('current player countdown stamina is 300 while opponents stay at 1000', () => {
-  const state = idlePaidState(0, 0, roster)
-  expect(state.horses.map(h => h.stamina / FP)).toEqual([300, 1000, 1000, 1000, 1000])
+test('roster countdown stamina is 300 for every horse; records without a roster keep 1000', () => {
+  expect(idlePaidState(0, 0, roster).horses.map(h => h.stamina / FP)).toEqual([300, 300, 300, 300, 300])
+  expect(idlePaidState(0, 0).horses.map(h => h.stamina / FP)).toEqual([1000, 1000, 1000, 1000, 1000])
 })

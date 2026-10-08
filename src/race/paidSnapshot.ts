@@ -352,7 +352,8 @@ export function eventsUpTo(
 export function idlePaidState(playerHorseId: number, stakeTier: number, roster?: readonly number[]): RaceState {
   const horses: HorseState[] = [0, 1, 2, 3, 4].map((h) => ({
     horseId: h, laneIndex: h, isPlayer: h === playerHorseId, pos: 0, dist: 0, v: 0,
-    stamina: roster && h === playerHorseId ? (PLAYER_BALANCE.staminaCapacity + (ponyRule(roster[h]!).staminaCapacityDelta ?? 0)) * FP : STAMINA_MAX,
+    // Roster rules: every horse starts at the player capacity; only the player adds its role bonus.
+    stamina: roster ? (PLAYER_BALANCE.staminaCapacity + (h === playerHorseId ? ponyRule(roster[h]!).staminaCapacityDelta ?? 0 : 0)) * FP : STAMINA_MAX,
     marksConsumed: 0, finished: false, finishTick: 0, finishOvershoot: 0, rank: 0, deathRecover: false, fieldMul: 0,
     cpu: null, cpuTarget: 0, bandLow: 0, bandHigh: 0,
   }))

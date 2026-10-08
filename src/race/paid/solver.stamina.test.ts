@@ -1,11 +1,12 @@
 import { expect, test } from 'bun:test'
+import { derivePaidProfiles } from '../core/paidProfiles.ts'
 import { STAMINA_CAPACITY } from './constants.ts'
 import {
   EV_BASE_CAP, EV_CARD, EV_EXHAUST_ENTER, EV_EXHAUST_EXIT, EV_EXPIRE, EV_OVERCAP_END, PAID_EVENT_NAMES,
 } from './events.ts'
 import { ceilDiv, exhaustedSpeed } from './motion.ts'
 import { solvePaidCore, type PaidCoreProfile, type PaidSolveResult } from './solver.ts'
-import { fixtureInput, fixtureProfiles } from './testkit.ts'
+import { FIXTURE_ANCHOR, FIXTURE_SEED, fixtureInput, fixtureProfiles } from './testkit.ts'
 import { sampleHorse, sampleStatus } from './trace.ts'
 
 const H = 0
@@ -117,4 +118,19 @@ test('wired expiry with positive stamina leaves the normal drain in charge', () 
   const pick = tauOf(r, EV_CARD)
   expect(r.events.some((e) => e.horse === H && e.code === EV_EXHAUST_ENTER)).toBe(false)
   expect(sampleHorse(r.trace!, H, pick + 40_000n).stamina).toBe(STAMINA_CAPACITY - DRAIN * (pick + 40_000n))
+})
+
+test('roster CPUs run the player stamina schedule: 300 at net −10 per second, exhausted at 30 s, released at 135 after 9 s', () => {
+  const profiles = derivePaidProfiles(FIXTURE_SEED, FIXTURE_ANCHOR, 4, 0)
+    .map((p) => ({ base: BigInt(p.base), acceleration: BigInt(p.acceleration), cap: BigInt(p.cap) }))
+  const r = solvePaidCore(fixtureInput({ roster: [0, 2, 3, 4, 5], playerHorseId: 0, profiles }))
+  const schedule = (h: number) => r.events.filter((e) => e.horse === h && (e.code === EV_EXHAUST_ENTER || e.code === EV_EXHAUST_EXIT))
+    .slice(0, 2).map((e) => `${e.tau}:${PAID_EVENT_NAMES[e.code]}`)
+  expect(schedule(0)).toEqual(['30000:EXHAUST_ENTER', '39000:EXHAUST_EXIT'])
+  for (const h of [1, 2, 3]) {
+    expect(schedule(h)).toEqual(schedule(0))
+    expect(sampleHorse(r.trace!, h, 39_000n)).toMatchObject({ stamina: 135_000_000n, exhausted: false })
+  }
+  // The ox role still raises its own running cost by 10%: net −12 per second empties 300 at 25 s.
+  expect(schedule(4)).toEqual(['25000:EXHAUST_ENTER', '34000:EXHAUST_EXIT'])
 })

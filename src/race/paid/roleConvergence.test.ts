@@ -47,11 +47,14 @@ test('Berry has one ten-percent equipment gate and a fifty-percent initial lifet
  expect(sampleHorse(r.trace!,0,at(8)).pBps).toBe(3500n)
  expect(r.trace!.instances.find(i=>i.horse===0&&i.cardId===7&&i.kind==='equip')!.plannedEndTau).toBe(at(7)+30000n)
 })
-test('Food player starts with capacity 400 in both solver and countdown; CPU capacity stays 1000',()=>{
+test('Food player starts with capacity 400 in both solver and countdown; CPUs, even a Food CPU, stay at 300',()=>{
  const core=modern();core.roster=[7,1,0,2,3]
  const r=solvePaidCore(core)
  expect(sampleHorse(r.trace!,0,0n).stamina).toBe(400000000n)
  expect(r.trace!.keyframes[0]![0]!.stamina.capacity).toBe(400000000n)
  expect(idlePaidState(0,0,core.roster).horses[0]!.stamina/FP).toBe(400)
- expect(sampleHorse(r.trace!,1,0n).stamina).toBe(1000000000n)
+ expect(sampleHorse(r.trace!,1,0n).stamina).toBe(300000000n)
+ const cpuFood=modern();cpuFood.roster=[1,7,0,2,3]
+ expect(solvePaidCore(cpuFood).trace!.keyframes[1]![0]!.stamina.capacity).toBe(300000000n)
+ expect(idlePaidState(0,0,cpuFood.roster).horses[1]!.stamina/FP).toBe(300)
 })
