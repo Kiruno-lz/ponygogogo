@@ -217,7 +217,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
     playerDeck: [6, 17, 18, 10, 21, 14, 13, 15, 20, 19, 1, 2, 7, 8],
     cpu: { 0: [10, 2, 6], 2: [2, 10, 12], 3: [1, 6, 10], 4: [11, 13, 10] },
   }), 1, 6), 2, 10))
-  // Adversarial gas cases (P3). Field time: every horse holds C-10 and C-13 (steals refresh a well for a full 10 s),
+  // Adversarial gas cases (P3). Field time: every horse holds C-10 and C-13 (steals refresh a well for a full 20 s),
   // bombs and a death spread the horses so the wells rarely overlap; tier-3 personalities, CPU-eligible CPU decks.
   // Found by a seeded search maximising stepCount; the fixed 100s field-work benchmark is 400 steps at 250ms (not a v4 worst-case proof).
   const tier3 = (base: bigint, acceleration: bigint, cap: bigint): PaidCoreProfile => ({ base, acceleration, cap })

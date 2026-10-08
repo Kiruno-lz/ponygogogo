@@ -132,13 +132,13 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
         revert("missing adversarial fixture");
     }
 
-    /// @notice Refresh adds at most five full ten-second well lifetimes to the five originals and five steals.
+    /// @notice Refresh adds at most five full twenty-second well lifetimes to the five originals and five steals.
     /// This measures the conservative projection, not a reachable race or a proof of the solve cap.
     /// The real-race chunk gates retain their independent 23.5M limit.
     function testRefreshedWellFieldWorkProjection() public {
-        (uint256 field, uint256 steps,,) = new FieldStretchProbe().stretch(1, 150_000);
-        require(steps == 600, "refreshed well field budget");
-        emit log_named_uint("field work projection (600 one-well steps)", field);
+        (uint256 field, uint256 steps,,) = new FieldStretchProbe().stretch(1, 300_000);
+        require(steps == 1200, "refreshed well field budget");
+        emit log_named_uint("field work projection (1200 one-well steps)", field);
         require(field > 0, "field work was not measured");
     }
 

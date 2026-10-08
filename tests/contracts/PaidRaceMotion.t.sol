@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 import {PaidRaceMotion} from "../../contracts/libraries/PaidRaceMotion.sol";
 import {PaidCardRules} from "../../contracts/libraries/PaidCardRules.sol";
 
-/// @notice Synthetic stretches for PaidRaceMotion: five running horses spaced inside the well radius, never crossing.
+/// @notice Synthetic stretches for PaidRaceMotion: five running horses 1000 units apart, never crossing.
 contract FieldStretchProbe {
     function stretch(uint256 wells, uint256 horizon)
         external
@@ -86,7 +86,7 @@ contract FieldStretchProbe {
 contract PaidRaceMotionTest {
     event log_named_uint(string key, uint256 val);
 
-    /// @dev Fixed benchmark: ten ten-second well lifetimes at H = 250 ms; refresh extends the v4 budget.
+    /// @dev Fixed benchmark: five twenty-second well lifetimes at H = 250 ms; refresh extends the v4 budget.
     uint256 internal constant CEILING_STEPS = 400;
     uint256 internal constant CEILING_MS = 100_000;
 
@@ -94,6 +94,44 @@ contract PaidRaceMotionTest {
         (uint256 used, uint256 steps,,) = new FieldStretchProbe().stretch(1, 1_001);
         require(steps == 5, "four 250ms steps plus 1ms tail");
         require(used > 0, "motion was not computed");
+    }
+
+    /// @notice C-10 over the whole track: k = 3000·R/(R + d) with R = 8000 units, overlap 3000, never zero.
+    function testWellFieldInverseFalloff() public pure {
+        uint256 u = 1_000_000;
+        int256[5] memory k = _wellField([90_000 * u, 90_000 * u, 98_000 * u, 74_000 * u, 0]);
+        require(k[0] == 0, "owner feels its own well");
+        require(k[1] == 3_000 && k[2] == -1_500 && k[3] == 1_000 && k[4] == 244, "d = 0, 8000, 16000, 90000");
+        k = _wellField([uint256(0), 1, 16_000 * u, 32_000 * u, 90_000 * u]);
+        require(k[1] == -2_999 && k[2] == -1_000 && k[3] == -600 && k[4] == -244, "ahead is slowed");
+    }
+
+    /// @dev One 1 ms step with motionless horses and the well on horse 0: the midpoint equals the start, so
+    /// mult − BPS is exactly the field each horse feels.
+    function _wellField(uint256[5] memory pos) private pure returns (int256[5] memory k) {
+        PaidRaceMotion.Horse[5] memory horses;
+        PaidRaceMotion.Stretch memory sx;
+        PaidCardRules.Rule memory gravity = PaidCardRules.get(10);
+        sx.radius = gravity.radiusMicro;
+        sx.strength = gravity.strengthBps;
+        sx.overlap = gravity.overlapBps;
+        sx.runCount = 5;
+        sx.ownerCount = 1;
+        for (uint256 h; h < 5; ++h) {
+            PaidRaceMotion.Horse memory horse = horses[h];
+            horse.pos = pos[h];
+            horse.crossPos = type(uint256).max;
+            horse.cpDist = type(uint256).max;
+            uint256 slot = PaidRaceMotion.S_RUN + h * 32;
+            assembly ("memory-safe") {
+                mstore(add(sx, slot), horse)
+            }
+        }
+        sx.own0 = sx.run0;
+        PaidRaceMotion.advance(sx, 0, 1);
+        for (uint256 h; h < 5; ++h) {
+            k[h] = int256(horses[h].mult) - int256(PaidRaceMotion.BPS);
+        }
     }
 
     /// @notice The H_*/S_*/B_* offsets the assembly uses are the Solidity member offsets.

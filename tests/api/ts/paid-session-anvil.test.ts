@@ -194,9 +194,12 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     for (const [index, core] of inputs.entries()) {
       const ts = solvePaidCore(core)
       const wells = ts.trace!.instances.filter((i) => i.cardId === 10 && i.kind === 'equip')
-      expect(wells.length).toBe(index === 0 ? 1 : 2)
+      expect(wells.length).toBe(2)
       expect(ts.trace!.keyframes.some((frames) => frames.some((f) => f.tau1 - f.tau0 === 250n))).toBe(true)
-      if (index === 1) expect(wells.some((a) => wells.some((b) => a !== b && a.startTau < b.endTau! && b.startTau < a.endTau!))).toBe(true)
+      const overlap = wells.some((a) => wells.some((b) => a !== b && a.startTau < b.endTau! && b.startTau < a.endTau!))
+      // derived-0 keeps one field at a time: the 20 s well outlives C-13's steal and continues on the thief.
+      if (index === 0) expect([overlap, wells[0]!.endReason, wells[1]!.startTau]).toEqual([false, 'stolen', wells[0]!.endTau])
+      if (index === 1) expect(overlap).toBe(true)
       const result = await clients().pub.readContract({ address: solver, abi: solverAbi(), functionName: 'solve', args: [{
         seed: core.seed, openAnchor: core.openAnchor, stakeTier: 1, playerHorseId: core.playerHorseId,
         roster: [...DEFAULT_ROSTER],

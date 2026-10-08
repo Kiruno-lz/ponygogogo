@@ -164,7 +164,7 @@ library PaidRaceMotion {
         uint256 own2;
         uint256 own3;
         uint256 own4;
-        uint256 radius;
+        uint256 radius; // C-10 half-strength distance R (no cutoff)
         uint256 strength;
         int256 overlap;
         uint256 steps;
@@ -532,12 +532,14 @@ library PaidRaceMotion {
                 if slt(mu, 0) { mu := 0 }
                 mstore(add(h, H_FIELD), 0)
             }
-            // Adds each well's field (wellFieldBps) to every other running horse, positions read at `slot`.
+            // Adds each well's field (wellFieldBps) to every other running horse, positions read at `slot`:
+            // k = strength·R/(R + d) over the whole track, halving at d = R.
             function accumulate(s, slot) {
                 let rend := add(add(s, S_RUN), shl(5, mload(add(s, S_RUN_COUNT))))
                 let own := add(s, S_OWN)
                 let oend := add(own, shl(5, mload(add(s, S_OWNER_COUNT))))
                 let r := mload(add(s, S_RADIUS))
+                let g := mul(mload(add(s, S_STRENGTH)), r)
                 for {} lt(own, oend) { own := add(own, 0x20) } {
                     let ho := mload(own)
                     let op := mload(add(ho, slot))
@@ -548,22 +550,14 @@ library PaidRaceMotion {
                             switch gt(tp, op)
                             case 1 {
                                 // Target ahead of the well: slowed.
-                                let d := sub(tp, op)
-                                if lt(d, r) {
-                                    let k := div(mul(mload(add(s, S_STRENGTH)), sub(BPS, div(mul(d, BPS), r))), BPS)
-                                    mstore(add(ht, H_FIELD), sub(mload(add(ht, H_FIELD)), k))
-                                }
+                                mstore(add(ht, H_FIELD), sub(mload(add(ht, H_FIELD)), div(g, add(r, sub(tp, op)))))
                             }
                             default {
                                 // Target behind (or level with, the overlap branch): pulled forward.
                                 let d := sub(op, tp)
-                                if lt(d, r) {
-                                    let k := mload(add(s, S_OVERLAP))
-                                    if d {
-                                        k := div(mul(mload(add(s, S_STRENGTH)), sub(BPS, div(mul(d, BPS), r))), BPS)
-                                    }
-                                    mstore(add(ht, H_FIELD), add(mload(add(ht, H_FIELD)), k))
-                                }
+                                let k := mload(add(s, S_OVERLAP))
+                                if d { k := div(g, add(r, d)) }
+                                mstore(add(ht, H_FIELD), add(mload(add(ht, H_FIELD)), k))
                             }
                         }
                     }

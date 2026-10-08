@@ -82,14 +82,15 @@ export function firstReach(m: PaidMotion, need: bigint, maxDt: bigint): bigint {
   return lo
 }
 
-/** C-10 field on a target: overlap uses the browser's trailing branch; ahead slows, behind speeds up. */
+/**
+ * C-10 field on a target anywhere on the track: k = strength·R/(R + d), so it halves at d = R and never reaches 0.
+ * Overlap uses the browser's trailing branch; ahead slows, behind speeds up.
+ */
 export function wellFieldBps(ownerPos: bigint, targetPos: bigint): bigint {
   const delta = targetPos - ownerPos
-  const d = delta < 0n ? -delta : delta
-  if (d >= WELL_RADIUS_MICRO) return 0n
   if (delta === 0n) return WELL_OVERLAP_BPS
-  const factor = BPS - d * BPS / WELL_RADIUS_MICRO
-  const k = WELL_STRENGTH_BPS * factor / BPS
+  const d = delta < 0n ? -delta : delta
+  const k = WELL_STRENGTH_BPS * WELL_RADIUS_MICRO / (WELL_RADIUS_MICRO + d)
   return delta > 0n ? -k : k
 }
 

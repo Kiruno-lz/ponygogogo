@@ -44,7 +44,7 @@ test('C-04 bonus follows the card: finite duration, permanent, 20 s default, ste
   expect(bonusEnds({ 0: [4, 7, 13], 2: [8, 19, 20] })).toEqual([[7, 20_000n], [13, 60_000n]])
   expect(bonusEnds({ 0: [4, 17, 21] })).toEqual([[17, null], [21, null]])
   expect(bonusEnds({ 0: [4, 9, 16] })).toEqual([[9, 30_000n], [16, 40_000n]])
-  expect(bonusEnds({ 0: [4, 8, 10] })).toEqual([[8, 60_000n], [10, 10_000n]])
+  expect(bonusEnds({ 0: [4, 8, 10] })).toEqual([[8, 60_000n], [10, 20_000n]])
   expect(bonusEnds({ 0: [4, 2, 3] })).toEqual([[2, 30_000n], [3, 20_000n]])
   expect(bonusEnds({ 0: [4, 11, 14] })).toEqual([[11, 30_000n], [14, 15_000n]])
 })

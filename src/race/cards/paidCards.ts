@@ -31,7 +31,7 @@ function describe(rule: PaidCardRule): { zh: string; en: string } {
     case 'swap':
       return { zh: `【拍手交换】${sec(d)} 秒：每 ${sec(rule.periodMs!)} 秒自动与另一条赛道的马交换位置，共 ${rule.count} 次。`, en: `Clap Swap for ${sec(d)}s: every ${sec(rule.periodMs!)}s trade places with a horse in another lane, ${rule.count} tries.` }
     case 'gravity':
-      return { zh: `躯干装备史瓦西黑洞 ${sec(d)} 秒：${rule.radiusMicro! / 1e6} 单位内，前方的马减速、后方的马加速，最多 ${pct(rule.strengthBps!)}。`, en: `Torso black hole for ${sec(d)}s: within ${rule.radiusMicro! / 1e6} units, horses ahead slow and horses behind speed up, up to ${pct(rule.strengthBps!)}.` }
+      return { zh: `躯干装备史瓦西黑洞 ${sec(d)} 秒：全场前方的马减速、后方的马加速，越近越强，最多 ${pct(rule.strengthBps!)}，相距 ${rule.radiusMicro! / 1e6} 单位时减半。`, en: `Torso black hole for ${sec(d)}s: across the whole track, horses ahead slow and horses behind speed up; stronger when closer, up to ${pct(rule.strengthBps!)}, halved at ${rule.radiusMicro! / 1e6} units apart.` }
     case 'wheel':
       return { zh: `四蹄装备风火轮 ${sec(d)} 秒：【起飞】。装备时立即获得 1 层火焰，之后每秒 +1 层，层数不清零；在 ${rule.flameLayers!.join(' / ')} 层时各获得【额外速度】+${rule.fixedSpeed}，累计加入 K。装备消失或被拿走时，其火焰与额外速度全部消失。`, en: `Fire wheels for ${sec(d)}s: Airborne. Gain 1 flame layer immediately, then 1 per second without resetting; layers ${rule.flameLayers!.join(', ')} each grant +${rule.fixedSpeed} extra speed in K. Removing the equipment removes all its layers and extra speed.` }
     case 'wind':

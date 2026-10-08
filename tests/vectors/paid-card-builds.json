@@ -1,22 +1,22 @@
 {
-  "rulesetHash": "0x7271273e3c1dd20d5754cff56b114b736063bc8c15956858ef89687a70f40f8c",
+  "rulesetHash": "0xbe9522b229a6c54f20e2ad01c31dcc06574d0b204596901c12b95ce6d1c1528c",
   "samples": 80,
   "policy": "Full pool, actual checkpoint windows; aim for both pieces, take C-05 if missing, refresh slot 0 once when needed, then choose a situational third card. AcquiredBoth counts cards received; triggered additionally checks actual overlap or a corresponding solver trigger. A forfeit is a consumed choice, not a card. This policy is not an optimal strategy or a payout guarantee.",
   "random": {
     "races": 80,
     "rawRanks": [
-      1,
+      0,
       4,
-      3,
-      20,
-      52
+      7,
+      19,
+      50
     ],
     "settlementRanks": [
-      1,
+      0,
       4,
-      3,
-      20,
-      52
+      7,
+      19,
+      50
     ],
     "versionAnswer": 0
   },
@@ -33,11 +33,11 @@
       "thirdCard": 2,
       "refreshes": 28,
       "ranks": [
-        1,
-        5,
+        0,
+        6,
         4,
-        17,
-        53
+        19,
+        51
       ]
     },
     {
@@ -52,11 +52,11 @@
       "thirdCard": 2,
       "refreshes": 30,
       "ranks": [
-        1,
-        4,
-        4,
-        19,
-        52
+        0,
+        5,
+        3,
+        21,
+        51
       ]
     },
     {
@@ -71,11 +71,11 @@
       "thirdCard": 4,
       "refreshes": 30,
       "ranks": [
-        1,
+        0,
         4,
-        2,
-        16,
-        57
+        4,
+        17,
+        55
       ]
     },
     {
@@ -90,11 +90,11 @@
       "thirdCard": 2,
       "refreshes": 29,
       "ranks": [
-        1,
+        0,
         4,
-        3,
-        18,
-        54
+        4,
+        20,
+        52
       ]
     },
     {
@@ -109,11 +109,11 @@
       "thirdCard": 4,
       "refreshes": 25,
       "ranks": [
-        1,
+        0,
         4,
-        3,
-        15,
-        57
+        4,
+        17,
+        55
       ]
     },
     {
@@ -128,11 +128,11 @@
       "thirdCard": 3,
       "refreshes": 30,
       "ranks": [
-        1,
-        4,
+        0,
+        5,
         3,
-        17,
-        55
+        18,
+        54
       ]
     },
     {
@@ -148,10 +148,10 @@
       "refreshes": 30,
       "ranks": [
         0,
-        5,
         6,
-        19,
-        50
+        7,
+        18,
+        49
       ]
     },
     {
@@ -167,10 +167,10 @@
       "refreshes": 27,
       "ranks": [
         1,
-        2,
         4,
-        17,
-        56
+        3,
+        19,
+        53
       ]
     },
     {
@@ -185,11 +185,11 @@
       "thirdCard": 4,
       "refreshes": 27,
       "ranks": [
-        2,
-        4,
-        4,
-        19,
-        51
+        1,
+        5,
+        3,
+        22,
+        49
       ]
     },
     {
@@ -204,11 +204,11 @@
       "thirdCard": 0,
       "refreshes": 30,
       "ranks": [
-        1,
+        0,
         4,
-        3,
-        16,
-        56
+        7,
+        17,
+        52
       ]
     },
     {
@@ -223,11 +223,11 @@
       "thirdCard": 2,
       "refreshes": 29,
       "ranks": [
-        1,
+        0,
         5,
-        3,
-        18,
-        53
+        5,
+        20,
+        50
       ]
     }
   ]

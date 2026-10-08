@@ -102,8 +102,8 @@ const checks: Record<number, (ctx: Ctx) => void> = {
     expect(expiry.tau).toBe(ctx.tau + 30_000n)
   },
   10: (ctx) => {
-    expect(instancesOf(ctx, 10)[0]).toMatchObject({ kind: 'equip', slot: 0, plannedEndTau: ctx.tau + 10_000n })
-    expect(ctx.r.stepCount).toBeGreaterThanOrEqual(40)
+    expect(instancesOf(ctx, 10)[0]).toMatchObject({ kind: 'equip', slot: 0, plannedEndTau: ctx.tau + 20_000n })
+    expect(ctx.r.stepCount).toBeGreaterThanOrEqual(80)
   },
   11: (ctx) => {
     const bursts = ctx.r.events.filter((e) => e.code === EV_WHEEL_BURST && e.horse === ctx.horse)
