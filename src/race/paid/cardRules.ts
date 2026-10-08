@@ -60,7 +60,7 @@ export const PAID_CARD_RULES: readonly PaidCardRule[] = [
   { id: 9, mainFunction: 'interference', effect: 'swap', rare: true, cpu: false, durationMs: 30_000, bonusMode: 'follow', periodMs: 2_000, count: 15 },
   { id: 10, mainFunction: 'equipment', effect: 'gravity', rare: true, cpu: true, durationMs: 20_000, bonusMode: 'follow', slot: 0, radiusMicro: 8_000_000_000, strengthBps: 3_000, overlapBps: 3_000 },
   { id: 11, mainFunction: 'equipment', effect: 'wheel', rare: false, cpu: false, durationMs: 30_000, bonusMode: 'follow', slot: 2, periodMs: 1_000, count: 3, fixedSpeed: 100, flameLayers: [1, 11, 21] },
-  { id: 12, mainFunction: 'interference', effect: 'wind', rare: false, cpu: true, durationMs: null, bonusMode: 'permanent', strengthBps: 1_000 },
+  { id: 12, mainFunction: 'interference', effect: 'wind', rare: false, cpu: true, durationMs: null, bonusMode: 'permanent', strengthBps: 2_500},
   { id: 13, mainFunction: 'interference', effect: 'steal', rare: false, cpu: true, durationMs: 0, bonusMode: 'loot' },
   { id: 14, mainFunction: 'supply', effect: 'regen', rare: false, cpu: true, durationMs: 15_000, bonusMode: 'follow', regenBonusBps: 10_000 },
   { id: 15, mainFunction: 'supply', effect: 'adrenaline', rare: false, cpu: true, durationMs: 0, bonusMode: 'default', staminaMicro: 250_000_000 },

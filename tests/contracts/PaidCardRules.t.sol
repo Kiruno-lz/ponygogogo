@@ -7,10 +7,10 @@ contract PaidCardRulesTest {
     function testGeneratedCardRulesAndMasks() public pure {
         require(PaidCardRules.RARE_MASK == 0x9610120356 && PaidCardRules.CPU_MASK == 0xbfefe3fae3, "eligibility masks");
         require(
-            PaidCardRules.TABLE_HASH == 0x7d0d2ea084231e8f601c85bcb9aa74a116720753d70ab80d36d084ef40c4fce9, "table hash"
+            PaidCardRules.TABLE_HASH == 0xf4d427d2de6ef0c94cfcbf2ff3b9c8550335035ece2c643b122fb37c6bd06f28, "table hash"
         );
         require(
-            PaidCardRules.RULESET_HASH == 0xbe9522b229a6c54f20e2ad01c31dcc06574d0b204596901c12b95ce6d1c1528c,
+            PaidCardRules.RULESET_HASH == 0xeeaa0e4ce206bb23c12366e9b37be8950e8e2af3de6d7f5d69bdabc99cef716a,
             "ruleset hash"
         );
         PaidCardRules.Rule memory gravity = PaidCardRules.get(10);

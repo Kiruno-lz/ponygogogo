@@ -27,7 +27,7 @@ import { keccak256, type Hex } from 'viem'
  * | 18   | SWAP          | 4          | C-09 owner     | attempt·8 + targetHorse               |
  * | 19   | SWAP_BLOCKED  | 4          | C-09 owner     | attempt·8 + targetHorse               |
  * | 20   | WHEEL_BURST   | 4          | holder         | burst index 1..4                      |
- * | 21   | WIND          | 5 / 6      | placer         | ±1000 bps                             |
+ * | 21   | WIND          | 5 / 6      | placer         | ±2500 bps                             |
  * | 22   | STEAL         | 5 / 6      | thief          | stolen instanceId                     |
  * | 23   | STEAL_NONE    | 5 / 6      | thief          | 0                                     |
  * | 24   | EXHAUST_ENTER | 1          | horse          | 0                                     |

@@ -178,13 +178,13 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
   test('wind only moves airborne horses and a new wind replaces the old one', () => {
     const r = solvePaidCore(fixtureInput({ cpu: { 4: [12, 20, 5], 0: [1, 20, 5], 3: [19, 12, 20] } }))
     const winds = r.events.filter((e) => e.code === EV_WIND)
-    expect(winds.map((e) => [e.horse, e.arg])).toEqual([[4, 1_000n], [3, -1_000n]])
+    expect(winds.map((e) => [e.horse, e.arg])).toEqual([[4, 2_500n], [3, -2_500n]])
     const [first, second] = winds
     expect(windAt(r.trace!, first!.tau - 1n)).toBeNull()
-    expect(windAt(r.trace!, second!.tau)!.bps).toBe(-1_000n)
+    expect(windAt(r.trace!, second!.tau)!.bps).toBe(-2_500n)
     const t = r.trace!
-    expect(sampleHorse(t, 0, second!.tau - 1n).pBps).toBe(1_000n + 1_000n)
-    expect(sampleHorse(t, 0, second!.tau).pBps).toBe(1_000n - 1_000n)
+    expect(sampleHorse(t, 0, second!.tau - 1n).pBps).toBe(1_000n + 2_500n)
+    expect(sampleHorse(t, 0, second!.tau).pBps).toBe(1_000n - 2_500n)
     expect(sampleHorse(t, 2, second!.tau).pBps).toBe(0n)
   })
 
@@ -198,7 +198,7 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
     expect(sampleStatus(r.trace!, 1, wheelOn + 1n).airborne).toBe(true)
     expect(sampleHorse(r.trace!, 1, wheelOn + 1n).pBps).toBe(0n)
     const draw = chainEntropy(FIXTURE_SEED, fixtureAnchor(0x53), 3, PURPOSE_WIND, 0n) % 2n
-    expect(own.arg).toBe(draw === 0n ? -1_000n : 1_000n)
+    expect(own.arg).toBe(draw === 0n ? -2_500n : 2_500n)
     expect(sampleHorse(r.trace!, 1, own.tau).pBps).toBe(own.arg)
   })
 })

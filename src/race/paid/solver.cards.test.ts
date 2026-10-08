@@ -118,7 +118,7 @@ const checks: Record<number, (ctx: Ctx) => void> = {
       ? chainEntropy(FIXTURE_SEED, PICK_ANCHOR, 1, PURPOSE_WIND, 0n)
       : chainEntropy(FIXTURE_SEED, FIXTURE_ANCHOR, 0, PURPOSE_WIND, BigInt(CPU * 3))
     const wind = ctx.r.events.find((e) => e.code === EV_WIND)!
-    expect(wind).toMatchObject({ horse: ctx.horse, tau: ctx.tau, arg: draw % 2n === 0n ? -1_000n : 1_000n })
+    expect(wind).toMatchObject({ horse: ctx.horse, tau: ctx.tau, arg: draw % 2n === 0n ? -2_500n : 2_500n })
     // Nobody is airborne, so the environment changes nothing.
     expect(ctx.r.finishTime).toEqual(quietResult.finishTime)
   },
