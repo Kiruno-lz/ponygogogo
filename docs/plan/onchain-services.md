@@ -9,9 +9,9 @@
 | Mera 根 EOA 与 sma-b 账户模型 | 已实现 | `src/chain/wallet.ts` 以通行密钥 PRF 派生根 EOA（地址与派生路径不变），登录/注册时解析并记住 sma-b；根 EOA 只签名，水龙头与显示余额都指向 sma-b。`migrateRootFunds()` 把根 EOA 余额（扣 gasLimit×maxFee）转入 sma-b，到账不足 0.001 MON 跳过；EOA 交易显式填 nonce/chainId，避开 Monad `eth_fillTransaction` 以节点费率覆盖本地费率导致余额不足；同一根 EOA 3 块内不得重复清空（Monad 保留余额规则），界面禁止重复提交 |
 | Mera 独立图鉴 PRF | preview 实测通过；生产 Worker 未部署 | `wallet.ts` 以独立 PRF 命名空间派生 AES 密钥与 Ed25519 身份；`collectionCipher.ts`/`collectionSync.ts`/`scripts/Wrangler/worker/collection.ts` 完成一次性挑战、验签、`expectedVersion` 条件写密文。D1 迁移位于 `scripts/Wrangler/migrations/`。preview Worker `https://ponygogogo-preview.kiruno-ldz.workers.dev` 与两套 D1（0001/0002 已迁移）可用，临时身份完成空读、首次写入、解密恢复、版本冲突，挑战按 ID 签名且按来源每分钟限 30 次。真实通行密钥在正式域名的往返与赛后奖励写入未验收 |
 | `PonyVault` 原生 MON 账本 | 新资金路径本地验收通过，尚未部署 | `contracts/PonyVault.sol` 只接受 Game 的 payable 下注登记，直接向玩家智能账户支付结算返还，维护 `L/H/R` 不变量；Foundry 8 项 Vault 测试含 256 轮随机账务。已部署旧版地址与注资交易保留在测试网记录中，不作为新路径部署证据。 |
-| 规则基础件（两端） | 已实现并由求时器调用 | 开场 seed `paidSeed`、熵 `chainEntropy`、性格 `paidProfiles`、玩家 14 张牌堆 `paidDeck`（40 张资格，末两张稀有）、电脑马 3 张牌堆 `paidCpuDeck`、发牌状态 `paidDrawRules`、交换目标 `paidSwap`、赔率 `RacePayout`、名次与版本答案 `paidSettlement`，Bun/Foundry 向量逐字段一致。40 张卡的有奖效果类型、数值与资格由 `src/race/paid/cardRules.ts` 统一提供，生成 `contracts/libraries/PaidCardRules.sol`（打包表解码，`get()` 解码结果与 TS 表逐项相等，共享数值参数参与哈希），表哈希 `0x2fb8024634b4478068c7ee65317fbdcbe37194623bc3fc60758e1211de251923`、当前本地规则哈希 `0x4a4e90bccef7cf8b0b7d35c97468135965be84c21e48619d230f551a6fa4e4ed`。旧分片参考件已两端连同测试删除，回归测试改为冻结字面值 |
+| 规则基础件（两端） | 已实现并由求时器调用 | 开场 seed `paidSeed`、熵 `chainEntropy`、性格 `paidProfiles`、玩家 14 张牌堆 `paidDeck`（40 张资格，末两张稀有）、电脑马 3 张牌堆 `paidCpuDeck`、发牌状态 `paidDrawRules`、交换目标 `paidSwap`、赔率 `RacePayout`、名次与版本答案 `paidSettlement`，Bun/Foundry 向量逐字段一致。40 张卡的有奖效果类型、数值与资格由 `src/race/paid/cardRules.ts` 统一提供，生成 `contracts/libraries/PaidCardRules.sol`（打包表解码，`get()` 解码结果与 TS 表逐项相等，共享数值参数参与哈希），表哈希 `0x8d04622d542d2f8e03c201fb75b949d94b87b5151ec0bc8aaf9b86bd4aa627c7`、当前本地规则哈希 `0x62efd16f42433fff515a57b75b760d3cdded3db076947753ca9c2c9c83dbbe66`。旧分片参考件已两端连同测试删除，回归测试改为冻结字面值 |
 | `RandomAnchor` 与锚封存 | 已集成并在测试网实测 | `contracts/libraries/RandomAnchor.sol` 通过 BLOCKHASH 与 EIP-2935 读取入场及选择区块哈希；同块拒绝、窗口边界、锚封存和过窗判负由 Foundry 与测试网流程覆盖。 |
-| `PaidRaceSolver` 求时器 | 单体与 250 ms 规则本地验收通过；Monad 只读探针通过，尚未部署 | `PaidRaceSolver` 内联 Engine/Motion/watch/gated 与 `PaidRaceCold`，Engine 唯一持有比赛内存；冷路径保留领域库，构造不部署辅助组件。runtime 35,144 B、initcode 35,172 B，Monad 体积门禁通过且无库链接。360 场跨语言向量逐字段、事件与 digest 一致；80 场固定生产输入 Foundry 冷调用均值 2.932M、最大 4.701M，Monad state override 均值 2.420M、最大 3.854M，80/80 完整结果哈希与对照研究一致；对抗诊断内核在 Monad 为 3.599M。116 项 Foundry 测试含无辅助合约构造回归；anvil 验证单井、重叠井、真实 Game 会话与 Solver nonce=1。150 s 单井投影为 600 步、5.828M Foundry gas，不是可达最坏输入证明。复现：`forge test`、`bun run check:contracts`、`bun run check:paid-vectors`、`bun run check:solver-monad`。 |
+| `PaidRaceSolver` 求时器 | 单体与 250 ms 规则本地验收通过；Monad 只读探针通过，尚未部署 | `PaidRaceSolver` 内联 Engine/Motion/watch/gated 与 `PaidRaceCold`，Engine 唯一持有比赛内存；冷路径保留领域库，构造不部署辅助组件。runtime 35,144 B、initcode 35,172 B，Monad 体积门禁通过且无库链接。360 场跨语言向量逐字段、事件与 digest 一致；80 场固定生产输入 Foundry 冷调用均值 2.932M、最大 4.701M，Monad state override 均值 2.420M、最大 3.854M，80/80 完整结果哈希与对照研究一致；对抗诊断内核在 Monad 为 3.599M。116 项 Foundry 测试含无辅助合约构造回归；anvil 验证单井、重叠井、真实 Game 会话与 Solver nonce=1。300 s 单井投影为 1200 步、11.38M Foundry gas，不是可达最坏输入证明。复现：`forge test`、`bun run check:contracts`、`bun run check:paid-vectors`、`bun run check:solver-monad`。 |
 | 测试网部署（协议 v2 / 规则 v3） | 测试网已部署并通过真实会话；测试网有奖入口开放；当前本地规则（40张卡、玩家基线与本次数值）尚未部署 | 以下为已部署的 v3 记录。部署者 `0xB2Cd…960e`：PaidRaceSolver `0xc3193E71AA2A9C527Fd7B6Ae9B715d756e73880A`（辅助 PaidRaceSupport `0x339FFc6bF7d0cB360386943efade025e104A2880`）、PonyGame `0x92428770e79A95377c641F2Da9C9D97F4AA899c8`（块 66458114）、PonyVault `0xb1677bc7bceD53612f9569ac42eE752081485282`（块 66458121）；部署、绑定、注资 3 MON、开放入场合计 14,673,411 gas、1.496688 MON；规则哈希 `0x5ff01a27886c1cad8a1d286cf2bb15280f711d7133ab3377b375855bf5d3f84b`、绑定、体积与偿付链上核对一致，Sourcify 四份 `exact_match`；`.env` 已指向新地址。会话 `0xc214e38e…91f2`（sma-b `0x9C6E…6894`，马 2，0.3 MON）三次真实选牌均在窗口内生效（20/39/57 s 开启，23/42/61 s 入块），`previewSettlement` 与 `SessionSettled`（含 `acquired [15,25,13]`）和 `solvePaidRace` 逐字段一致，第 3 名返还 0.3 MON 并提回 sma-b。bundle gas：开场 0.61M、选牌各约 0.285M（v1 为 0.83/1.38/3.63M）、结算 6.90M、提款 0.27M；提交→入块 p50 1,583 ms、最大 1,843 ms，入块→最终确认 p50 1,645 ms。保管人空跑无待办。旧 v1 合约（Game `0x221E…BF57`、Vault `0xfb66…ebc5`）已暂停入场并取回庄家资金，测试玩家 0.05 MON 留在旧 Vault。//TODO - 部署当前规则的求时器与 PonyGame，核对 `rulesetHash`、体积与偿付后切换 `.env` 地址，并按当前规则重跑真实会话。 |
 | 庄家流动性 | 测试网注资已确认 | 2026-09-29 从 Vault owner `0xB2Cd1aBBb940D612A71e545067C05f900B32960e` 调用 `fundHouse()` 注入 30 MON 至 Vault `0xb1677bc7bceD53612f9569ac42eE752081485282`；交易 `0x304dd1e559791ccf4b50fc583a4f95e26c320c2c74cdd94279e15b9e33f4dc9d`，块 66613076。回执成功后 `houseLiquidity = 33.3 MON`、Vault 原生余额 `33.3 MON`、`reservedLiquidity = 0`，偿付不变量成立。
 | Alchemy 独立 `sma-b` | 受赞助交易已在测试网实测 | 临时密钥的 sma-b `0x39fFB4053194CD91D266491C2057A053cD62bB5D` 经 Policy 赞助完成首笔调用 `0x60f54da115099fced65f66620f90a733142ee30b3b58816bac8be2664dbe90f9`（块 66074666，EntryPoint v0.7，gasUsed 344157，提交到入块约 2.9 s，sma-b 余额前后均为 0）；首笔调用部署账户，反事实地址重复请求不变，可接收原生 MON。调用目标为 sma-b 自身报 `AA23`，余额不足的带值调用在 `prepareCalls` 失败。Alchemy 控制台只读记录（2026-09-29）：Policy Active，仅 Monad Testnet；总交易数上限显示 200，单钱包上限显示 0；金额上限字段显示总额 $0、单钱包 $0、单笔 $10。Access control 为 None（无地址限制），Webhook custom rule 未配置；API key 与 Policy ID 是浏览器端公开配置。 |
@@ -27,7 +27,7 @@
 
 ## 有奖规则 v4
 
-当前名单规则标识按 `keccak256(utf8("ponygogogo/paid-rules/v7/" + cardTableHash + "/" + ponyRulesHash + "/" + playerBalanceHash))` 生成。`cardTableHash` 覆盖全局参数、40项固定tuple、火焰档位数组、里程速度阶段数组与主功能分类。卡表哈希为 `0x2fb8024634b4478068c7ee65317fbdcbe37194623bc3fc60758e1211de251923`，当前本地规则哈希为 `0x4a4e90bccef7cf8b0b7d35c97468135965be84c21e48619d230f551a6fa4e4ed`。规范表为src/race/paid/cardRules.ts，生成物为PaidCardRules.sol；参数改动后重建表和向量。当前本地规则尚未部署，不能用旧Game地址的真实会话记录证明本次规则。
+当前名单规则标识按 `keccak256(utf8("ponygogogo/paid-rules/v8/" + cardTableHash + "/" + ponyRulesHash + "/" + playerBalanceHash))` 生成。`cardTableHash` 覆盖全局参数、40项固定tuple、火焰档位数组、里程速度阶段数组与主功能分类。卡表哈希为 `0x8d04622d542d2f8e03c201fb75b949d94b87b5151ec0bc8aaf9b86bd4aa627c7`，当前本地规则哈希为 `0x62efd16f42433fff515a57b75b760d3cdded3db076947753ca9c2c9c83dbbe66`。规范表为src/race/paid/cardRules.ts，生成物为PaidCardRules.sol；参数改动后重建表和向量。当前本地规则尚未部署，不能用旧Game地址的真实会话记录证明本次规则。
 
 **档位（项目方，2026-09-28）**：下注额为 `0 / 0.3 / 1 / 5 / 10 MON`。0 仅免费本地试玩，不存 Vault 下注；四档有奖下注 `0.3 / 1 / 5 / 10 MON` 按 wei 精确比较，只决定下注额；电脑马与玩家同一基线，速度上限为 1800 加 `[100, 500]` 内由开场区块哈希决定的独立均匀偏移（[数值规划 §1.3](numerical-balance.md)）。赔率仍为 `[3, 1.5, 1, 0, 0]` 倍，开场最大庄家净预留依次为 `0.6 / 2 / 10 / 20 MON`，庄家流动性不足的档位开场即被 Vault 拒绝。当前为测试阶段，目的是跑通完整流程；档位写死在 PonyGame 代码、电脑马难度区间写死在求时器代码中，随合约不可变部署；规则哈希覆盖卡牌表、共享数值参数与版本标签。返还率按专家策略约 0.95 校准，卡牌或角色数值变化后重校；不作为当前测试网发布门槛。
 
@@ -43,7 +43,7 @@
 | 百分比 `P` | bps 加总 | 乘子下限 0：`max(0, 10000+P)` |
 | 固定速度 B、额外速度 K、力竭扣速 E | 单位/秒，有符号 | B加入运动基础速度后乘百分比；K在乘法后加；玩家E=0，对手现有E保留 |
 | 体力 s | 微体力 | 玩家容量300、消耗20/s、恢复10/s，力竭15/s、135退出；对手容量1000、基础消耗24/s与恢复10/s不变；消耗修正加算下界500bps |
-| 场与卡牌常量 | — | 重力井 `R = 8000` 单位、强度 3000 bps；风 ±1000 bps；`ΔvWheel = 100`；积分基步 `H = 250` ms；自动选牌面板 3 s；实例上限 96、炸弹上限 20、事件上限 4096 |
+| 场与卡牌常量 | — | 重力井半强度距离 `R = 8000` 单位、强度 3000 bps、全场生效；风 ±2500 bps；`ΔvWheel = 100`；积分基步 `H = 250` ms；自动选牌面板 3 s；实例上限 96、炸弹上限 20、事件上限 4096 |
 
 有效速度 `v = max(0, floor((b_motion+B·1000)·max(0,10000+P)/10000) + (K−E)·1000)` mu/s。百分比乘子不取负是本版对多井叠加的冻结口径；B/K的有符号贡献使表达式跨过0 时，在过零点划分运动区间，只积分 `max(0, v)`，不产生负位移或倒退里程。
 
@@ -74,7 +74,7 @@
 
 当前代码按模拟时间消耗与恢复；玩家每秒消耗20、恢复10，超上限时消耗减半且不恢复。对手参数保持原值。持续恢复以各自容量为上限，直接补给完整相加，所有补给均可超容量。
 
-玩家体力见底时先检查亢奋与来劲：亢奋保证 S≥1；30s 内来劲首次将进入力竭时补给250、消费监听且不进入力竭。否则停止消耗、加速度归零、运动基础速度钳到1200、恢复15/s；S达到135解除，放开上限但不改变当刻速度。对手力竭恢复至其既有阈值并保留既有扣速规则。
+玩家体力见底时先检查亢奋与来劲：亢奋保证 S≥1；30s 内来劲首次将进入力竭时补给250、消费监听且不进入力竭。否则停止消耗、加速度归零、运动基础速度钳到1200、恢复15/s；S达到135解除，放开上限但不改变当刻速度。CPU同样采用1200基础限速、恢复15/s与135退出；玩家与CPU死亡或解除力竭后以150加速度恢复至自身上限，达到上限后清除恢复状态，冻结性格的常规加速度不变。
 
 每1000实际移动距离消耗11.5体力仅为[数值规划](numerical-balance.md)的暂行方案，未接入TS/Solidity。
 
@@ -93,9 +93,9 @@
 | C-07 | 躯干装备火箭喷射器 20 秒：速度 +15%，体力消耗减半。 | 20000 |
 | C-08 | 尾部装备彩虹拖尾 60 秒：速度 +10%。 | 60000 |
 | C-09 | 【拍手交换】30 秒：每 2 秒自动与另一条赛道的马交换位置，共 15 次。 | 30000 |
-| C-10 | 躯干装备史瓦西黑洞 10 秒：8000 单位内，前方的马减速、后方的马加速，最多 30%。 | 10000 |
+| C-10 | 躯干装备史瓦西黑洞 20 秒：全场生效，前方的马减速、后方的马加速；越近越强，最多 30%，相距 8000 单位时减半。 | 20000 |
 | C-11 | 四蹄装备风火轮 30 秒：【起飞】。装备时立即获得 1 层火焰，之后每秒 +1 层，层数不清零；在 1 / 11 / 21 层时各获得【额外速度】+100，累计加入 K。装备消失或被拿走时，其火焰与额外速度全部消失。 | 30000 |
-| C-12 | 刮起顺风或逆风（±10%），只吹得动【起飞】的马，替换之前的风。 | 永久 |
+| C-12 | 刮起顺风或逆风（±25%），只吹得动【起飞】的马，替换之前的风。 | 永久 |
 | C-13 | 从其他未冲线的马身上随机偷一件装备装到自己身上，继承来源剩余时长；没有装备时无效。 | 0 |
 | C-14 | 体力恢复 +100%，持续 15 秒。 | 15000 |
 | C-15 | 体力 +250。 | 0 |
@@ -112,7 +112,7 @@
 | C-26 | 速度 +30%，体力消耗 +60%，持续 20 秒。 | 20000 |
 | C-27 | 速度 +5%，持续 20 秒；【起飞】时再 +15%。本卡不提供起飞。 | 20000 |
 | C-28 | 20 秒内，未【起飞】时速度 +14%。 | 20000 |
-| C-29 | 永久效果：已获得 1 种毛发颜色时体力恢复 +150%；已获得 2 种时保留恢复加成，同时速度 +60%。获得本卡时检测历史颜色数量，后续获得新颜色时更新；无毛发时无数值效果。 | 永久 |
+| C-29 | 永久效果：已获得 1 种毛发颜色时体力恢复 +150%；已获得 2 种时保留恢复加成，同时速度 +200%。获得本卡时检测历史颜色数量，后续获得新颜色时更新；无毛发时无数值效果。 | 永久 |
 | C-30 | 体力 +150；有装备时回收剩余时长最短的一件，速度 +25%；无装备时速度 +10%，均持续 20 秒。 | 20000 |
 | C-31 | 每次实际获得装备，独立获得速度 +15%，持续 20 秒。获得本卡时按当前每件装备各触发一次；刷新装备不触发。 | 监听永久；每份加速20000 |
 | C-32 | 刷新自身全部有效装备至各自完整持续时间；每件装备各生成独立速度 +10%，持续该装备的完整时长。保留装备层数与周期相位；移除装备不撤销独立加速。无装备时无效。 | 刷新即时；每件独立加速按装备原始完整毫秒时长 |
@@ -131,7 +131,7 @@
 
 装备槽为躯干、尾部、四蹄。同槽覆盖、偷取、回收与自然到期各有移除原因；移除风火轮清除其层数与 K，独立翻新加速不随装备移除。刷新不视为获得，不触发改装达人。
 
-炸弹按连续运动首次触线处理，起飞与目中无人按规范免疫；交换仅改变两匹未冲线马的 pos/lane，不增加 dist。重力井实时读取五马距离，以8000半径和3000bps强度积分；冲线时停止该马运动与场贡献，五谷丰登仍给全部五马写入体力。
+炸弹按连续运动首次触线处理，起飞与目中无人按规范免疫；交换仅改变两匹未冲线马的 pos/lane，不增加 dist。重力井实时读取五马距离，按 `⌊3000×8000/(8000+d)⌋` bps 全场积分；冲线时停止该马运动与场贡献，五谷丰登仍给全部五马写入体力。
 
 ### 重力井数值积分
 
