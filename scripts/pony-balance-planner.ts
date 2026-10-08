@@ -5,6 +5,7 @@ import { solvePaidCore, type PaidCoreInput, type PaidPanelState, type PaidSolveR
 import { classifyPaidDraw } from '../src/race/core/paidDrawRules.ts'
 import { PONY_RULES, type PonyRule } from '../src/race/paid/ponyRules.ts'
 import { EV_DEATH, EV_EXHAUST_ENTER } from '../src/race/paid/events.ts'
+import { strategyPayoutBps } from './analyze-pony-strategies.ts'
 
 export const H = (s: string): Hex => keccak256(toBytes(`claude-balance/v1/${s}`))
 
@@ -51,7 +52,7 @@ export function legalActions(input: PaidCoreInput, panel: PaidPanelState): Actio
 
 export const finishMs = (r: PaidSolveResult, h: number) => Number(r.finishTime[h]!)
 
-export const PAY = [0, 3, 1.5, 1, 0, 0]
+export const PAY = [0, ...strategyPayoutBps().map(bps => bps / 10000)]
 export type Objective = 'time' | 'payout'
 export type Val = { cost: number; finish: number; pay: number; win: number }
 const valOf = (r: PaidSolveResult, h: number, obj: Objective): Val => {
@@ -121,4 +122,3 @@ export function summarize(r: PaidSolveResult, h: number) {
     modes: r.checkpoints.map(c => c.mode ?? c.reason),
   }
 }
-
