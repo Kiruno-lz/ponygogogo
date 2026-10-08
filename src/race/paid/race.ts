@@ -23,7 +23,7 @@ export type PaidRaceInput = {
 export function derivePaidCoreInput(input: PaidRaceInput): PaidCoreInput {
   const { seed, openAnchor, stakeTier, playerHorseId } = input
   const roster = input.roster === undefined ? undefined : normalizeRoster(input.roster)
-  const profiles = derivePaidProfiles(seed, openAnchor, stakeTier, playerHorseId).map((p) => ({
+  const profiles = derivePaidProfiles(seed, openAnchor, stakeTier, playerHorseId, roster === undefined).map((p) => ({
     base: BigInt(p.base), acceleration: BigInt(p.acceleration), cap: BigInt(p.cap),
   }))
   const cpuDecks: number[][] = []

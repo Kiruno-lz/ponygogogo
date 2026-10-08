@@ -14,8 +14,9 @@ import { normalizeRoster } from './core/roster.ts'
 import type { PaidDrawState } from './core/paidDrawRules.ts'
 import { STAMINA_MAX } from './core/constants.ts'
 import { FP } from './core/fixed.ts'
+import { PLAYER_BALANCE } from './paid/playerBalance.ts'
 import type { EffectInstance, EquipSlot, HorseState, PendingChoice, RaceEvent, RaceState } from './core/types.ts'
-import { PAID_RULESET_HASH, LEGACY_PAID_RULESET_HASH, PAID_CARD_COUNT, paidCardRule } from './paid/cardRules.ts'
+import { PAID_RULESET_HASH, PAID_CARD_COUNT, paidCardRule } from './paid/cardRules.ts'
 import { ponyRule } from './paid/ponyRules.ts'
 import {
   EV_EQUIP_REFRESH, EV_GUARD, EV_RESOURCE, EV_TRIGGER, EV_FIXED, EV_TARGET, EV_BOMB_EXPLODE, EV_BOMB_PLACE, EV_CARD, EV_CHECKPOINT, EV_DEATH, EV_EQUIP_OFF, EV_EQUIP_ON, EV_EXHAUST_ENTER,
@@ -239,7 +240,7 @@ export function buildPaidSnapshot(input: SnapshotInput): RaceState {
   return {
     seed: input.seed,
     ...(input.roster ? { roster: normalizeRoster(input.roster) } : {}),
-    rulesVersion: input.roster ? PAID_RULESET_HASH : LEGACY_PAID_RULESET_HASH,
+    rulesVersion: PAID_RULESET_HASH,
     tick: tickOf(tau),
     stakeTier: input.stakeTier,
     playerHorseId,
@@ -350,12 +351,14 @@ export function eventsUpTo(
 /** 开场交易入块之前的画面：五匹马在起跑线上，赛道站位 = horseId。 */
 export function idlePaidState(playerHorseId: number, stakeTier: number, roster?: readonly number[]): RaceState {
   const horses: HorseState[] = [0, 1, 2, 3, 4].map((h) => ({
-    horseId: h, laneIndex: h, isPlayer: h === playerHorseId, pos: 0, dist: 0, v: 0, stamina: STAMINA_MAX,
+    horseId: h, laneIndex: h, isPlayer: h === playerHorseId, pos: 0, dist: 0, v: 0,
+    // Roster rules: every horse starts at the player capacity; only the player adds its role bonus.
+    stamina: roster ? (PLAYER_BALANCE.staminaCapacity + (h === playerHorseId ? ponyRule(roster[h]!).staminaCapacityDelta ?? 0 : 0)) * FP : STAMINA_MAX,
     marksConsumed: 0, finished: false, finishTick: 0, finishOvershoot: 0, rank: 0, deathRecover: false, fieldMul: 0,
     cpu: null, cpuTarget: 0, bandLow: 0, bandHigh: 0,
   }))
   return {
-    seed: '', rulesVersion: roster ? PAID_RULESET_HASH : LEGACY_PAID_RULESET_HASH, tick: 0, stakeTier, playerHorseId, horses, effects: [], nextInstanceId: 0,
+    seed: '', rulesVersion: PAID_RULESET_HASH, tick: 0, stakeTier, playerHorseId, horses, effects: [], nextInstanceId: 0,
     ...(roster ? { roster: normalizeRoster(roster) } : {}),
     env: null, hazards: [], nextHazardId: 0, deck: [], cursor: 0, refreshCredits: 0, drawMode: 'manual', drawBonusPct: 0,
     pending: null, choices: [], gogoClicks: [], abilityBinding: null, abilityHeld: false, cpuDecks: {}, cpuDeckCursor: {},

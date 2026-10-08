@@ -1,5 +1,5 @@
 /**
- * Cross-language vectors for paid ruleset v4 (docs/plan/onchain-services.md 「有奖规则 v4」).
+ * Cross-language vectors for the current card rules (the filename is retained) (docs/plan/onchain-services.md).
  * The Solidity solver must reproduce every field of tests/vectors/paid-race-v4.json bit for bit.
  *
  *   bun scripts/gen-paid-vectors.ts          # (re)write the file
@@ -15,7 +15,7 @@ import {
   EV_BOMB_PLACE, EV_CHOICE_INVALID, INVALID_AFTER_FINISH, INVALID_AUTO, INVALID_BAD_SLOT, INVALID_CUT, INVALID_EARLY,
   INVALID_LATE, INVALID_NO_CREDIT, INVALID_NOT_OFFERED, INVALID_NOT_OPENED, PAID_CHOICE_INVALID_NAMES, PAID_EVENT_NAMES,
 } from '../src/race/paid/events.ts'
-import { LEGACY_PAID_RULESET_HASH } from '../src/race/paid/cardRules.ts'
+import { PAID_RULESET_HASH } from '../src/race/paid/cardRules.ts'
 import { derivePaidCoreInput } from '../src/race/paid/race.ts'
 import { solvePaidCore, type PaidChoiceSlot, type PaidCoreInput, type PaidCoreProfile } from '../src/race/paid/solver.ts'
 import {
@@ -217,7 +217,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
     playerDeck: [6, 17, 18, 10, 21, 14, 13, 15, 20, 19, 1, 2, 7, 8],
     cpu: { 0: [10, 2, 6], 2: [2, 10, 12], 3: [1, 6, 10], 4: [11, 13, 10] },
   }), 1, 6), 2, 10))
-  // Adversarial gas cases (P3). Field time: every horse holds C-10 and C-13 (steals refresh a well for a full 10 s),
+  // Adversarial gas cases (P3). Field time: every horse holds C-10 and C-13 (steals refresh a well for a full 20 s),
   // bombs and a death spread the horses so the wells rarely overlap; tier-3 personalities, CPU-eligible CPU decks.
   // Found by a seeded search maximising stepCount; the fixed 100s field-work benchmark is 400 steps at 250ms (not a v4 worst-case proof).
   const tier3 = (base: bigint, acceleration: bigint, cap: bigint): PaidCoreProfile => ({ base, acceleration, cap })
@@ -264,10 +264,18 @@ function build(stats: FuzzStats): PaidVectorCase[] {
   })
 
   // New-card interaction traces exercise consumed listeners, phase changes and equipment identities.
-  const newPairs = [[7,25],[7,26,16],[1,27],[28,1],[19,29,20],[7,8,30],[31,7,8],[11,32],[8,33],[2,37],[2,38],[39,0],[40],[22,24],[31,7,32],[15,36],[38,2],[19,20,39],[19,40],[19,20,40],[40,9]]
+  const newPairs = [[7,25],[7,26,16],[1,27],[28,1],[19,29,20],[7,8,30],[31,7,8],[11,32],[8,33],[2,37],[2,38],[39,0],[40],[22,24],[31,7,32],[15,36],[38,2],[19,20,39],[19,40],[19,20,40],[40,9],[19,20,29],[29,19,20]]
   for (const ids of newPairs) add(`new-build-${ids.join('-')}`, playNewCards(ids))
   for (const ids of [[11,32],[22,24],[40],[31,7,8]]) add(`new-slow-build-${ids.join('-')}`, playNewCards(ids, {
     profiles: Array.from({ length: 5 }, () => ({ base: 1000n, acceleration: 0n, cap: 1000n })),
+  }))
+
+  add('new-death-preserves-wheel-phase', fixtureInput({cpu:{0:[2,11,32]}}))
+  add('new-recycle-preserves-renewal-buff', playNewCards([8,32,30], {
+    profiles: Array.from({length:5},()=>({base:3000n,acceleration:0n,cap:3000n})),
+  }))
+  add('new-renew-two-independent-durations', playNewCards([7,8,32], {
+    profiles: Array.from({length:5},()=>({base:3000n,acceleration:0n,cap:3000n})),
   }))
 
   add('new-fast-feast-overcap', playNewCards([15,36], {profiles:Array.from({length:5},()=>({base:6000n,acceleration:0n,cap:6000n}))}))
@@ -307,7 +315,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
   addInvalid('invalid-cut', at(cutAt1, 3, 80n, 20), 3, INVALID_CUT)
   addInvalid('invalid-no-credit', at(quiet, 1, 22n, 18, [0]), 1, INVALID_NO_CREDIT)
   const creditOpen = openSecOf(treasure, 2)
-  addInvalid('invalid-no-credit-repeated-slot', at(treasure, 2, creditOpen, 18, [1, 1]), 2, INVALID_NO_CREDIT)
+  addInvalid('invalid-no-credit-repeated-slot', at(quiet, 1, openSecOf(quiet,1), 0, [1, 1]), 1, INVALID_NO_CREDIT)
   addInvalid('invalid-bad-slot', at(treasure, 2, creditOpen, 15, [3]), 2, INVALID_BAD_SLOT)
   addInvalid('invalid-bad-slot-uint8-max', at(treasure, 2, creditOpen, 255, [255]), 2, INVALID_BAD_SLOT)
   addInvalid('invalid-not-offered', at(treasure, 2, creditOpen, 15, [1]), 2, INVALID_NOT_OFFERED)
@@ -363,7 +371,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
 
 function render(cases: PaidVectorCase[]): string {
   const meta = {
-    rulesetHash: LEGACY_PAID_RULESET_HASH,
+    rulesetHash: PAID_RULESET_HASH,
     generator: `scripts/gen-paid-vectors.ts (${GENERATOR_LABEL})`,
     fixtureSeed: FIXTURE_SEED,
     units: 'tau/wall ms; pos/dist µu (L = 1e11); b mu/s; stamina µ (cap 1e9); bigints are decimal strings',

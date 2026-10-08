@@ -6,6 +6,7 @@ import { solvePaidCore, type PaidCoreInput } from '../src/race/paid/solver.ts'
 import { PAID_RULESET_HASH } from '../src/race/paid/cardRules.ts'
 import { sampleHorse, sampleStatus } from '../src/race/paid/trace.ts'
 import { EV_TRIGGER, EV_GUARD, EV_EQUIP_REFRESH } from '../src/race/paid/events.ts'
+import { DEFAULT_ROSTER } from '../src/race/core/roster.ts'
 import { withSlot } from '../src/race/paid/testkit.ts'
 const output = new URL('../tests/vectors/paid-card-builds.json', import.meta.url)
 const plans = [[7,25],[16,26],[1,27],[28,33],[19,29],[31,7],[11,32],[2,37],[2,38],[39,0],[40,14]]
@@ -29,7 +30,7 @@ function play(input: PaidCoreInput, pair: number[] | null) {
   else {
    const own=sampleHorse(stop.trace!,current.playerHorseId,p.openTau)
    const first=!Array.from({length:5},(_,h)=>h).some(h=>h!==current.playerHorseId && sampleHorse(stop.trace!,h,p.openTau).pos>=own.pos)
-   const priorities=[...desired,5, own.stamina<400_000_000n?36:0, first?35:34,18,17,7,8,1,14,16,27,25]
+   const priorities=[...desired,5, own.stamina<120_000_000n?36:0, first?35:34,18,17,7,8,1,14,16,27,25]
    card=priorities.find(id=>id!==0&&offer.includes(id))??offer[0]!
   }
   current=withSlot(current,k,{txSec:p.openSec,cardId:card,refreshSlots:slots,anchor:keccak256(toBytes(`${input.seed}/tx/${k}`))})
@@ -48,11 +49,11 @@ function synergy(result: ReturnType<typeof solvePaidCore>, pair: number[], h: nu
  if(pair[0]===2) {
   const luck=trace.instances.find(i=>i.horse===h&&i.cardId===2&&i.kind==='buff')
   if(!luck||luck.endReason!=='expired')return false
-  return pair[1]===37?result.events.some(e=>e.horse===h&&e.code===EV_GUARD&&e.tau===luck.endTau):event(38).some(e=>e.tau===luck.endTau)
+  return pair[1]===37?result.events.some(e=>e.horse===h&&e.code===EV_GUARD&&e.tau===luck.endTau):event(38).some(e=>active(2,e.tau))
  }
  if(pair[0]===19) return trace.keyframes[h]!.some(f=>{
   if(!active(29,f.tau0))return false
-  return trace.cards.filter(c=>c.horse===h&&c.tau<=f.tau0&&[19,20].includes(c.cardId)).at(-1)?.cardId===19
+  return trace.cards.some(c=>c.horse===h&&c.tau<=f.tau0&&c.cardId===19)
  })
  if(pair[0]===40) {
   const regen=trace.instances.find(i=>i.horse===h&&i.cardId===14&&i.kind==='buff')
@@ -67,7 +68,7 @@ function synergy(result: ReturnType<typeof solvePaidCore>, pair: number[], h: nu
 const rows = plans.map(pair=>({pair,races:0,acquiredBoth:0,triggered:0,threeCheckpointsReached:0,thirdCard:0,refreshes:0,ranks:[0,0,0,0,0]}))
 const random={races:0,rawRanks:[0,0,0,0,0],settlementRanks:[0,0,0,0,0],versionAnswer:0}
 for (let n=0;n<samples;n++) {
- const input=derivePaidCoreInput({seed:keccak256(toBytes(`card-builds/v4/seed/${n}`)),openAnchor:keccak256(toBytes(`card-builds/v4/anchor/${n}`)),stakeTier:(n%4+1) as 1|2|3|4,playerHorseId:n%5,choices:[null,null,null]})
+ const input=derivePaidCoreInput({seed:keccak256(toBytes(`card-builds/v4/seed/${n}`)),openAnchor:keccak256(toBytes(`card-builds/v4/anchor/${n}`)),stakeTier:(n%4+1) as 1|2|3|4,playerHorseId:n%5,roster:[...DEFAULT_ROSTER],choices:[null,null,null]})
  const base=play(input,null).result;random.races++;random.rawRanks[base.rawRank-1]!++;random.settlementRanks[base.settlementRank-1]!++;if(base.versionAnswer)random.versionAnswer++
  for(const row of rows) {
   const {result,refreshes}=play(input,row.pair); row.races++;row.refreshes+=refreshes;row.ranks[result.rawRank-1]!++

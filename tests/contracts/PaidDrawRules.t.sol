@@ -9,11 +9,11 @@ contract PaidDrawRulesTest {
         PaidDrawRules.State memory state = PaidDrawRules.initial();
         uint8[] memory none = new uint8[](0);
         state = PaidDrawRules.applyChoice(deck, state, none, 5);
-        require(state.cursor == 3 && state.refreshCredits == 1, "treasure");
+        require(state.cursor == 3 && state.refreshCredits == 3, "treasure");
         uint8[] memory refresh = new uint8[](1);
         refresh[0] = 1;
         state = PaidDrawRules.applyChoice(deck, state, refresh, 18);
-        require(state.cursor == 6 && state.tailCursor == 13 && state.refreshCredits == 0, "rare refresh");
+        require(state.cursor == 6 && state.tailCursor == 13 && state.refreshCredits == 2, "rare refresh");
         PaidDrawRules.State memory ripple = PaidDrawRules.applyChoice(deck, PaidDrawRules.initial(), none, 3);
         require(ripple.forfeited && ripple.cursor == 3, "ripple");
     }

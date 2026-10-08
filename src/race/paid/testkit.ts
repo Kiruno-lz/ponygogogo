@@ -19,7 +19,7 @@ export const QUIET_DECK: readonly number[] = [17, 18, 21, 14, 19, 15, 20, 1, 2, 
 export const QUIET_CPU_DECK: readonly number[] = [19, 20, 5]
 
 export function fixtureProfiles(playerHorseId = 1): PaidCoreProfile[] {
-  return derivePaidProfiles(FIXTURE_SEED, FIXTURE_ANCHOR, 2, playerHorseId).map((p) => ({
+  return derivePaidProfiles(FIXTURE_SEED, FIXTURE_ANCHOR, 2, playerHorseId, true).map((p) => ({
     base: BigInt(p.base), acceleration: BigInt(p.acceleration), cap: BigInt(p.cap),
   }))
 }

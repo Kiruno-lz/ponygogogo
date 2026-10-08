@@ -6,11 +6,11 @@ import {
 
 const deck = [5, 4, 3, 17, 19, 21, 6, 7, 8, 9, 10, 11, 12, 18] as const
 
-test('treasure earns one refresh and the next choice consumes only that credit', () => {
+test('treasure earns three refreshes and one replacement spends only one', () => {
   const first = applyPaidChoice(deck, initialPaidDrawState(), [], 5)
-  expect(first).toEqual({ cursor: 3, tailCursor: 14, refreshCredits: 1, automatic: false, forfeited: false })
-  expect(applyPaidChoice(deck, first, [1], 18)).toEqual({ cursor: 6, tailCursor: 13, refreshCredits: 0, automatic: false, forfeited: false })
-  expect(() => applyPaidChoice(deck, first, [1, 2], 17)).toThrow('NO_REFRESH_CREDIT')
+  expect(first).toEqual({ cursor: 3, tailCursor: 14, refreshCredits: 3, automatic: false, forfeited: false })
+  expect(applyPaidChoice(deck, first, [1], 18)).toEqual({ cursor: 6, tailCursor: 13, refreshCredits: 2, automatic: false, forfeited: false })
+  expect(() => applyPaidChoice(deck, first, [0, 1, 2, 0], 17)).toThrow('NO_REFRESH_CREDIT')
 })
 
 test('last ripple forfeits future checkpoints without consuming cards', () => {
@@ -37,7 +37,7 @@ test('classifyPaidDraw names the first rule applyPaidChoice would break, without
   expect(classifyPaidDraw(deck, { ...start, forfeited: true, automatic: true }, [], 0)).toBe(INVALID_CUT)
   expect(classifyPaidDraw(deck, { ...start, automatic: true }, [], 0)).toBe(INVALID_AUTO)
   expect(classifyPaidDraw(deck, start, [0], 0)).toBe(INVALID_NO_CREDIT)
-  expect(classifyPaidDraw(deck, credit, [0, 0], 0)).toBe(INVALID_NO_CREDIT)
+  expect(classifyPaidDraw(deck, credit, [0, 0], 0)).toBe(INVALID_BAD_SLOT)
   expect(classifyPaidDraw(deck, { ...credit, refreshCredits: 2 }, [0, 0], 0)).toBe(INVALID_BAD_SLOT)
   expect(classifyPaidDraw(deck, credit, [3], 0)).toBe(INVALID_BAD_SLOT)
   expect(classifyPaidDraw(deck, { ...credit, tailCursor: 6 }, [0], 0)).toBe(INVALID_EXHAUSTED)

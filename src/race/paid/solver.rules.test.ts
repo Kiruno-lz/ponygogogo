@@ -21,7 +21,7 @@ test('a horse that never reaches the line gets 600001 and the race stops at τ =
 const VERSION_DECK = [17, 18, 14, 19, 15, 16, 21, 5, 20, 1, 2, 6, 7, 8]
 
 test('version answer: 薄肌 + 黄毛 + 理解孙学 puts the player first in settlement only', () => {
-  const input = pickAt(pickAt(pickAt(fixtureInput({ playerDeck: VERSION_DECK }), 1, 17), 2, 19), 3, 21)
+  const input = pickAt(pickAt(pickAt(fixtureInput({ playerDeck: VERSION_DECK, profiles: fixtureProfiles().map((p,h)=>h===0?{base:2000n,acceleration:0n,cap:2000n}:p) }), 1, 17), 2, 19), 3, 21)
   const r = solvePaidCore(input)
   expect(r.acquired).toEqual([17, 19, 21])
   expect(r.acquiredByCheckpoint).toEqual([17, 19, 21])

@@ -44,24 +44,18 @@ test('first reach returns the minimal whole millisecond satisfying the crossing'
   }
 })
 
-test('gravity field matches browser at overlap, by relative position and at radius', () => {
-  // Overlap takes the browser mod.field trailing branch: the target is pulled forward at full strength.
+test('gravity field: overlap branch, then 3000·R/(R + d) over the whole track, halving at R', () => {
+  // Overlap (d = 0) takes the browser mod.field trailing branch: the target is pulled forward at full strength.
   expect(wellFieldBps(10n, 10n)).toBe(3_000n)
-  expect(wellFieldBps(0n, 1n)).toBe(-3_000n)
-  expect(wellFieldBps(1n, 0n)).toBe(3_000n)
-  expect(wellFieldBps(0n, WELL_RADIUS_MICRO)).toBe(0n)
-  expect(wellFieldBps(WELL_RADIUS_MICRO, 0n)).toBe(0n)
-  expect(wellFieldBps(0n, WELL_RADIUS_MICRO - 1n)).toBe(0n)
-  expect(wellFieldBps(0n, WELL_RADIUS_MICRO - 1_000_000n)).toBe(0n)
-  expect(wellFieldBps(0n, WELL_RADIUS_MICRO / 2n)).toBe(-1_500n)
-  expect(wellFieldBps(WELL_RADIUS_MICRO / 4n, 0n)).toBe(2_250n)
-  // Frozen values of the browser-equivalent field (the former paidGravity oracle): target ahead, then behind.
-  const ahead = [3_000n, -3_000n, -3_000n, -1_500n, 0n, 0n]
-  const behind = [3_000n, 3_000n, 3_000n, 1_500n, 0n, 0n]
-  const distances = [0n, 1n, 777_777n, 4_000_000_000n, 7_999_999_999n, 8_000_000_000n]
+  const unit = 1_000_000n
+  expect(WELL_RADIUS_MICRO).toBe(8_000n * unit)
+  // 30% up close, 15% at 8000 units, 10% at 16000, 6% at 32000, still nonzero 90000 units away.
+  const distances = [1n, 777_777n, 4_000n * unit, 8_000n * unit, 16_000n * unit, 32_000n * unit, 90_000n * unit]
+  const k = [2_999n, 2_999n, 2_000n, 1_500n, 1_000n, 600n, 244n]
   distances.forEach((d, i) => {
-    expect(wellFieldBps(0n, d)).toBe(ahead[i]!)
-    expect(wellFieldBps(d, 0n)).toBe(behind[i]!)
+    expect(wellFieldBps(0n, d)).toBe(-k[i]!)
+    expect(wellFieldBps(d, 0n)).toBe(k[i]!)
+    expect(wellFieldBps(3n * unit, 3n * unit + d)).toBe(-k[i]!)
   })
 })
 

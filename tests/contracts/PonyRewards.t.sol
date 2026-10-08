@@ -49,7 +49,7 @@ contract PonyRewardsTest {
         require(granted && kind == 0 && id == 2, "first");
         (granted,,) = h.at(2000, 0, 0);
         require(!granted, "chance cutoff");
-        (granted, kind, id) = h.at(0, 25, 0);
+        (granted, kind, id) = h.at(0, 15, 0);
         require(granted && kind == 1 && id == 5, "pony weight");
         (granted,,) = h.at(0, 0, type(uint256).max);
         require(!granted, "all owned");

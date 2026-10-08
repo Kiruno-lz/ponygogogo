@@ -181,8 +181,10 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     // The deployed Solver always runs the roster path, so both sides use DEFAULT_ROSTER: this compares the
     // production hot core against the display solver, not the archived no-roster rules (D4 keeps legacy replay
     // rosterless, which is the LegacyCoreSolverProbe path, not this one).
+    const archived = decodeInput(cases.find((c) => c.name === 'derived-0')!.input)
     const inputs = [
-      { ...decodeInput(cases.find((c) => c.name === 'derived-0')!.input), roster: [...DEFAULT_ROSTER] },
+      derivePaidCoreInput({seed:archived.seed,openAnchor:archived.openAnchor,stakeTier:1,
+        playerHorseId:archived.playerHorseId,roster:[...DEFAULT_ROSTER],choices:archived.choices}),
       derivePaidCoreInput({
         seed: '0x8486a37a59c4f66a573ec56d925ee0ed39ad950970db563e1877bfbcd8205a5b',
         openAnchor: '0xee2f19d2d601b98cfc8b613200766bb21cbc4294476db78e9372d2f52a7a7f2e',
@@ -192,9 +194,12 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     for (const [index, core] of inputs.entries()) {
       const ts = solvePaidCore(core)
       const wells = ts.trace!.instances.filter((i) => i.cardId === 10 && i.kind === 'equip')
-      expect(wells.length).toBe(index === 0 ? 1 : 2)
+      expect(wells.length).toBe(2)
       expect(ts.trace!.keyframes.some((frames) => frames.some((f) => f.tau1 - f.tau0 === 250n))).toBe(true)
-      if (index === 1) expect(wells.some((a) => wells.some((b) => a !== b && a.startTau < b.endTau! && b.startTau < a.endTau!))).toBe(true)
+      const overlap = wells.some((a) => wells.some((b) => a !== b && a.startTau < b.endTau! && b.startTau < a.endTau!))
+      // derived-0 keeps one field at a time: the 20 s well outlives C-13's steal and continues on the thief.
+      if (index === 0) expect([overlap, wells[0]!.endReason, wells[1]!.startTau]).toEqual([false, 'stolen', wells[0]!.endTau])
+      if (index === 1) expect(overlap).toBe(true)
       const result = await clients().pub.readContract({ address: solver, abi: solverAbi(), functionName: 'solve', args: [{
         seed: core.seed, openAnchor: core.openAnchor, stakeTier: 1, playerHorseId: core.playerHorseId,
         roster: [...DEFAULT_ROSTER],

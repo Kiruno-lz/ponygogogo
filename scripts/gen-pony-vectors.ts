@@ -11,7 +11,7 @@ import { solveVectorCase } from '../src/race/paid/vectorCodec.ts'
 const out = new URL('../tests/vectors/pony-race-v5.json', import.meta.url)
 const cases: ReturnType<typeof solveVectorCase>[] = []
 const patterns = [[], [2], [17], [4], [5], [7, 32], [1, 11], [17, 15, 7], [17, 18, 1],
-  [0], [39, 0, 0], [15], [14], [16], [24], [36], [7, 25, 22], [13], [6, 2], [10, 32, 13]]
+  [0], [39, 0, 0], [15], [14], [16], [24], [36], [7, 25, 22], [13], [6, 2], [10, 32, 13], [19,29,20], [19,20,29], [29,19,20], [16,22], [8,32,30]]
 
 function roster(pony: number) { return [pony, ...PONY_RULES.map(p => p.id).filter(id => id !== pony).slice(0, 4)] }
 function controlled(pony: number, picks: number[]): PaidCoreInput {

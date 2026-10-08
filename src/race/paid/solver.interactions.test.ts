@@ -70,12 +70,12 @@ describe('death, respawn and bombs', () => {
     expect(pro.trace!.bombs.find((b) => b.lane === 1)!.goneTau).toBeNull()
   })
 
-  test('death clears the accumulated K', () => {
+  test('death preserves permanent fixed base-speed contributions', () => {
     const r = solvePaidCore(fixtureInput({ cpu: { 0: [2, 17, 20] } }))
     const death = r.events.find((e) => e.code === EV_DEATH && e.horse === 0)!
     const frames = r.trace!.keyframes[0]!
-    expect(frames.find((f) => f.tau1 === death.tau)!.motion.fixed).toBe(10n)
-    expect(frames.find((f) => f.tau0 === death.tau)!.motion).toMatchObject({ fixed: 0n, b: 0n })
+    expect(frames.find((f) => f.tau1 === death.tau)!.motion.baseBonus).toBe(100n)
+    expect(frames.find((f) => f.tau0 === death.tau)!.motion).toMatchObject({ fixed: 0n, baseBonus: 100n, b: 0n })
   })
 })
 
@@ -145,9 +145,9 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
     const loot = r.trace!.instances.find((i) => i.horse === 2 && i.cardId === 11)!
     expect(loot).toMatchObject({ startTau: steal.tau, plannedEndTau: steal.tau + 30_000n, slot: 2 })
     const thiefBursts = r.events.filter((e) => e.code === EV_WHEEL_BURST && e.horse === 2)
-    expect(thiefBursts[0]!.tau).toBe(steal.tau + 7_000n)
-    // K already earned by the victim stays with the victim.
-    expect(r.trace!.keyframes[0]!.find((f) => f.tau0 === steal.tau)!.motion.fixed).toBe(20n)
+    expect(thiefBursts[0]!.tau).toBe(steal.tau)
+    // Removing the wheel removes all extra speed earned from that equipment.
+    expect(r.trace!.keyframes[0]!.find((f) => f.tau0 === steal.tau)!.motion.fixed).toBe(0n)
     expect(sampleStatus(r.trace!, 0, steal.tau).airborne).toBe(false)
   })
 
@@ -178,13 +178,13 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
   test('wind only moves airborne horses and a new wind replaces the old one', () => {
     const r = solvePaidCore(fixtureInput({ cpu: { 4: [12, 20, 5], 0: [1, 20, 5], 3: [19, 12, 20] } }))
     const winds = r.events.filter((e) => e.code === EV_WIND)
-    expect(winds.map((e) => [e.horse, e.arg])).toEqual([[4, 1_000n], [3, -1_000n]])
+    expect(winds.map((e) => [e.horse, e.arg])).toEqual([[4, 2_500n], [3, -2_500n]])
     const [first, second] = winds
     expect(windAt(r.trace!, first!.tau - 1n)).toBeNull()
-    expect(windAt(r.trace!, second!.tau)!.bps).toBe(-1_000n)
+    expect(windAt(r.trace!, second!.tau)!.bps).toBe(-2_500n)
     const t = r.trace!
-    expect(sampleHorse(t, 0, second!.tau - 1n).pBps).toBe(2_000n + 1_000n)
-    expect(sampleHorse(t, 0, second!.tau).pBps).toBe(2_000n - 1_000n)
+    expect(sampleHorse(t, 0, second!.tau - 1n).pBps).toBe(1_000n + 2_500n)
+    expect(sampleHorse(t, 0, second!.tau).pBps).toBe(1_000n - 2_500n)
     expect(sampleHorse(t, 2, second!.tau).pBps).toBe(0n)
   })
 
@@ -198,7 +198,7 @@ describe('C-11 bursts, C-13 steal, C-12 wind', () => {
     expect(sampleStatus(r.trace!, 1, wheelOn + 1n).airborne).toBe(true)
     expect(sampleHorse(r.trace!, 1, wheelOn + 1n).pBps).toBe(0n)
     const draw = chainEntropy(FIXTURE_SEED, fixtureAnchor(0x53), 3, PURPOSE_WIND, 0n) % 2n
-    expect(own.arg).toBe(draw === 0n ? -1_000n : 1_000n)
+    expect(own.arg).toBe(draw === 0n ? -2_500n : 2_500n)
     expect(sampleHorse(r.trace!, 1, own.tau).pBps).toBe(own.arg)
   })
 })

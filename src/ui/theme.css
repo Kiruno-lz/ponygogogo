@@ -396,7 +396,6 @@ html, body, #root {
 .bet-win { display: flex; align-items: center; justify-content: center; gap: 9px; height: 70px; background: url('/assets/art/ui/win-strip-trimmed.webp') center / 100% 100% no-repeat; margin-top: 29px; font-size: 21px; font-weight: 700; color: #fff6e5; white-space: nowrap; }
 .bet-win img { width: 38px; height: 44px; object-fit: contain; }
 .bet-win img:last-child { width: 41px; }
-.bet-difficulty { display: flex; justify-content: space-between; padding-top: 8px; font-size: 14px; color: #4e3828; }
 .select-race-cta { position: absolute; left: 1190px; top: 565px; width: 429px; height: 390px; }
 .select-race-cta .btn-star { width: 100%; height: 100%; }
 .select-race-cta .big { position: absolute; left: 84px; top: 126px; width: 276px; transform: rotate(-12deg); font-size: 91px; line-height: 1; }
@@ -470,8 +469,6 @@ html, body, #root {
 .bet-chips .chip { font-size: 31px; line-height: 68px; }
 .bet-chips .chip.on { font-size: 46px; }
 .bet-win { height: 74px; }
-.bet-difficulty { position: absolute; left: 137px; top: 216px; width: 94px; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; text-align: center; line-height: 18px; }
-.bet-difficulty strong { font-size: 16px; }
 .home-wallet { right: 13px; width: 355px; height: 404px; }
 .wallet-content { left: 71px; top: 71px; width: 235px; }
 .wallet-row { height: 51px; font-size: 22px; }

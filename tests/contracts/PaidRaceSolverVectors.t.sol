@@ -9,6 +9,7 @@ import {PaidProfiles} from "../../contracts/libraries/PaidProfiles.sol";
 import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 import {PaidRaceSolver} from "../../contracts/PaidRaceSolver.sol";
 import {LegacyCoreSolverProbe} from "./LegacyCoreSolverProbe.sol";
+import {LegacyPaidProfiles} from "./legacy/LegacyPaidProfiles.sol";
 import {FieldStretchProbe} from "./PaidRaceMotion.t.sol";
 import {PaidRaceVectorAssertions} from "./PaidRaceVectorAssertions.sol";
 
@@ -43,7 +44,7 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
     function testVectorFileHeader() public view {
         string memory file = vm.readFile(VECTOR_FILE);
         require(
-            vm.parseJsonBytes32(file, ".meta.rulesetHash") == PaidCardRules.LEGACY_RULESET_HASH, "legacy ruleset hash"
+            vm.parseJsonBytes32(file, ".meta.rulesetHash") == PaidCardRules.RULESET_HASH, "current card ruleset hash"
         );
         uint256 count = _cases().length;
         require(count == vm.parseJsonUint(file, ".meta.count"), "count");
@@ -131,13 +132,13 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
         revert("missing adversarial fixture");
     }
 
-    /// @notice Refresh adds at most five full ten-second well lifetimes to the five originals and five steals.
+    /// @notice Refresh adds at most five full twenty-second well lifetimes to the five originals and five steals.
     /// This measures the conservative projection, not a reachable race or a proof of the solve cap.
     /// The real-race chunk gates retain their independent 23.5M limit.
     function testRefreshedWellFieldWorkProjection() public {
-        (uint256 field, uint256 steps,,) = new FieldStretchProbe().stretch(1, 150_000);
-        require(steps == 600, "refreshed well field budget");
-        emit log_named_uint("field work projection (600 one-well steps)", field);
+        (uint256 field, uint256 steps,,) = new FieldStretchProbe().stretch(1, 300_000);
+        require(steps == 1200, "refreshed well field budget");
+        emit log_named_uint("field work projection (1200 one-well steps)", field);
         require(field > 0, "field work was not measured");
     }
 
@@ -347,7 +348,7 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
         PaidRaceEngine.CoreInput memory core,
         IPaidRaceSolver.RaceInput memory input
     ) internal pure {
-        PaidProfiles.Profile[5] memory profiles = PaidProfiles.derive(
+        PaidProfiles.Profile[5] memory profiles = LegacyPaidProfiles.derive(
             input.seed, input.openAnchor, input.stakeTier, input.playerHorseId
         );
         uint8[14] memory deck = PaidDeck.derive(input.seed, input.openAnchor);

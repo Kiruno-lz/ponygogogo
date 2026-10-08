@@ -31,7 +31,7 @@ export const CARD_METADATA: readonly CardMetadata[] = [
   {"cardId": "C-27", "name": {"zh": "纸飞机", "en": "Paper Plane"}, "meme": "纸飞机", "art": {"icon": "card-27"}},
   {"cardId": "C-28", "name": {"zh": "接地气", "en": "Grounded"}, "meme": "接地气", "art": {"icon": "card-28"}},
   {"cardId": "C-29", "name": {"zh": "跑马灯", "en": "Coat of Many Colors"}, "meme": "跑马灯", "art": {"icon": "card-29"}},
-  {"cardId": "C-30", "name": {"zh": "垃圾佬", "en": "Scrap Collector"}, "meme": "垃圾佬", "art": {"icon": "card-30"}},
+  {"cardId": "C-30", "name": {"zh": "装备大师", "en": "Equipment Master"}, "meme": "装备大师", "art": {"icon": "card-30"}},
   {"cardId": "C-31", "name": {"zh": "改装达人", "en": "Master Mechanic"}, "meme": "改装达人", "art": {"icon": "card-31"}},
   {"cardId": "C-32", "name": {"zh": "以旧换新", "en": "Refurbish"}, "meme": "以旧换新", "art": {"icon": "card-32"}},
   {"cardId": "C-33", "name": {"zh": "空手道", "en": "Empty Hands"}, "meme": "空手道", "art": {"icon": "card-33"}},

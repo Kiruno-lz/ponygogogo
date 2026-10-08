@@ -4,12 +4,12 @@ pragma solidity ^0.8.28;
 /// @notice Generated from src/race/paid/ponyRules.ts; run bun scripts/gen-pony-rules.ts.
 library PonyRules {
     error InvalidPony();
-    bytes32 internal constant TABLE_HASH = 0xec5adcef7535a35ca83ecdd293618d5000837d4b94f4784e1e33e6544ebbb70f;
-    bytes32 internal constant ENCODED_RULES_HASH = 0xde2239e7e3c3b76c2f2d3cb9aade045457379dc34f664dbbbaf5139391ca87fd;
+    bytes32 internal constant TABLE_HASH = 0x31a186a46b40691dad3ace7030df39000af764e407d1ba0124844d46c4137744;
+    bytes32 internal constant ENCODED_RULES_HASH = 0x88b0f9a5ee7f0a54e2cbc90e5e67d511ed77d3be698bf644f1aff85e43d87e81;
     uint8 internal constant PONY_COUNT = 9;
     uint256 internal constant ENABLED_MASK = 0x1ff;
     uint8 internal constant RARE_SPECIALIST = 0;
-    uint8 internal constant LIGHT = 1;
+    uint8 internal constant REFRESH = 1;
     uint8 internal constant LONG_EQUIPMENT = 2;
     uint8 internal constant DIVERSE = 3;
     uint8 internal constant AIRBORNE = 4;
@@ -28,6 +28,8 @@ library PonyRules {
         uint16 capDelta;
         uint16 costDeltaBps;
         uint32 staminaMicro;
+        uint8 refreshCount;
+        uint16 staminaCapacityDelta;
     }
 
     function enabled(uint8 id) internal pure returns (bool) {
@@ -37,8 +39,8 @@ library PonyRules {
     function packed(uint8 id) internal pure returns (uint256 word) {
         if (id >= PONY_COUNT) revert InvalidPony();
         bytes memory data =
-            hex"0000000000000000000000000000010003e800000000000000000000000000000000000000000000000000000001010103200000000000000000000000000000000000000000000000000000000201020000000000002ee000000000000000000000000000000000000000000003010302bc00004e20000000000000000000000000000000000000000000000004010403200000000000000000000000000000000000000000000000000000000501050000000000000000006407d0000000000000000000000000000000000006010604b000004e20000000000000000000000000000000000000000000000007010700000000000000000000000002faf0800000000000000000000000000008010804b000004e2000000000000000000000";
-        assembly ("memory-safe") { word := mload(add(add(data, 32), shl(5, id))) }
+            hex"000000000000000000000000000001000190000000000000000000000000000000000000000000000000000001010101000000000000000000000000000000000000000000000000000000000002010203e8000000003a98000000000000000000000000000000000000000000030103012c00004e20000000000000000000000000000000000000000000000004010409c40000000000000000000000000000000000000000000000000000000501050000000000000000006403e80000000000000000000000000000000000060106064000004e20000000000000000000000000000000000000000000640007010700000000000000000000000002faf0800000000000000000000000000008010804b000004e2000000000000000000000";
+        assembly ("memory-safe") { word := mload(add(add(data, 32), shl(5, and(id, 255)))) }
     }
 
     function get(uint8 id) internal pure returns (Rule memory rule) {
@@ -53,6 +55,8 @@ library PonyRules {
             mstore(add(rule, 192), and(shr(48, word), 0xffff)) // capDelta
             mstore(add(rule, 224), and(shr(32, word), 0xffff)) // costDeltaBps
             mstore(add(rule, 256), and(shr(0, word), 0xffffffff)) // staminaMicro
+            mstore(add(rule, 288), and(shr(152, word), 0xff)) // refreshCount
+            mstore(add(rule, 320), and(shr(160, word), 0xffff)) // staminaCapacityDelta
         }
     }
 }

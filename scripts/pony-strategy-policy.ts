@@ -96,10 +96,10 @@ export function ponyAbilityMetrics(result: PaidSolveResult, horse: number, pony:
   const finish = result.finishTime[horse]! < trace.tauEnd ? result.finishTime[horse]! : trace.tauEnd
   const intervals: [bigint,bigint][]=[]
   if (pony === 5) intervals.push([0n,finish])
-  if (pony === 1 || pony === 4) for (const frame of trace.keyframes[horse]!) {
+  if (pony === 4) for (const frame of trace.keyframes[horse]!) {
     if (frame.finished) continue
     const status = sampleStatus(trace,horse,frame.tau0)
-    if (pony === 1 ? Object.values(status.equipment).every(card => card === 0) : status.airborne) intervals.push([frame.tau0,frame.tau1])
+    if (status.airborne) intervals.push([frame.tau0,frame.tau1])
   }
   for (const instance of trace.instances.filter(i => i.horse === horse)) {
     const end = instance.endTau === null || instance.endTau > finish ? finish : instance.endTau

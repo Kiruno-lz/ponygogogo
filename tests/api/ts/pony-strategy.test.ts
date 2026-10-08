@@ -8,7 +8,7 @@ import { ponyPreferences, ponyStrategyRosters, strategyPayoutBps } from '../../.
 function scenario(pony: number, first: number[]) {
   const deck = [...first, ...Array.from({ length: 40 }, (_, n) => n + 1).filter(id => !first.includes(id))].slice(0, 14)
   return fixtureInput({ playerHorseId: 0, roster: [pony, ...[0,1,2,3,4,5,6,7,8].filter(id => id !== pony).slice(0,4)],
-    playerDeck: deck, profiles: Array.from({length:5}, () => ({ base:1200n, acceleration:12n, cap:1800n })) })
+    playerDeck: deck, profiles: Array.from({length:5}, (_,h) => h===0?({base:300n,acceleration:150n,cap:1800n}):({ base:1200n, acceleration:12n, cap:1800n })) })
 }
 
 test('every opponent combination has all 24 permutations and five player lanes', () => {
@@ -39,41 +39,43 @@ test('potential food preferences include immediate reserve recovery and repeat h
   expect(repeat.map(record=>record.preferredAcquired)).toEqual([false,true])
 })
 
-test('rare specialization changes the choice between a compatible common speed card and a weak immediate rare card', () => {
-  const kiruno = scenario(0, [27,21,19]), shadow = scenario(1, [27,21,19])
-  expect(decidePonyAction(kiruno, 1).cardId).toBe(21)
-  expect(decidePonyAction(shadow, 1).cardId).toBe(27)
+test('Shadow refreshes a late offer into a rocket while rare specialization selects immunity over an untriggered paper plane', () => {
+  const late=(pony:number)=>pickAt(pickAt(scenario(pony,[19,29,17,20,1,18,27,21,5]),1,19),2,20)
+  expect(decidePonyAction(late(0),3).cardId).toBe(21)
+  const refreshed=decidePonyAction(late(1),3)
+  expect(refreshed.cardId).toBe(7)
+  expect(refreshed.refreshSlots).toHaveLength(1)
 })
 
 test('repeat and diverse roles make opposite second-pick choices after a power acquisition', () => {
-  const diverse = pickAt(scenario(3,[17,18,1,20,27,19]),1,17)
-  const repeat = pickAt(scenario(8,[17,18,1,20,27,19]),1,17)
-  expect(decidePonyAction(diverse,2).cardId).toBe(20)
+  const diverse = pickAt(scenario(3,[17,18,2,25,27,19]),1,17)
+  const repeat = pickAt(scenario(8,[17,18,2,25,27,19]),1,17)
+  expect(decidePonyAction(diverse,2).cardId).toBe(25)
   expect(decidePonyAction(repeat,2).cardId).toBe(27)
 })
 
-test('ox consumption changes a paid-resource follow-up from direct acceleration to phased supply', () => {
-  const ox=pickAt(scenario(5,[22,19,20,23,1,17]),1,22)
-  const neutral=pickAt(scenario(2,[22,19,20,23,1,17]),1,22)
-  expect(decidePonyAction(ox,2).cardId).toBe(23)
+test('ox consumption changes a rage follow-up from direct acceleration to regeneration', () => {
+  const ox=pickAt(scenario(5,[26,19,20,1,14,29]),1,26)
+  const neutral=pickAt(scenario(2,[26,19,20,1,14,29]),1,26)
+  expect(decidePonyAction(ox,2).cardId).toBe(14)
   expect(decidePonyAction(neutral,2).cardId).toBe(1)
 })
 
-test('equipment extension matters early but cannot earn extra coverage after a near-finish acquisition', () => {
+test('Berry gains early equipment coverage and retains its speed gate when a late window is finish-truncated', () => {
   const early=(pony:number)=>solvePaidCore(pickAt(scenario(pony,[11,19,20]),1,11))
-  const berry=early(2),neutral=early(7)
-  expect(ponyAbilityMetrics(berry,0,2).coverageTauMs).toBe(6000n)
+  const berry=early(2),neutral=early(1)
+  expect(ponyAbilityMetrics(berry,0,2).coverageTauMs).toBe(8531n)
   expect(berry.finishTime[0]).toBeLessThan(neutral.finishTime[0])
   const late=(pony:number)=>solvePaidCore(pickAt(pickAt(pickAt(
     scenario(pony,[17,19,20,18,21,22,11,23,24]),1,17),2,18),3,11))
-  const lateBerry=late(2),lateNeutral=late(7)
+  const lateBerry=late(2),lateNeutral=late(1)
   expect(ponyAbilityMetrics(lateBerry,0,2).coverageTauMs).toBe(0n)
-  expect(lateBerry.finishTime[0]).toBe(lateNeutral.finishTime[0])
+  expect(lateBerry.finishTime[0]).toBeLessThan(lateNeutral.finishTime[0])
 })
 
 test('active forfeit is an evaluated action, distinct from waiting for timeout', () => {
-  expect(decidePonyAction(scenario(6,[19,20,17]),1).cardId).toBe(0)
-  const input = scenario(6,[19,20,17])
+  expect(decidePonyAction(scenario(6,[19,20,29]),1).cardId).toBe(0)
+  const input = scenario(6,[19,20,29])
   const played = playPonyStrategy(input,'finish')
   expect(played.result.checkpoints[0].reason).toBe('forfeit-tx')
   expect(played.result.checkpoints.every(cp => cp.invalidReason === 0)).toBe(true)
@@ -98,6 +100,6 @@ test('stamina trace ledger balances continuous changes and event jumps, includin
   expect(result.events.some(e => e.horse === 0 && e.code === 15)).toBe(true)
   const ledger = staminaLedger(result,0)
   expect(ledger.initial + ledger.continuousGain - ledger.continuousLoss + ledger.eventGain - ledger.eventLoss).toBe(ledger.final)
-  expect(ledger.eventGain).toBe(200_000_000n)
+  expect(ledger.eventGain).toBe(250_000_000n)
   expect(ledger.continuousLoss).toBeGreaterThan(0n)
 })

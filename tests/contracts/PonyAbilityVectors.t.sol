@@ -22,7 +22,7 @@ contract PonyAbilityVectorsTest is PaidRaceVectorAssertions {
     function testRosterVectorHeader() public view {
         string memory file = vm.readFile(FILE);
         require(vm.parseJsonBytes32(file, ".meta.rulesetHash") == PaidCardRules.RULESET_HASH, "v5 ruleset");
-        require(vm.parseJsonUint(file, ".meta.count") == 243, "243 directed and derived cases");
+        require(vm.parseJsonUint(file, ".meta.count") == 288, "288 directed and derived cases");
     }
 
     function testPonyVectorsChunk0() public view {
@@ -191,47 +191,59 @@ contract PonyAbilityVectorsTest is PaidRaceVectorAssertions {
         uint256 total;
         string[] memory cases = _cases(FILE);
         for (uint256 i; i < cases.length; ++i) {
-            uint256[] memory ids = vm.parseJsonUintArray(cases[i], ".input.roster");
-            for (uint256 h; h < ids.length; ++h) {
-                rostered |= uint256(1) << ids[h];
-            }
-            uint256 count = vm.parseJsonUint(cases[i], ".expected.eventCount");
-            for (uint256 j; j < count; ++j) {
-                (uint256 meta, int256 arg) = _expectedEvent(cases[i], j);
-                if (meta & 0xff != PaidRaceEngine.EV_PONY) continue;
-                ++total;
-                acquired |= uint256(1) << uint8(uint256(arg) >> 16);
-            }
+            (uint256 caseRostered, uint256 caseAcquired, uint256 caseTotal) = this.coverage(cases[i]);
+            rostered |= caseRostered;
+            acquired |= caseAcquired;
+            total += caseTotal;
         }
         require(rostered == PonyRules.ENABLED_MASK, "pony-race-v5.json leaves a pony out of every roster");
         require(acquired == granting, "pony-race-v5.json does not fire every granting pony's acquisition");
         require(total >= 243, "too few pony acquisitions to prove _ponyAcquisition parity");
     }
 
+    /// @dev One case's roster bits, acquired pony bits and EV_PONY count; a self-call so each case starts from fresh memory.
+    function coverage(string memory json) external pure returns (uint256 rostered, uint256 acquired, uint256 total) {
+        uint256[] memory ids = vm.parseJsonUintArray(json, ".input.roster");
+        for (uint256 h; h < ids.length; ++h) {
+            rostered |= uint256(1) << ids[h];
+        }
+        uint256 count = vm.parseJsonUint(json, ".expected.eventCount");
+        for (uint256 j; j < count; ++j) {
+            (uint256 meta, int256 arg) = _expectedEvent(json, j);
+            if (meta & 0xff != PaidRaceEngine.EV_PONY) continue;
+            ++total;
+            acquired |= uint256(1) << uint8(uint256(arg) >> 16);
+        }
+    }
+
+    /// @dev Self-call per case: per-event JSON lookups allocate memory that would otherwise accumulate over a chunk.
+    function checkVector(string memory json) external view {
+        string memory name = vm.parseJsonString(json, ".name");
+        PaidRaceEngine.Result memory r = this.runVector(json);
+        string memory failure = _compareRace(name, json, r);
+        require(bytes(failure).length == 0, failure);
+        // Compare every event as well as the folded digest, to expose ordering and lifecycle differences.
+        for (uint256 j; j < r.eventCount; ++j) {
+            (uint256 expectedMeta, int256 expectedArg) = _expectedEvent(json, j);
+            require(
+                r.eventMeta[j] == expectedMeta && r.eventArgs[j] == expectedArg,
+                string.concat(
+                    name,
+                    " event ",
+                    _itoa(j),
+                    " expected ",
+                    _event(expectedMeta, expectedArg),
+                    " got ",
+                    _event(r.eventMeta[j], r.eventArgs[j])
+                )
+            );
+        }
+    }
+
     function _chunk(uint256 chunk) private view {
         string[] memory cases = _cases(FILE);
         for (uint256 i = chunk; i < cases.length; i += 4) {
-            string memory json = cases[i];
-            string memory name = vm.parseJsonString(json, ".name");
-            PaidRaceEngine.Result memory r = this.runVector(json);
-            string memory failure = _compareRace(name, json, r);
-            require(bytes(failure).length == 0, failure);
-            // Compare every event as well as the folded digest, to expose ordering and lifecycle differences.
-            for (uint256 j; j < r.eventCount; ++j) {
-                (uint256 expectedMeta, int256 expectedArg) = _expectedEvent(json, j);
-                require(
-                    r.eventMeta[j] == expectedMeta && r.eventArgs[j] == expectedArg,
-                    string.concat(
-                        name,
-                        " event ",
-                        _itoa(j),
-                        " expected ",
-                        _event(expectedMeta, expectedArg),
-                        " got ",
-                        _event(r.eventMeta[j], r.eventArgs[j])
-                    )
-                );
-            }
+            this.checkVector(cases[i]);
         }
     }
 }

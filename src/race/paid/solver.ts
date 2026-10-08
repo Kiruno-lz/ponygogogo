@@ -1,5 +1,6 @@
 import { normalizeRoster } from '../core/roster.ts'
 import { staminaPayment, restoredStamina } from './resources.ts'
+import { PLAYER_BALANCE } from './playerBalance.ts'
 import type { Hex } from 'viem'
 import { chainEntropy } from '../core/chainEntropy.ts'
 import {
@@ -131,14 +132,24 @@ export type PaidSolveResult = {
 type Horse = {
   base: bigint
   accel: bigint
+  recoveryAccel: bigint
   capMilli: bigint
   pos: bigint
   dist: bigint
   prevPos: bigint
   b: bigint
   s: bigint
+  capacity: bigint
+  exhaustRelease: bigint
+  baseCost: bigint
+  baseRegen: bigint
+  exhaustRegen: bigint
+  overcapCostDivisor: bigint
+  exhaustCapMilli: bigint
   fixed: bigint
+  baseBonus: bigint
   coat: number
+  hairTypes: number
   lane: number
   cp: number
   exhausted: boolean
@@ -178,6 +189,7 @@ type Instance = {
   fixed: bigint
   gated: boolean
   nextDist: bigint
+  baseBonus: bigint
 }
 
 type Bomb = { lane: number; pos: bigint; placer: number; live: boolean }
@@ -293,9 +305,19 @@ function createState(input: PaidCoreInput, opts: PaidSolveOptions): State {
   for (let h = 0; h < HORSE_COUNT; h++) {
     const p = input.profiles[h]!
     const role = input.roster ? ponyRule(input.roster[h]!) : null
+    const player = input.roster !== undefined && h === input.playerHorseId
+    const modern = input.roster !== undefined
+    // Roster rules give CPU horses the player's stamina model; only the player gets the role capacity bonus.
+    const capacity = modern ? BigInt(PLAYER_BALANCE.staminaCapacity + (player ? role?.staminaCapacityDelta ?? 0 : 0)) * 1_000_000n : STAMINA_CAPACITY
     horses.push({
-      base: p.base, accel: p.acceleration, capMilli: (p.cap + BigInt(role?.capDelta ?? 0)) * 1000n,
-      pos: 0n, dist: 0n, prevPos: 0n, b: p.base * 1000n, s: STAMINA_CAPACITY, fixed: 0n, coat: 0, lane: h, cp: 0,
+      base: p.base, accel: p.acceleration, recoveryAccel: 0n, capMilli: (p.cap + BigInt(role?.capDelta ?? 0)) * 1000n,
+      pos: 0n, dist: 0n, prevPos: 0n, b: p.base * 1000n, s: capacity, fixed: 0n, baseBonus: 0n, coat: 0, hairTypes: 0, lane: h, cp: 0,
+      capacity, exhaustRelease: modern ? BigInt(PLAYER_BALANCE.exhaustRelease) * 1_000_000n : capacity,
+      baseCost: modern ? BigInt(PLAYER_BALANCE.staminaCostPerSecond) * 1000n : COST_PER_MS,
+      baseRegen: modern ? BigInt(PLAYER_BALANCE.staminaRegenPerSecond) * 1000n : REGEN_PER_MS,
+      exhaustRegen: modern ? BigInt(PLAYER_BALANCE.exhaustRegenPerSecond) * 1000n : REGEN_PER_MS,
+      overcapCostDivisor: modern ? BigInt(PLAYER_BALANCE.overcapCostDivisor) : 1n,
+      exhaustCapMilli: modern ? BigInt(PLAYER_BALANCE.exhaustSpeedCap) * 1000n : 0n,
       exhausted: false, overcap: false, atCap: false, finished: false, finishTime: UNFINISHED_TAU, finishWall: NEVER,
       blindedPro: false, drawCut: false, bonus: false, equip: [0, 0, 0], seenFunctions: 0,
     })
@@ -305,9 +327,12 @@ function createState(input: PaidCoreInput, opts: PaidSolveOptions): State {
     tauEnd: 0n, keyframes: [[], [], [], [], []], instances: [], bombs: [], winds: [], cards: [],
     segments: [{ tau: 0n, wall: 0n, slow: false }], events: [], renewals: [],
   }
+  const draw = initialPaidDrawState()
+  const playerRole = input.roster ? ponyRule(input.roster[input.playerHorseId]!) : null
+  if (playerRole?.ability === 'refresh') draw.refreshCredits = playerRole.refreshCount!
   return {
     input, player: input.playerHorseId, horses, instances: [], bombs: [], wind: 0n, windPlacer: 0,
-    draw: initialPaidDrawState(), panel: null, deferred: 0, records: [emptyRecord(1), emptyRecord(2), emptyRecord(3)],
+    draw, panel: null, deferred: 0, records: [emptyRecord(1), emptyRecord(2), emptyRecord(3)],
     lastTxAnchor: null, mapSlow: false, mapWall: 0n, mapTau: 0n, digest: ZERO_DIGEST, events: [], pending: [],
     acquired: [], steps: 0, stopAt: opts.stopAtPanel ?? 0, stopPanel: null, trace,
   }
@@ -349,35 +374,38 @@ function mods(st: State, h: number): Mods {
     if (!inst.active || inst.owner !== h || !inst.gated) continue
     const r = paidCardRule(inst.cardId)
     switch (r.effect) {
-      case 'rage': pBps += BigInt(r.pBps!) + (wired ? BigInt(r.bonusBps!) : 0n); break
+        case 'rage': pBps += BigInt(r.pBps!); break
       case 'paper': pBps += BigInt(r.pBps!) + (airborne ? BigInt(r.bonusBps!) : 0n); break
       case 'ground': if (!airborne) pBps += BigInt(r.pBps!); break
       case 'coatGate':
-        if (horse.coat === paidCardRule(19).coatRgb) pBps += BigInt(r.pBps!)
-        else if (horse.coat === paidCardRule(20).coatRgb) regenBps += BigInt(r.regenBonusBps!)
-        else pBps += BigInt(r.fallbackBps!)
+        if (horse.hairTypes !== 0) regenBps += BigInt(r.regenBonusBps!)
+        if (horse.hairTypes === 3) pBps += BigInt(r.pBps!)
         break
       case 'unarmed': pBps += BigInt(horse.equip.some(Boolean) ? r.fallbackBps! : r.pBps!); break
     }
   }
   if (st.wind !== 0n && airborne && (!horse.blindedPro || st.windPlacer === h)) pBps += st.wind
-  if ((role?.ability === 'light' && !horse.equip.some(Boolean)) || (role?.ability === 'airborne' && airborne)) pBps += BigInt(role.bonusBps!)
+  if (role?.ability === 'airborne' && airborne) pBps += BigInt(role.bonusBps!)
+  if (role?.ability === 'longEquipment' && horse.equip.some(Boolean)) pBps += BigInt(role.bonusBps!)
   const factor = BPS + costDelta
-  return { pBps, cost: COST_PER_MS * (factor < BigInt(PAID_CARD_GLOBALS.minCostFactorBps) ? BigInt(PAID_CARD_GLOBALS.minCostFactorBps) : factor) / BPS,
-    regen: REGEN_PER_MS * (BPS + regenBps) / BPS, airborne, wired, respawning }
+  return { pBps, cost: horse.baseCost * (factor < BigInt(PAID_CARD_GLOBALS.minCostFactorBps) ? BigInt(PAID_CARD_GLOBALS.minCostFactorBps) : factor) / BPS,
+    regen: (horse.exhausted ? horse.exhaustRegen : horse.baseRegen) * (BPS + regenBps) / BPS, airborne, wired, respawning }
 }
 
 function staminaMotion(horse: Horse, m: Mods): PaidStaminaMotion {
-  return { s: horse.s, exhausted: horse.exhausted, overcap: horse.overcap, wired: m.wired, cost: m.cost, regen: m.regen }
+  return { s: horse.s, exhausted: horse.exhausted, overcap: horse.overcap, wired: m.wired, cost: m.cost, regen: m.regen,
+    capacity: horse.capacity, exhaustRelease: horse.exhaustRelease, overcapCostDivisor: horse.overcapCostDivisor }
 }
 
 function motionOf(horse: Horse, pBps: bigint): PaidMotion {
   return {
     exhausted: horse.exhausted,
     b: horse.b,
-    aEff: !horse.exhausted && horse.b < horse.capMilli ? horse.accel : 0n,
+    aEff: !horse.exhausted && horse.b < horse.capMilli ? (horse.recoveryAccel || horse.accel) : 0n,
     mult: multiplierOf(pBps),
     fixed: horse.fixed,
+    baseBonus: horse.baseBonus,
+    ...(horse.exhaustCapMilli > 0n ? { exhaustPenalty: 0n } : {}),
   }
 }
 
@@ -390,10 +418,11 @@ function addInstance(
     id: st.instances.length + 1, owner, cardId, kind, slot: -1, start: tau,
     end: duration === null ? NEVER : tau + duration, active: true,
     pBps: 0n, regenBps: 0n, airborne: false, wired: false, luck: false, well: false,
-    anchor: ZERO_ANCHOR, checkpoint: 0, eventBase: 0n, count: 0, costDelta: 0n, fixed: 0n, gated: false, nextDist: 0n, ...fields,
+    anchor: ZERO_ANCHOR, checkpoint: 0, eventBase: 0n, count: 0, costDelta: 0n, fixed: 0n, gated: false, nextDist: 0n, baseBonus: 0n, ...fields,
   }
   st.instances.push(inst)
   st.horses[owner]!.fixed += inst.fixed
+  st.horses[owner]!.baseBonus += inst.baseBonus
   st.trace?.instances.push({
     ...(inst.ponyId === undefined ? {} : { ponyId: inst.ponyId }),
     id: inst.id, horse: owner, cardId, kind, initialP: inst.pBps, slot: inst.slot, startTau: tau,
@@ -461,24 +490,17 @@ function kill(st: State, h: number, tau: bigint): void {
     emit(st, EV_GUARD, tau, h, BigInt(shield.id))
     return
   }
-  for (const i of st.instances) if (i.active && i.owner === h && i.kind === 'fixed') endInstance(st, i, tau, 'death')
-  horse.b = 0n; horse.fixed = 0n; horse.atCap = false
+  horse.b = 0n; horse.atCap = false
+  if (horse.exhaustCapMilli > 0n) horse.recoveryAccel = BigInt(PLAYER_BALANCE.acceleration)
   const respawn = addInstance(st, tau, h, 0, 'respawn', RESPAWN_MS)
   emit(st, EV_DEATH, tau, h, BigInt(respawn.id))
-  const listener = st.instances.find((i) => i.active && i.owner === h && i.kind === 'watch' && i.cardId === 38 && tau < i.end)
-  if (listener) {
-    endInstance(st, listener, tau, 'consumed')
-    triggerLog(st, listener, tau)
-    const r = paidCardRule(38)
-    addInstance(st, tau, h, 38, 'fixed', BigInt(r.triggerDurationMs!), { fixed: BigInt(r.fixedSpeed!) })
-    emit(st, EV_FIXED, tau, h, BigInt(r.fixedSpeed!))
-  }
 }
 
 function recover(st: State, h: number, amount: bigint, tau: bigint): void {
   const horse = st.horses[h]!
   const gain = restoredStamina(horse.s, amount) - horse.s
   horse.s += gain
+  if (!horse.exhausted) horse.overcap = horse.s > horse.capacity
   emit(st, EV_RESOURCE, tau, h, gain)
 }
 
@@ -500,7 +522,9 @@ function triggerAt(st: State, i: Instance, tau: bigint): bigint {
   if (!i.active) return NEVER
   if (i.kind === 'ability' && i.count < SWAP_ATTEMPTS) return i.start + SWAP_PERIOD_MS * BigInt(i.count)
   if (i.kind === 'equip' && i.cardId === 11) {
-    const at = i.start + WHEEL_PERIOD_MS * BigInt(i.count + 1)
+    const levels = paidCardRule(11).flameLayers!
+    if (i.count >= levels.length) return NEVER
+    const at = i.start + WHEEL_PERIOD_MS * BigInt(levels[i.count]! - 1)
     return at < i.end ? at : NEVER
   }
   if (i.kind !== 'watch' || tau >= i.end) return NEVER
@@ -509,9 +533,10 @@ function triggerAt(st: State, i: Instance, tau: bigint): bigint {
   if (r.effect === 'reserve') {
     const h = st.horses[i.owner]!
     const threshold = BigInt(r.thresholdMicro!)
-    if (h.s <= threshold) return tau
+    if (h.s < threshold) return tau
     const m = mods(st, i.owner)
-    if (!h.exhausted && !h.overcap && m.cost > m.regen) return tau + ceilDiv(h.s - threshold, m.cost - m.regen)
+    if (!h.exhausted && !h.overcap && m.cost > m.regen) return tau + ceilDiv(h.s - threshold + 1n, m.cost - m.regen)
+    if (h.overcap) return tau + ceilDiv(h.s - h.capacity, m.cost / h.overcapCostDivisor)
   }
   if (r.effect === 'mileage' && i.count < r.count! && st.horses[i.owner]!.dist >= i.nextDist) return tau
   return NEVER
@@ -526,7 +551,7 @@ function equipSpec(cardId: number): EquipSpec {
     case 'rocket': return { slot: rule.slot!, duration, fields: { pBps: BigInt(rule.pBps!), costDelta: BigInt(rule.costMultiplierBps!) - BPS } }
     case 'rainbow': return { slot: rule.slot!, duration, fields: { pBps: BigInt(rule.pBps!) } }
     case 'gravity': return { slot: rule.slot!, duration, fields: { well: true } }
-    case 'wheel': return { slot: rule.slot!, duration, fields: { airborne: true } }
+    case 'wheel': return { slot: rule.slot!, duration, fields: { airborne: true, fixed: WHEEL_DELTA_V, count: 1 } }
     default: throw new Error('NOT_EQUIPMENT')
   }
 }
@@ -545,6 +570,7 @@ function equip(st: State, h: number, cardId: number, tau: bigint, acquired = tru
   const inst = addInstance(st, tau, h, cardId, 'equip', duration, { ...spec.fields, slot: spec.slot })
   horse.equip[spec.slot] = inst.id
   emit(st, EV_EQUIP_ON, tau, h, BigInt(inst.id))
+  if (cardId === 11) emit(st, EV_WHEEL_BURST, tau, h, 1n)
   onEquipment(st, h, tau)
   return duration
 }
@@ -612,27 +638,31 @@ function applyCard(st: State, h: number, cardId: number, src: CardSource, tau: b
     case 'regen': addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { regenBps: BigInt(rule.regenBonusBps!) }); break
     case 'adrenaline':
       horse.s += ADRENALINE_MICRO
-      if (!horse.exhausted) horse.overcap = horse.s > STAMINA_CAPACITY
+      if (!horse.exhausted) horse.overcap = horse.s > horse.capacity
       break
     case 'wired':
       addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { wired: true })
+      if (horse.s < 1_000_000n) horse.s = 1_000_000n
       if (horse.exhausted) {
         horse.exhausted = false
+        if (horse.exhaustCapMilli > 0n) horse.recoveryAccel = BigInt(PLAYER_BALANCE.acceleration)
         horse.overcap = false
         emit(st, EV_EXHAUST_EXIT, tau, h, horse.s)
       }
       break
-    case 'coat': horse.coat = rule.coatRgb!; break
-    case 'fixed': horse.fixed += BigInt(rule.fixedSpeed!); break
+    case 'coat': horse.coat = rule.coatRgb!; horse.hairTypes |= cardId === 19 ? 1 : 2; break
+    case 'fixed': horse.baseBonus += BigInt(rule.fixedSpeed!); break
     case 'blindFixed':
-      horse.fixed += BigInt(rule.fixedSpeed!)
+      horse.baseBonus += BigInt(rule.fixedSpeed!)
       horse.blindedPro = true
       break
     case 'pay': {
-      const { paid, bps } = staminaPayment(horse.s)
+      const floor = mods(st, h).wired ? 1_000_000n : 0n
+      const { paid } = staminaPayment(horse.s > floor ? horse.s - floor : 0n)
       horse.s -= paid
       emit(st, EV_RESOURCE, tau, h, -paid)
-      addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: bps })
+      addInstance(st, tau, h, cardId, 'fixed', BigInt(rule.durationMs!), { fixed: BigInt(rule.fixedSpeed!) })
+      emit(st, EV_FIXED, tau, h, BigInt(rule.fixedSpeed!))
       break
     }
     case 'phased': addInstance(st, tau, h, cardId, 'watch', BigInt(rule.durationMs!), { pBps: BigInt(rule.pBps!), regenBps: BigInt(rule.regenBonusBps!) }); break
@@ -641,29 +671,29 @@ function applyCard(st: State, h: number, cardId: number, src: CardSource, tau: b
       addInstance(st, tau, h, cardId, 'watch', BigInt(rule.durationMs!)); break
     case 'thrift': addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(rule.pBps!), costDelta: BigInt(rule.costDeltaBps!) }); break
     case 'rage': case 'paper': case 'ground': case 'coatGate': case 'unarmed':
-      addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { gated: true, costDelta: BigInt(rule.costDeltaBps ?? 0) }); break
+      addInstance(st, tau, h, cardId, 'buff', rule.durationMs === null ? null : BigInt(rule.durationMs), { gated: true, costDelta: BigInt(rule.costDeltaBps ?? 0) }); break
     case 'recycle': {
       const candidates = st.instances.filter((i) => i.active && i.owner === h && i.kind === 'equip').sort((a,b) => a.end < b.end ? -1 : a.end > b.end ? 1 : a.id - b.id)
       const old = candidates[0]
       lootMs = BigInt(old ? rule.durationMs! : rule.periodMs!)
-      if (old) { endInstance(st, old, tau, 'recycled'); emit(st, EV_EQUIP_OFF, tau, h, BigInt(old.id * 4 + OFF_RECYCLED)); recover(st, h, BigInt(rule.staminaMicro!), tau) }
+      if (old) { endInstance(st, old, tau, 'recycled'); emit(st, EV_EQUIP_OFF, tau, h, BigInt(old.id * 4 + OFF_RECYCLED)) }
+      recover(st, h, BigInt(rule.staminaMicro!), tau)
       addInstance(st, tau, h, cardId, 'buff', lootMs, { pBps: BigInt(old ? rule.pBps! : rule.fallbackBps!) }); break
     }
     case 'tinker':
-      addInstance(st, tau, h, cardId, 'buff', BigInt(rule.periodMs!), { pBps: BigInt(rule.pBps!) })
       addInstance(st, tau, h, cardId, 'watch', null)
-      if (horse.equip.some(Boolean)) onEquipment(st, h, tau)
+      for (const id of horse.equip) if (id) onEquipment(st, h, tau)
       break
     case 'renew': {
-      let renewed = false
       for (const id of horse.equip) {
         if (!id) continue
         const i = st.instances[id - 1]!
         i.end = tau + BigInt(paidCardRule(i.cardId).durationMs!)
+        addInstance(st, tau, h, cardId, 'buff', BigInt(paidCardRule(i.cardId).durationMs!), { pBps: BigInt(rule.pBps!) })
         st.trace?.renewals.push({ instanceId: id, tau, end: i.end })
-        emit(st, EV_EQUIP_REFRESH, tau, h, BigInt(id)); renewed = true
+        emit(st, EV_EQUIP_REFRESH, tau, h, BigInt(id))
       }
-      if (!renewed) { lootMs = BigInt(rule.periodMs!); addInstance(st, tau, h, cardId, 'buff', lootMs, { pBps: BigInt(rule.fallbackBps!) }) }
+      // No equipment means no refresh and no speed fallback.
       break
     }
     case 'target': {
@@ -680,17 +710,16 @@ function applyCard(st: State, h: number, cardId: number, src: CardSource, tau: b
       addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(first ? rule.pBps! : rule.fallbackBps!) }); break
     }
     case 'feast':
-      for (let target = 0; target < HORSE_COUNT; target++) if (!st.horses[target]!.finished) recover(st, target, BigInt(rule.staminaMicro!), tau)
+      for (let target = 0; target < HORSE_COUNT; target++) recover(st, target, BigInt(rule.staminaMicro!), tau)
       addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(rule.pBps!) }); break
     case 'guard': addInstance(st, tau, h, cardId, 'watch', null); break
-    case 'deathBurst': addInstance(st, tau, h, cardId, 'watch', BigInt(rule.durationMs!)); break
+    case 'exhaustReserve': addInstance(st, tau, h, cardId, 'watch', BigInt(rule.durationMs!)); break
     case 'forfeit':
       addInstance(st, tau, h, cardId, 'buff', BigInt(rule.periodMs!), { pBps: BigInt(rule.pBps!) })
       addInstance(st, tau, h, cardId, 'watch', null); break
     case 'mileage':
-      horse.fixed += BigInt(rule.fixedSpeed!)
       emit(st, EV_FIXED, tau, h, BigInt(rule.fixedSpeed!))
-      addInstance(st, tau, h, cardId, 'watch', null, { nextDist: horse.dist + BigInt(rule.radiusMicro!) }); break
+      addInstance(st, tau, h, cardId, 'watch', null, { nextDist: horse.dist + BigInt(rule.radiusMicro!), baseBonus: BigInt(rule.fixedSpeed!) }); break
     default: break
   }
   if (horse.bonus) addInstance(st, tau, h, cardId, 'bonus', bonusDurationMs(cardId, lootMs), { pBps: BONUS_BPS })
@@ -889,17 +918,30 @@ function applyDue(st: State, due: Due, tau: bigint): void {
       if (due.sub === 0) {
         horse.b = horse.capMilli
         horse.atCap = true
+        horse.recoveryAccel = 0n
         emit(st, EV_BASE_CAP, tau, due.horse, horse.b)
       } else if (horse.exhausted) {
         horse.exhausted = false
-        horse.overcap = horse.s > STAMINA_CAPACITY
+        if (horse.exhaustCapMilli > 0n) horse.recoveryAccel = BigInt(PLAYER_BALANCE.acceleration)
+        horse.overcap = horse.s > horse.capacity
         emit(st, EV_EXHAUST_EXIT, tau, due.horse, horse.s)
       } else if (horse.overcap) {
         horse.overcap = false
         emit(st, EV_OVERCAP_END, tau, due.horse, horse.s)
       } else {
+        const listener = st.instances.find(i => i.active && i.owner === due.horse && i.kind === 'watch' && i.cardId === 38 && tau < i.end)
+        if (listener) {
+          endInstance(st, listener, tau, 'consumed')
+          triggerLog(st, listener, tau)
+          recover(st, due.horse, BigInt(paidCardRule(38).staminaMicro!), tau)
+          return
+        }
         horse.s = 0n
         horse.exhausted = true
+        if (horse.exhaustCapMilli > 0n) {
+          if (horse.b > horse.exhaustCapMilli) horse.b = horse.exhaustCapMilli
+          if (horse.b < horse.capMilli) horse.atCap = false
+        }
         emit(st, EV_EXHAUST_ENTER, tau, due.horse, 0n)
       }
       return
@@ -932,11 +974,18 @@ function applyDue(st: State, due: Due, tau: bigint): void {
           endInstance(st, inst, tau, 'consumed'); recover(st, inst.owner, BigInt(r.staminaMicro!), tau)
           if (inst.start === tau) ponyFood(st, inst.owner, inst.cardId, before, tau)
         }
-        else if (r.effect === 'mileage') { inst.nextDist += BigInt(r.radiusMicro!); st.horses[inst.owner]!.fixed += BigInt(r.triggerFixedSpeed!); emit(st, EV_FIXED, tau, inst.owner, BigInt(r.triggerFixedSpeed!)) }
+        else if (r.effect === 'mileage') {
+          inst.nextDist += BigInt(r.radiusMicro!)
+          const next = BigInt(r.baseStages![inst.count]!), delta = next - inst.baseBonus
+          st.horses[inst.owner]!.baseBonus += delta
+          inst.baseBonus = next
+          emit(st, EV_FIXED, tau, inst.owner, delta)
+        }
       } else {
-        inst.count++
+        inst.fixed += WHEEL_DELTA_V
         st.horses[inst.owner]!.fixed += WHEEL_DELTA_V
-        emit(st, EV_WHEEL_BURST, tau, inst.owner, BigInt(inst.count))
+        emit(st, EV_WHEEL_BURST, tau, inst.owner, BigInt(paidCardRule(11).flameLayers![inst.count]!))
+        inst.count++
       }
       return
     }
@@ -1024,8 +1073,8 @@ function nextKnownTau(st: State, tau: bigint): bigint {
   for (let h = 0; h < HORSE_COUNT; h++) {
     const horse = st.horses[h]!
     if (horse.finished) continue
-    if (!horse.atCap && !horse.exhausted && horse.accel > 0n && horse.b < horse.capMilli) {
-      const at = tau + ceilDiv(horse.capMilli - horse.b, horse.accel)
+    if (!horse.atCap && !horse.exhausted && (horse.recoveryAccel || horse.accel) > 0n && horse.b < horse.capMilli) {
+      const at = tau + ceilDiv(horse.capMilli - horse.b, horse.recoveryAccel || horse.accel)
       if (at < next) next = at
     }
     const dt = staminaEventDt(staminaMotion(horse, mods(st, h)))

@@ -50,7 +50,6 @@ function sameRoster(a: readonly number[] | undefined, b: readonly number[] | und
 
 const PLACEHOLDER_ANCHOR: Hex = `0x${'00'.repeat(32)}`
 const SNAP_MS = 5000
-const MAX_OFFSET_UNITS = 4000 * 10_000
 const CUT_NOTICE_MS = 2500
 
 /** included = 已入块且生效；ignored = 已入块但按规则不生效（reason 为 CHOICE_INVALID 原因） */
@@ -403,7 +402,7 @@ export class PaidRaceDriver implements RaceScreenDriver {
         const before = demoPos(sampleHorse(prev, h, this.displayTau).pos) + now[h]!
         const after = demoPos(sampleHorse(next.trace!, h, newTau).pos)
         const d = before - after
-        return Math.abs(d) < MAX_OFFSET_UNITS ? d : 0
+        return d
       })
       this.offsetStart = this.lastLocal
     }

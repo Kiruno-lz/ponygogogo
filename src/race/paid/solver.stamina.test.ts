@@ -1,11 +1,12 @@
 import { expect, test } from 'bun:test'
+import { derivePaidProfiles } from '../core/paidProfiles.ts'
 import { STAMINA_CAPACITY } from './constants.ts'
 import {
   EV_BASE_CAP, EV_CARD, EV_EXHAUST_ENTER, EV_EXHAUST_EXIT, EV_EXPIRE, EV_OVERCAP_END, PAID_EVENT_NAMES,
 } from './events.ts'
 import { ceilDiv, exhaustedSpeed } from './motion.ts'
 import { solvePaidCore, type PaidCoreProfile, type PaidSolveResult } from './solver.ts'
-import { fixtureInput, fixtureProfiles } from './testkit.ts'
+import { FIXTURE_ANCHOR, FIXTURE_SEED, fixtureInput, fixtureProfiles } from './testkit.ts'
 import { sampleHorse, sampleStatus } from './trace.ts'
 
 const H = 0
@@ -48,25 +49,25 @@ test('rocket halves the running cost: net −2 per second while worn', () => {
   const r = cpuRace({ base: 300n, acceleration: 3n, cap: 500n }, [7, 20, 5])
   const pick = tauOf(r, EV_CARD)
   const s0 = STAMINA_CAPACITY - DRAIN * pick
-  expect(sampleHorse(r.trace!, H, pick + 40_000n).stamina).toBe(s0 - 2_000n * 40_000n)
-  expect(tauOf(r, EV_EXHAUST_ENTER)).toBe(pick + 40_000n + ceilDiv(s0 - 80_000_000n, DRAIN))
+  expect(sampleHorse(r.trace!, H, pick + 20_000n).stamina).toBe(s0 - 2_000n * 20_000n)
+  expect(tauOf(r, EV_EXHAUST_ENTER)).toBe(pick + 20_000n + ceilDiv(s0 - 40_000_000n, DRAIN))
 })
 
-test('C-14 doubles regeneration for 5 s (net −4 per second while running)', () => {
+test('C-14 doubles regeneration for 15 s (net −4 per second while running)', () => {
   const r = cpuRace({ base: 300n, acceleration: 3n, cap: 500n }, [14, 20, 5])
   const pick = tauOf(r, EV_CARD)
   const s0 = STAMINA_CAPACITY - DRAIN * pick
-  const s1 = s0 - 4_000n * 5_000n
-  expect(tauOf(r, EV_EXPIRE)).toBe(pick + 5_000n)
-  expect(sampleHorse(r.trace!, H, pick + 5_000n).stamina).toBe(s1)
-  expect(tauOf(r, EV_EXHAUST_ENTER)).toBe(pick + 5_000n + ceilDiv(s1, DRAIN))
+  const s1 = s0 - 4_000n * 15_000n
+  expect(tauOf(r, EV_EXPIRE)).toBe(pick + 15_000n)
+  expect(sampleHorse(r.trace!, H, pick + 15_000n).stamina).toBe(s1)
+  expect(tauOf(r, EV_EXHAUST_ENTER)).toBe(pick + 15_000n + ceilDiv(s1, DRAIN))
 })
 
 test('C-15 overcap drains at cost only until the first ms at or below capacity', () => {
   const r = cpuRace({ base: 5_000n, acceleration: 0n, cap: 5_000n }, [15, 20, 5])
   expect(log(r)[0]).toBe('0:BASE_CAP')
   const pick = tauOf(r, EV_CARD)
-  const s = STAMINA_CAPACITY - DRAIN * pick + 200_000_000n
+  const s = STAMINA_CAPACITY - DRAIN * pick + 250_000_000n
   expect(sampleHorse(r.trace!, H, pick).stamina).toBe(s)
   const end = pick + ceilDiv(s - STAMINA_CAPACITY, 24_000n)
   expect(tauOf(r, EV_OVERCAP_END)).toBe(end)
@@ -77,28 +78,29 @@ test('C-15 overcap drains at cost only until the first ms at or below capacity',
 test('C-15 while exhausted: exits immediately when it reaches capacity, otherwise only shortens recovery', () => {
   const full = cpuRace({ base: 100n, acceleration: 1n, cap: 200n }, [15, 20, 5])
   const pick = tauOf(full, EV_CARD)
-  const s = REGEN * (pick - 71_429n) + 200_000_000n
+  const s = REGEN * (pick - 71_429n) + 250_000_000n
   expect(s).toBeGreaterThan(STAMINA_CAPACITY)
   expect(log(full).slice(1, 4)).toEqual([
     `${pick}:CARD`, `${pick}:EXHAUST_EXIT`, `${pick + ceilDiv(s - STAMINA_CAPACITY, 24_000n)}:OVERCAP_END`,
   ])
   const partial = cpuRace({ base: 200n, acceleration: 2n, cap: 600n }, [15, 20, 5])
   const p = tauOf(partial, EV_CARD)
-  const s2 = REGEN * (p - 71_429n) + 200_000_000n
+  const s2 = REGEN * (p - 71_429n) + 250_000_000n
   expect(s2).toBeLessThan(STAMINA_CAPACITY)
   expect(tauOf(partial, EV_EXHAUST_EXIT)).toBe(p + ceilDiv(STAMINA_CAPACITY - s2, REGEN))
 })
 
-test('C-16 keeps acceleration at zero stamina and exhausts at expiry when s = 0 and net < 0', () => {
+test('C-16 floors stamina at one and only exhausts after its forty-second expiry', () => {
   const r = cpuRace({ base: 330n, acceleration: 1n, cap: 500n }, [16, 20, 5])
   const pick = tauOf(r, EV_CARD)
   const zero = pick + ceilDiv(STAMINA_CAPACITY - DRAIN * pick, DRAIN)
-  expect(zero).toBeLessThan(pick + 10_000n)
-  const mid = sampleHorse(r.trace!, H, pick + 9_000n)
-  expect(mid).toMatchObject({ stamina: 0n, exhausted: false })
-  expect(mid.b).toBe(330_000n + pick + 9_000n)
-  expect(sampleStatus(r.trace!, H, pick + 9_000n).wired).toBe(true)
-  expect(log(r).filter((l) => l.startsWith(`${pick + 10_000n}:`))).toEqual([`${pick + 10_000n}:EXPIRE`, `${pick + 10_000n}:EXHAUST_ENTER`])
+  expect(zero).toBeLessThan(pick + 40_000n)
+  const mid = sampleHorse(r.trace!, H, pick + 39_000n)
+  expect(mid).toMatchObject({ stamina: 1_000_000n, exhausted: false })
+  expect(mid.b).toBe(330_000n + pick + 39_000n)
+  expect(sampleStatus(r.trace!, H, pick + 39_000n).wired).toBe(true)
+  expect(log(r).filter((l) => l.startsWith(`${pick + 40_000n}:`))).toEqual([`${pick + 40_000n}:EXPIRE`])
+  expect(tauOf(r, EV_EXHAUST_ENTER, pick)).toBe(pick + 40_000n + ceilDiv(1_000_000n, DRAIN))
 })
 
 test('C-16 acquired while exhausted removes exhaustion and keeps the current stamina', () => {
@@ -108,12 +110,27 @@ test('C-16 acquired while exhausted removes exhaustion and keeps the current sta
   expect(exit.tau).toBe(pick)
   expect(exit.arg).toBe(REGEN * (pick - 71_429n))
   expect(tauOf(r, EV_BASE_CAP)).toBeGreaterThan(pick)
-  expect(tauOf(r, EV_EXHAUST_ENTER, pick)).toBe(pick + 10_000n)
+  expect(tauOf(r, EV_EXHAUST_ENTER, pick)).toBe(pick + 40_000n + ceilDiv(1_000_000n, DRAIN))
 })
 
 test('wired expiry with positive stamina leaves the normal drain in charge', () => {
-  const r = cpuRace({ base: 5_000n, acceleration: 0n, cap: 5_000n }, [16, 20, 5])
+  const r = cpuRace({ base: 1_500n, acceleration: 0n, cap: 1_500n }, [16, 20, 5])
   const pick = tauOf(r, EV_CARD)
   expect(r.events.some((e) => e.horse === H && e.code === EV_EXHAUST_ENTER)).toBe(false)
-  expect(sampleHorse(r.trace!, H, pick + 10_000n).stamina).toBe(STAMINA_CAPACITY - DRAIN * (pick + 10_000n))
+  expect(sampleHorse(r.trace!, H, pick + 40_000n).stamina).toBe(STAMINA_CAPACITY - DRAIN * (pick + 40_000n))
+})
+
+test('roster CPUs run the player stamina schedule: 300 at net −10 per second, exhausted at 30 s, released at 135 after 9 s', () => {
+  const profiles = derivePaidProfiles(FIXTURE_SEED, FIXTURE_ANCHOR, 4, 0)
+    .map((p) => ({ base: BigInt(p.base), acceleration: BigInt(p.acceleration), cap: BigInt(p.cap) }))
+  const r = solvePaidCore(fixtureInput({ roster: [0, 2, 3, 4, 5], playerHorseId: 0, profiles }))
+  const schedule = (h: number) => r.events.filter((e) => e.horse === h && (e.code === EV_EXHAUST_ENTER || e.code === EV_EXHAUST_EXIT))
+    .slice(0, 2).map((e) => `${e.tau}:${PAID_EVENT_NAMES[e.code]}`)
+  expect(schedule(0)).toEqual(['30000:EXHAUST_ENTER', '39000:EXHAUST_EXIT'])
+  for (const h of [1, 2, 3]) {
+    expect(schedule(h)).toEqual(schedule(0))
+    expect(sampleHorse(r.trace!, h, 39_000n)).toMatchObject({ stamina: 135_000_000n, exhausted: false })
+  }
+  // The ox role still raises its own running cost by 10%: net −12 per second empties 300 at 25 s.
+  expect(schedule(4)).toEqual(['25000:EXHAUST_ENTER', '34000:EXHAUST_EXIT'])
 })

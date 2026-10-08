@@ -62,7 +62,7 @@ library PaidRaceCardPlan {
         if (card == 22) {
             uint256 paid = horses[h].stamina < r.staminaMicro ? horses[h].stamina : r.staminaMicro;
             actions[n++] = Action(PAY, h, 0, int256(paid), 0);
-            actions[n++] = Action(BUFF, h, r.durationMs, int256(uint256(uint32(r.pBps)) * paid / r.staminaMicro), 0);
+            actions[n++] = Action(FIXED, h, r.durationMs, r.fixedSpeed, 0);
         } else if (card == 23) {
             actions[n++] = Action(WATCH, h, r.durationMs, r.pBps, r.regenBonusBps);
         } else if (card == 24) {
@@ -84,28 +84,24 @@ library PaidRaceCardPlan {
             lootMs = old != 3 ? r.durationMs : r.periodMs;
             if (old != 3) {
                 actions[n++] = Action(RECYCLE, h, 0, int256(equipment[old].id), 0);
-                actions[n++] = Action(RECOVER, h, 0, int256(uint256(r.staminaMicro)), 0);
             }
+            actions[n++] = Action(RECOVER, h, 0, int256(uint256(r.staminaMicro)), 0);
             actions[n++] = Action(BUFF, h, lootMs, old != 3 ? r.pBps : r.fallbackBps, 0);
         } else if (card == 31) {
-            actions[n++] = Action(BUFF, h, r.periodMs, r.pBps, 0);
             actions[n++] = Action(WATCH, h, PaidCardRules.PERMANENT_MS, 0, 0);
             for (uint256 slot; slot < 3; ++slot) {
                 if (equipment[slot].id != 0) {
                     actions[n++] = Action(TINKER, h, 0, 0, 0);
-                    break;
                 }
             }
         } else if (card == 32) {
             for (uint256 slot; slot < 3; ++slot) {
                 Equipment memory e = equipment[slot];
                 if (e.id != 0) {
-                    actions[n++] = Action(RENEW, h, PaidCardRules.get(e.cardId).durationMs, int256(e.id), 0);
+                    uint32 duration = PaidCardRules.get(e.cardId).durationMs;
+                    actions[n++] = Action(RENEW, h, duration, int256(e.id), 0);
+                    actions[n++] = Action(BUFF, h, duration, r.pBps, 0);
                 }
-            }
-            if (n == 0) {
-                lootMs = r.periodMs;
-                actions[n++] = Action(BUFF, h, lootMs, r.fallbackBps, 0);
             }
         } else if (card == 34) {
             actions[n++] = Action(BUFF, h, r.durationMs, r.pBps, 0);
@@ -128,12 +124,11 @@ library PaidRaceCardPlan {
             actions[n++] = Action(BUFF, h, r.durationMs, first ? r.pBps : r.fallbackBps, 0);
         } else if (card == 36) {
             for (uint8 id; id < 5; ++id) {
-                if (!horses[id].finished) actions[n++] = Action(RECOVER, id, 0, int256(uint256(r.staminaMicro)), 0);
+                actions[n++] = Action(RECOVER, id, 0, int256(uint256(r.staminaMicro)), 0);
             }
             actions[n++] = Action(BUFF, h, r.durationMs, r.pBps, 0);
         } else if (card == 37 || card == 38 || card == 39 || card == 40) {
             if (card == 39) actions[n++] = Action(BUFF, h, r.periodMs, r.pBps, 0);
-            if (card == 40) actions[n++] = Action(FIXED, h, 0, r.fixedSpeed, 0);
             actions[n++] = Action(
                 WATCH,
                 h,

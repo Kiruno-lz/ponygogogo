@@ -35,8 +35,12 @@ test('keyframes tile [0, tauEnd] per horse and dist is continuous across every b
 })
 
 test('a partial solve ends in exactly the state the full trace samples at that ms', () => {
-  for (const wall of [12_345n, 33_333n, 58_000n, 90_001n]) {
+  // untilWall is a known event that shortens the RK2 step, so the cuts stay outside the busy race's C-10 windows.
+  const wellAt = (tau: bigint) => trace.instances.some((i) => i.cardId === 10 && i.kind === 'equip'
+    && i.startTau <= tau && tau < (i.endTau ?? full.tauEnd))
+  for (const wall of [12_345n, 18_600n, 58_000n, 90_001n]) {
     const part = solvePaidCore(busy, { untilWall: wall })
+    expect(wellAt(part.tauEnd)).toBe(false)
     for (let h = 0; h < 5; h++) {
       const end = part.trace!.keyframes[h]!.at(-1)!
       const sample = sampleHorse(trace, h, part.tauEnd)
