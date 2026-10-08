@@ -70,6 +70,10 @@ contract RoleConvergenceTest {
         }
         PaidRaceMotion.initHorses(horses, profiles, words, 600001, 0);
         require(horses[0].s == 400000000 && horses[0].staminaCapacity == 400000000, "food capacity");
+        require(horses[1].s == 300000000 && horses[1].staminaCapacity == 300000000, "CPU capacity");
+        PaidRaceMotion.Horse[5] memory cpuFood;
+        PaidRaceMotion.initHorses(cpuFood, profiles, words, 600001, 1);
+        require(cpuFood[0].s == 300000000 && cpuFood[0].staminaCapacity == 300000000, "food CPU capacity");
         horses[1].equipTorso = 1;
         horses[1].equipTail = 2;
         int256[5] memory previous;

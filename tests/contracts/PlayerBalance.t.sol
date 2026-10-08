@@ -42,6 +42,10 @@ contract PlayerBalanceTest {
         PaidRaceEngine.State memory st;
         PaidProfiles.Profile[5] memory profiles = PaidProfiles.derive(bytes32(0), bytes32(0), 1, 0);
         PaidRaceMotion.initHorses(st.horses, profiles, st.ponyWords, 600001, 0);
+        // CPUs share the player's start and acceleration; finish them so only the player's dues are scheduled.
+        for (uint256 i = 1; i < 5; ++i) {
+            st.horses[i].finished = true;
+        }
         PaidRaceMotion.Horse memory h = st.horses[0];
         h.b = h.capMilli;
         h.atCap = true;
@@ -66,7 +70,12 @@ contract PlayerBalanceTest {
         require(h.s == 300_000_000 && h.staminaCapacity == 300_000_000, "player capacity");
         for (uint256 i; i < 5; ++i) {
             if (i == 3) continue;
-            require(horses[i].s == 1_000_000_000 && horses[i].baseCost == 24000, "opponents unchanged");
+            require(horses[i].s == 300_000_000 && horses[i].staminaCapacity == 300_000_000, "opponent capacity");
+            require(
+                horses[i].baseCost == 20_000 && horses[i].baseRegen == 10_000 && horses[i].exhaustRegen == 15_000
+                    && horses[i].exhaustRelease == 135_000_000 && horses[i].overcapCostDivisor == 2,
+                "opponents share the player stamina model"
+            );
             horses[i].finished = true;
         }
         h.b = 1_200_000;
@@ -88,5 +97,18 @@ contract PlayerBalanceTest {
         require(PaidRaceMotion.refresh(horses, sx, laneLive, bombs, 9000) == 11000, "half cost overcap boundary");
         PaidRaceMotion.advance(sx, 9000, 11000);
         require(h.s == 300_000_000, "overcap costs 10 per second without regeneration");
+    }
+
+    /// @dev Records without a roster keep the archived stamina model on every horse.
+    function testLegacyHorsesKeepArchivedStamina() public pure {
+        PaidRaceMotion.Horse[5] memory horses;
+        PaidProfiles.Profile[5] memory profiles = PaidProfiles.derive(bytes32(0), bytes32(0), 1, 3);
+        uint256[5] memory words;
+        PaidRaceMotion.initHorses(horses, profiles, words, 600001, PaidRaceMotion.NONE);
+        for (uint256 i; i < 5; ++i) {
+            PaidRaceMotion.Horse memory h = horses[i];
+            require(h.s == 1_000_000_000 && h.staminaCapacity == 1_000_000_000, "legacy capacity");
+            require(h.baseCost == 24_000 && h.overcapCostDivisor == 1 && h.exhaustCapMilli == 0, "legacy rates");
+        }
     }
 }

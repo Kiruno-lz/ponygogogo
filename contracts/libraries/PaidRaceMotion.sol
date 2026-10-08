@@ -235,27 +235,25 @@ library PaidRaceMotion {
         }
         for (uint256 i; i < 5; ++i) {
             Horse memory h = horses[i];
-            h.staminaCapacity = STAMINA_CAPACITY;
-            h.exhaustRelease = STAMINA_CAPACITY;
-            h.baseCost = COST_PER_MS;
-            h.baseRegen = REGEN_PER_MS;
-            h.exhaustRegen = REGEN_PER_MS;
-            h.overcapCostDivisor = 1;
-            if (balancedPlayer != NONE) {
-                h.exhaustRelease = PlayerBalance.EXHAUST_RELEASE;
-                h.exhaustRegen = PlayerBalance.EXHAUST_REGEN_PER_MS;
-                h.exhaustCapMilli = PlayerBalance.EXHAUST_SPEED_CAP_MILLI;
+            if (balancedPlayer == NONE) {
+                h.staminaCapacity = STAMINA_CAPACITY;
+                h.exhaustRelease = STAMINA_CAPACITY;
+                h.baseCost = COST_PER_MS;
+                h.baseRegen = REGEN_PER_MS;
+                h.exhaustRegen = REGEN_PER_MS;
+                h.overcapCostDivisor = 1;
+                continue;
             }
-            if (i == balancedPlayer) {
-                h.staminaCapacity = PlayerBalance.STAMINA_CAPACITY + ((words[i] >> 160) & 0xffff) * 1_000_000;
-                h.s = h.staminaCapacity;
-                h.exhaustRelease = PlayerBalance.EXHAUST_RELEASE;
-                h.baseCost = PlayerBalance.COST_PER_MS;
-                h.baseRegen = PlayerBalance.REGEN_PER_MS;
-                h.exhaustRegen = PlayerBalance.EXHAUST_REGEN_PER_MS;
-                h.exhaustCapMilli = PlayerBalance.EXHAUST_SPEED_CAP_MILLI;
-                h.overcapCostDivisor = PlayerBalance.OVERCAP_COST_DIVISOR;
-            }
+            // Roster rules give CPU horses the player's stamina model; only the player gets the role capacity bonus.
+            h.staminaCapacity = PlayerBalance.STAMINA_CAPACITY;
+            if (i == balancedPlayer) h.staminaCapacity += ((words[i] >> 160) & 0xffff) * 1_000_000;
+            h.s = h.staminaCapacity;
+            h.exhaustRelease = PlayerBalance.EXHAUST_RELEASE;
+            h.baseCost = PlayerBalance.COST_PER_MS;
+            h.baseRegen = PlayerBalance.REGEN_PER_MS;
+            h.exhaustRegen = PlayerBalance.EXHAUST_REGEN_PER_MS;
+            h.exhaustCapMilli = PlayerBalance.EXHAUST_SPEED_CAP_MILLI;
+            h.overcapCostDivisor = PlayerBalance.OVERCAP_COST_DIVISOR;
         }
     }
 

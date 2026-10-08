@@ -12,6 +12,6 @@ test('one paid card table covers 40 cards and generates runtime rarity/CPU eligi
   expect(PAID_RARE_MASK).toBe(0xf6e232973en)
   expect(PAID_CPU_MASK).toBe(0xbfefe3fae3n)
   expect(PAID_CARD_RULES_HASH).toBe('0x2fb8024634b4478068c7ee65317fbdcbe37194623bc3fc60758e1211de251923')
-  expect(PAID_RULESET_HASH).toBe('0x62efd16f42433fff515a57b75b760d3cdded3db076947753ca9c2c9c83dbbe66')
+  expect(PAID_RULESET_HASH).toBe('0xafc2e111c19575634167bc7478a7a75ba0d3eb1133b1c0080309437b862634e1')
   expect(paidCardRule(10)).toMatchObject({ effect: 'gravity', radiusMicro: 8_000_000_000, strengthBps: 3_000, overlapBps: 3_000 })
 })

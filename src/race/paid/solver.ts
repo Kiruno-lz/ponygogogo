@@ -307,15 +307,16 @@ function createState(input: PaidCoreInput, opts: PaidSolveOptions): State {
     const role = input.roster ? ponyRule(input.roster[h]!) : null
     const player = input.roster !== undefined && h === input.playerHorseId
     const modern = input.roster !== undefined
-    const capacity = player ? BigInt(PLAYER_BALANCE.staminaCapacity + (role?.staminaCapacityDelta ?? 0)) * 1_000_000n : STAMINA_CAPACITY
+    // Roster rules give CPU horses the player's stamina model; only the player gets the role capacity bonus.
+    const capacity = modern ? BigInt(PLAYER_BALANCE.staminaCapacity + (player ? role?.staminaCapacityDelta ?? 0 : 0)) * 1_000_000n : STAMINA_CAPACITY
     horses.push({
       base: p.base, accel: p.acceleration, recoveryAccel: 0n, capMilli: (p.cap + BigInt(role?.capDelta ?? 0)) * 1000n,
       pos: 0n, dist: 0n, prevPos: 0n, b: p.base * 1000n, s: capacity, fixed: 0n, baseBonus: 0n, coat: 0, hairTypes: 0, lane: h, cp: 0,
       capacity, exhaustRelease: modern ? BigInt(PLAYER_BALANCE.exhaustRelease) * 1_000_000n : capacity,
-      baseCost: player ? BigInt(PLAYER_BALANCE.staminaCostPerSecond) * 1000n : COST_PER_MS,
-      baseRegen: player ? BigInt(PLAYER_BALANCE.staminaRegenPerSecond) * 1000n : REGEN_PER_MS,
+      baseCost: modern ? BigInt(PLAYER_BALANCE.staminaCostPerSecond) * 1000n : COST_PER_MS,
+      baseRegen: modern ? BigInt(PLAYER_BALANCE.staminaRegenPerSecond) * 1000n : REGEN_PER_MS,
       exhaustRegen: modern ? BigInt(PLAYER_BALANCE.exhaustRegenPerSecond) * 1000n : REGEN_PER_MS,
-      overcapCostDivisor: player ? BigInt(PLAYER_BALANCE.overcapCostDivisor) : 1n,
+      overcapCostDivisor: modern ? BigInt(PLAYER_BALANCE.overcapCostDivisor) : 1n,
       exhaustCapMilli: modern ? BigInt(PLAYER_BALANCE.exhaustSpeedCap) * 1000n : 0n,
       exhausted: false, overcap: false, atCap: false, finished: false, finishTime: UNFINISHED_TAU, finishWall: NEVER,
       blindedPro: false, drawCut: false, bonus: false, equip: [0, 0, 0], seenFunctions: 0,

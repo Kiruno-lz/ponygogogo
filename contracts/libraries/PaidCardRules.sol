@@ -6,7 +6,7 @@ library PaidCardRules {
     error InvalidCard();
 
     bytes32 internal constant TABLE_HASH = 0x2fb8024634b4478068c7ee65317fbdcbe37194623bc3fc60758e1211de251923;
-    bytes32 internal constant RULESET_HASH = 0x62efd16f42433fff515a57b75b760d3cdded3db076947753ca9c2c9c83dbbe66;
+    bytes32 internal constant RULESET_HASH = 0xafc2e111c19575634167bc7478a7a75ba0d3eb1133b1c0080309437b862634e1;
     bytes32 internal constant LEGACY_RULESET_HASH = 0x57f1149242930a98ef7819e90b5945887432efcc677578a290b19e355536af6e;
     uint256 internal constant RARE_MASK = 0xf6e232973e;
     uint256 internal constant CPU_MASK = 0xbfefe3fae3;

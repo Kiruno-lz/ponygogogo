@@ -125,7 +125,6 @@ export function SelectScreen(p: SelectScreenProps) {
       </div>
       {!p.paidOpen && <div className="bet-paid-closed" data-testid="paid-closed">{p.paidHint ?? t(p.lang, 'select.paidNotDeployed')}</div>}
       <div className="bet-win"><img src="/assets/art/ui/coin-trimmed.webp" alt=""/><span data-testid="potential-win">{tier === PRACTICE_TIER ? t(p.lang, 'select.freeWin') : `${formatMonTrim(paidMaxPayout(tier as 1 | 2 | 3 | 4))} MON`}</span><img src="/assets/art/ui/horseshoe-trimmed.webp" alt=""/></div>
-      <div className="bet-difficulty"><span>{t(p.lang, 'select.difficulty')}</span><strong data-testid="difficulty">{t(p.lang, `select.tier${tier}`)}</strong></div>
     </div>
     <div className="select-race-cta"><StarButton big={`${t(p.lang, 'select.race')}!`}
       sub={horseId === null ? t(p.lang, 'select.chooseHorse') : undefined}
