@@ -2,6 +2,19 @@ import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { idlePaidState } from '../race/paidSnapshot.ts'
 import { Hud } from './Hud.tsx'
+import { FP } from '../race/core/fixed.ts'
+
+test('current player stamina bar uses the 300-unit capacity for full, half and overcap states', () => {
+  const state = idlePaidState(0, 0, [0, 1, 2, 3, 4])
+  const render = () => renderToStaticMarkup(<Hud state={state} lang="zh" reducedMotion={false}
+    gogoPunchKey={0} onGogoDown={() => {}} onGogoUp={() => {}} hideGogo={false} />)
+  state.horses[0].stamina = 300 * FP
+  expect(render()).toContain('clip-path:inset(0 0% 0 0)')
+  state.horses[0].stamina = 150 * FP
+  expect(render()).toContain('clip-path:inset(0 44% 0 0)')
+  state.horses[0].stamina = 301 * FP
+  expect(render()).toContain('stamina-art over-art')
+})
 
 test('免费和有奖状态的 gogo 都只显示 GOGOGO，卡牌能力不改写它', () => {
   for (const stakeTier of [0, 2]) for (const abilityId of [null, 'clapSwap', 'wheelHold'] as const) {
@@ -35,4 +48,12 @@ test('免费和有奖状态力竭时 gogo 仍可用，保留力竭提示和体�
     expect(html).toContain('data-testid="exhausted"')
     expect(html).toContain('stamina-art exhausted-art')
   }
+})
+
+test('Food player stamina bar uses its role capacity without marking starting stamina as overcap',()=>{
+ const state=idlePaidState(0,0,[7,0,1,2,3])
+ const render=()=>renderToStaticMarkup(<Hud state={state} lang="zh" reducedMotion={false} gogoPunchKey={0} onGogoDown={()=>{}} onGogoUp={()=>{}} hideGogo={false} />)
+ expect(render()).not.toContain('stamina-art over-art')
+ state.horses[0]!.stamina=200*FP
+ expect(render()).toContain('clip-path:inset(0 44% 0 0)')
 })

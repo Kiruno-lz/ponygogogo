@@ -9,7 +9,7 @@
  * 环境，子进程用 `bun --no-env-file`，部署密钥用 anvil 公开的开发私钥写入 keys/ 下的临时文件并在结束时删除。
  */
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test'
-import { chmodSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { resolve } from 'node:path'
 import {
@@ -182,6 +182,7 @@ describe('keeper × PonyGame on anvil', () => {
       }
     }
 
+    mkdirSync(resolve(ROOT, 'keys'), {recursive:true})
     writeFileSync(resolve(ROOT, KEY_FILE), `${OWNER_KEY}\n`)
     chmodSync(resolve(ROOT, KEY_FILE), 0o600)
 

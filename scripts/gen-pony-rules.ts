@@ -4,23 +4,31 @@ import { encodeAbiParameters, keccak256 } from 'viem'
 import { PONY_ABILITY, PONY_RULES, PONY_RULES_HASH, ponyRuleTuple } from '../src/race/paid/ponyRules.ts'
 
 const path = new URL('../contracts/libraries/PonyRules.sol', import.meta.url)
-const names = ['id', 'enabled', 'ability', 'bonusBps', 'durationMs', 'equipmentDurationBps', 'capDelta', 'costDeltaBps', 'staminaMicro']
-const types = ['uint8', 'bool', 'uint8', 'uint16', 'uint32', 'uint16', 'uint16', 'uint16', 'uint32']
-const widths = [1, 1, 1, 2, 4, 2, 2, 2, 4]
+const names = ['id', 'enabled', 'ability', 'bonusBps', 'durationMs', 'equipmentDurationBps', 'capDelta', 'costDeltaBps', 'staminaMicro', 'refreshCount', 'staminaCapacityDelta']
+const types = ['uint8', 'bool', 'uint8', 'uint16', 'uint32', 'uint16', 'uint16', 'uint16', 'uint32', 'uint8', 'uint16']
+const widths = [1, 1, 1, 2, 4, 2, 2, 2, 4, 1, 2]
 if (PONY_RULES.some((p, i) => p.id !== i) || PONY_RULES.length > 192) throw new Error('INVALID_PONY_IDS')
 const packed = PONY_RULES.map(rule => {
   let word = 0n
-  ponyRuleTuple(rule).forEach((n, i) => {
+  const tuple = ponyRuleTuple(rule)
+  const capacityDelta = tuple.pop()!
+  const refreshCount = tuple.pop()!
+  if (!Number.isInteger(capacityDelta) || capacityDelta < 0 || capacityDelta > 65535) throw new Error('PONY_CAPACITY_RANGE')
+  if (!Number.isInteger(refreshCount) || refreshCount < 0 || refreshCount > 255) throw new Error('PONY_REFRESH_RANGE')
+  tuple.forEach((n, i) => {
     const bits = BigInt(widths[i]! * 8)
     if (!Number.isInteger(n) || n < 0 || BigInt(n) >= (1n << bits)) throw new Error('PONY_RULE_RANGE')
     word = (word << bits) | BigInt(n)
   })
+  // Use the previously unused high byte; existing hot-path field offsets stay stable.
+  word |= BigInt(refreshCount) << 152n
+  word |= BigInt(capacityDelta) << 160n
   return word.toString(16).padStart(64, '0')
 }).join('')
-let left = widths.reduce((s, w) => s + w * 8, 0)
+let left = widths.slice(0, 9).reduce((s, w) => s + w * 8, 0)
 const decode = names.map((name, i) => {
-  const bits = widths[i]! * 8; left -= bits
-  const value = `and(shr(${left}, word), 0x${((1n << BigInt(bits)) - 1n).toString(16)})`
+  const bits = widths[i]! * 8; if (i < 9) left -= bits
+  const value = `and(shr(${i === 9 ? 152 : i === 10 ? 160 : left}, word), 0x${((1n << BigInt(bits)) - 1n).toString(16)})`
   return `            mstore(add(rule, ${i * 32}), ${value}) // ${name}`
 }).join('\n')
 const encodedHash = keccak256(encodeAbiParameters([{ type: 'tuple[]', components: names.map((name, i) => ({ name, type: types[i]! })) }],
@@ -44,7 +52,7 @@ ${names.map((name, i) => `        ${types[i]} ${name};`).join('\n')}
     function packed(uint8 id) internal pure returns (uint256 word) {
         if (id >= PONY_COUNT) revert InvalidPony();
         bytes memory data = hex"${packed}";
-        assembly ("memory-safe") { word := mload(add(add(data, 32), shl(5, id))) }
+        assembly ("memory-safe") { word := mload(add(add(data, 32), shl(5, and(id, 255)))) }
     }
     function get(uint8 id) internal pure returns (Rule memory rule) {
         uint256 word = packed(id);

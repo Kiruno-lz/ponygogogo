@@ -50,12 +50,12 @@ describe('40-card production pool', () => {
 })
 
 describe('C-22..C-40 actual race effects', () => {
-  test('C-22 spends stamina once and expires its proportional burst', () => {
+  test('C-22 spends stamina once and expires its full timed extra-speed burst', () => {
     const r = played([22]), t = start(r, 22)
     const payment = r.events.find((e) => e.code === RESOURCE && e.horse === H && e.tau === t)!
     expect(payment.arg).toBe(-300_000_000n)
-    expect(sampleHorse(r.trace!, H, t).pBps).toBe(3500n)
-    expect(sampleHorse(r.trace!, H, t + 12_000n).pBps).toBe(0n)
+    expect(frame(r,t).motion.fixed).toBe(1000n)
+    expect(frame(r,t+14000n).motion.fixed).toBe(0n)
   })
   test('C-23 switches exactly at six sim seconds', () => {
     const r = played([23]), t = start(r, 23)
@@ -68,17 +68,17 @@ describe('C-22..C-40 actual race effects', () => {
   test('C-24 consumes its resource threshold once after a stamina payment', () => {
     const r = played([22, 24], { profiles: slow })
     expect(triggers(r, 24)).toHaveLength(1)
-    expect(r.events.filter((e) => e.code === RESOURCE && e.horse === H && e.arg === 300_000_000n)).toHaveLength(1)
+    expect(r.events.filter((e) => e.code === RESOURCE && e.horse === H && e.arg === 200_000_000n)).toHaveLength(1)
   })
   test('C-25 and rocket use one additive cost factor', () => {
     const r = played([7, 25]), t = start(r, 25)
-    expect(frame(r, t).stamina.cost).toBe(2400n)
-    expect(sampleHorse(r.trace!, H, t).pBps).toBe(1000n)
+    expect(frame(r, t).stamina.cost).toBe(1200n)
+    expect(sampleHorse(r.trace!, H, t).pBps).toBe(1500n)
   })
-  test('C-26 wired gate adds only ten percent; rocket offsets its cost surcharge', () => {
+  test('C-26 has no wired gate; rocket offsets fifty percentage points of cost', () => {
     const r = played([7, 26, 16]), t = start(r, 16)
-    expect(frame(r, start(r, 26)).stamina.cost).toBe(24_000n)
-    if (t < start(r, 26) + 20_000n) expect(sampleHorse(r.trace!, H, t).pBps).toBe(5000n)
+    expect(frame(r, start(r, 26)).stamina.cost).toBe(26_400n)
+    if (t < start(r, 26) + 20_000n) expect(sampleHorse(r.trace!, H, t).pBps).toBe(3000n)
     else throw new Error('fixture must overlap rage and wired')
   })
   test('C-27 reads airborne state from either source, without producing it', () => {
@@ -86,22 +86,22 @@ describe('C-22..C-40 actual race effects', () => {
     expect(sampleHorse(alone.trace!, H, t).pBps).toBe(500n)
     expect(sampleStatus(alone.trace!, H, t).airborne).toBe(false)
     const r = played([1, 27]), u = start(r, 27)
-    expect(sampleHorse(r.trace!, H, u).pBps).toBe(4000n)
+    expect(sampleHorse(r.trace!, H, u).pBps).toBe(3000n)
   })
   test('C-28 closes its ground gate while airborne', () => {
     const r = played([28, 1]), t = start(r, 1)
-    expect(sampleHorse(r.trace!, H, t).pBps).toBe(2000n)
+    expect(sampleHorse(r.trace!, H, t).pBps).toBe(1000n)
   })
-  test('C-29 current coat branches are exclusive and update after a dye', () => {
+  test('C-29 historical color thresholds accumulate recovery and speed', () => {
     const r = played([19, 29, 20]), t = start(r, 29), u = start(r, 20)
-    expect(sampleHorse(r.trace!, H, t).pBps).toBe(1500n)
-    expect(sampleHorse(r.trace!, H, u).pBps).toBe(0n)
+    expect(sampleHorse(r.trace!, H, t).pBps).toBe(0n)
+    expect(sampleHorse(r.trace!, H, u).pBps).toBe(6000n)
     expect(frame(r, u).stamina.regen).toBe(25_000n)
   })
   test('C-30 recycles shortest remaining equipment, leaving the other slot', () => {
-    const r = played([7, 8, 30]), t = start(r, 30)
+    const r = played([7, 8, 30], {profiles:Array.from({length:5},()=>({base:3000n,acceleration:0n,cap:3000n}))}), t = start(r, 30)
     expect(sampleStatus(r.trace!, H, t).equipment).toMatchObject({ torso: 0, tail: 8 })
-    expect(sampleHorse(r.trace!, H, t).pBps).toBe(3500n)
+    expect(sampleHorse(r.trace!,H,t).pBps).toBe(3500n)
     expect(r.trace!.instances.find((i) => i.cardId === 7 && i.horse === H)!.endReason).toBe('recycled')
   })
   test('C-31 reacts to actual equipment acquisition and not render sampling', () => {
@@ -109,16 +109,16 @@ describe('C-22..C-40 actual race effects', () => {
     expect(triggers(r, 31)).toHaveLength(2)
     expect(sampleHorse(r.trace!, H, start(r, 8)).pBps).toBe(2500n)
   })
-  test('C-32 renews expiry, preserving wheel phase and extending its finite bursts', () => {
+  test('C-32 renews expiry, preserving wheel phase and keeping exactly three speed tiers', () => {
     const r = played([11, 32], { profiles: slow }), t = start(r, 11), u = start(r, 32)
     const bursts = r.events.filter((e) => e.code === EV_WHEEL_BURST && e.horse === H)
     expect(r.events.filter((e) => e.code === RENEW && e.horse === H)).toHaveLength(1)
-    expect(bursts.length).toBeGreaterThan(4)
-    expect(bursts.every((e) => (e.tau - t) % 7000n === 0n && e.tau < u + 30_000n)).toBe(true)
+    expect(bursts.map(e=>e.arg)).toEqual([1n,11n,21n])
+    expect(bursts.every((e) => (e.tau - t) % 10000n === 0n && e.tau < u + 30_000n)).toBe(true)
   })
   test('C-33 checks tail/hooves as well as torso', () => {
     const r = played([33, 8]), t = start(r, 8)
-    expect(sampleHorse(r.trace!, H, start(r, 33)).pBps).toBe(2500n)
+    expect(sampleHorse(r.trace!, H, start(r, 33)).pBps).toBe(2000n)
     expect(sampleHorse(r.trace!, H, t).pBps).toBe(500n)
   })
   test('C-34 selects the nearest eligible opponent without a range cap', () => {
@@ -137,7 +137,7 @@ describe('C-22..C-40 actual race effects', () => {
     const leading = played([35], { profiles })
     expect(sampleHorse(leading.trace!, H, start(leading, 35)).pBps).toBe(2500n)
   })
-  test('C-36 supplies every unfinished horse and clips at capacity', () => {
+  test('C-36 supplies all five horses with full direct stamina', () => {
     const r = played([36]), t = start(r, 36)
     expect(r.events.filter((e) => e.code === RESOURCE && e.tau === t)).toHaveLength(5)
     expect(sampleHorse(r.trace!, H, t).pBps).toBe(1500n)
@@ -149,11 +149,10 @@ describe('C-22..C-40 actual race effects', () => {
     expect(r.events.filter((e) => e.code === EV_DEATH && e.horse === H)).toHaveLength(0)
     expect(sampleHorse(r.trace!, H, start(r, 37)).pBps).toBe(3000n)
   })
-  test('C-38 reacts after death clear and grants a separately expiring fixed contribution', () => {
-    const r = played([2, 38]), d = r.events.find((e) => e.code === EV_DEATH && e.horse === H)!
-    expect(triggers(r, 38)).toHaveLength(1)
-    expect(frame(r, d.tau).motion.fixed).toBe(120n)
-    expect(frame(r, d.tau + 30_000n).motion.fixed).toBe(0n)
+  test('C-38 does not reward death', () => {
+    const r = played([2,38]), d=r.events.find(e=>e.code===EV_DEATH && e.horse===H)!
+    expect(triggers(r,38)).toHaveLength(0)
+    expect(frame(r,d.tau).motion.fixed).toBe(0n)
   })
   test('C-39 rewards a future active forfeit, not a timeout', () => {
     const active = played([39, 0]), timed = played([39])
@@ -161,14 +160,14 @@ describe('C-22..C-40 actual race effects', () => {
     expect(triggers(active, 39)).toHaveLength(1)
     expect(triggers(timed, 39)).toHaveLength(0)
   })
-  test('C-40 starts in debt and grows on own mileage, once per twenty percent', () => {
+  test('C-40 starts in debt and grows on own mileage, once per private 14000 distance', () => {
     const r = played([40]), t = start(r, 40)
-    expect(frame(r, t).motion.fixed).toBe(-20n)
+    expect(frame(r, t).motion.baseBonus).toBe(-200n)
     const awards = triggers(r, 40)
-    expect(awards).toHaveLength(3)
+    expect(awards).toHaveLength(4)
     for (let k = 0; k < awards.length; k++) {
-      expect(sampleHorse(r.trace!, H, awards[k]!.tau).dist).toBeGreaterThanOrEqual(sampleHorse(r.trace!, H, t).dist + BigInt(k + 1) * 20_000_000_000n)
-      expect(frame(r, awards[k]!.tau).motion.fixed).toBe(-20n + BigInt(k + 1) * 30n)
+      expect(sampleHorse(r.trace!, H, awards[k]!.tau).dist).toBeGreaterThanOrEqual(sampleHorse(r.trace!, H, t).dist + BigInt(k + 1) * 14_000_000_000n)
+      expect(frame(r, awards[k]!.tau).motion.baseBonus).toBe(BigInt([100,300,500,1000][k]!))
     }
   })
 })
@@ -183,13 +182,13 @@ describe('new-card lifecycle boundaries', () => {
     const fast = Array.from({length:5},()=>({base:3000n,acceleration:0n,cap:3000n}))
     const r=played([1,11,27],{profiles:fast}), t=start(r,27)
     expect(sampleStatus(r.trace!,H,t).airborne).toBe(true)
-    expect(sampleHorse(r.trace!,H,t).pBps).toBe(4000n)
+    expect(sampleHorse(r.trace!,H,t).pBps).toBe(3000n)
   })
-  test('C-30 fallback uses ten seconds rather than the recycling duration', () => {
+  test('C-30 fallback supplies 150 stamina with twenty seconds of speed', () => {
     const r=played([30]), t=start(r,30)
     expect(sampleHorse(r.trace!,H,t).pBps).toBe(1000n)
-    expect(r.trace!.instances.find(i=>i.cardId===30)!.plannedEndTau).toBe(t+10000n)
-    expect(r.events.filter(e=>e.code===RESOURCE)).toHaveLength(0)
+    expect(r.trace!.instances.find(i=>i.cardId===30)!.plannedEndTau).toBe(t+20000n)
+    expect(r.events.filter(e=>e.code===RESOURCE&&e.horse===H&&e.arg===150000000n)).toHaveLength(1)
   })
   test('C-31 does not treat an equipment refresh as another acquisition', () => {
     const r=played([31,7,32])
@@ -200,12 +199,12 @@ describe('new-card lifecycle boundaries', () => {
     const fast = Array.from({length:5},()=>({base:6000n,acceleration:0n,cap:6000n}))
     const r=played([15,36], {profiles:fast}), t=start(r,36)
     expect(sampleHorse(r.trace!,H,t).stamina).toBeGreaterThan(1000000000n)
-    expect(r.events.find(e=>e.code===RESOURCE&&e.horse===H&&e.tau===t)!.arg).toBe(0n)
+    expect(r.events.find(e=>e.code===RESOURCE&&e.horse===H&&e.tau===t)!.arg).toBe(100000000n)
   })
-  test('C-38 ignores an actual death after its fifty-second listener ends', () => {
+  test('C-38 ignores an actual death after its thirty-second listener ends', () => {
     const r=played([38,2],{profiles:slow})
     const d=r.events.find(e=>e.code===EV_DEATH&&e.horse===H)!
-    expect(d.tau).toBeGreaterThanOrEqual(start(r,38)+50000n)
+    expect(d.tau).toBeGreaterThanOrEqual(start(r,38)+30000n)
     expect(triggers(r,38)).toHaveLength(0)
     expect(frame(r,d.tau).motion.fixed).toBe(0n)
   })
@@ -213,30 +212,30 @@ describe('new-card lifecycle boundaries', () => {
     const r=played([19,20,39])
     expect(triggers(r,39)).toHaveLength(0)
   })
-  test('C-40 later acquisition leaves two or one mileage rewards before the finish', () => {
-    expect(triggers(played([19,40],{profiles:slow}),40)).toHaveLength(2)
+  test('C-40 later acquisition leaves three or one mileage rewards before the finish', () => {
+    expect(triggers(played([19,40],{profiles:slow}),40)).toHaveLength(3)
     expect(triggers(played([19,20,40],{profiles:slow}),40)).toHaveLength(1)
   })
   test('C-40 swap jumps never count as mileage or restart the consumed steps', () => {
     const r=played([40,9]), t=start(r,40), events=triggers(r,40)
     expect(events.length).toBeGreaterThan(0)
     expect(events.length).toBeLessThanOrEqual(4)
-    events.forEach((e,k)=>expect(sampleHorse(r.trace!,H,e.tau).dist).toBeGreaterThanOrEqual(sampleHorse(r.trace!,H,t).dist+BigInt(k+1)*20000000000n))
+    events.forEach((e,k)=>expect(sampleHorse(r.trace!,H,e.tau).dist).toBeGreaterThanOrEqual(sampleHorse(r.trace!,H,t).dist+BigInt(k+1)*14000000000n))
     expect(r.trace!.keyframes[H]!.some(f=>f.pos!==f.dist)).toBe(true)
   })
 })
 
-test('guard interception does not reward a death, but a second bomb at the same instant does', () => {
+test('guard blocks one bomb and a second same-instant bomb causes death without a C38 reward', () => {
  const profiles=slow.map(p=>({...p}));profiles[0]={base:1300n,acceleration:0n,cap:1300n};profiles[2]={base:1300n,acceleration:0n,cap:1300n}
  const blocked=played([37,38],{profiles,cpu:{0:[19,20,6]}})
  expect(blocked.events.filter(e=>e.code===GUARD&&e.horse===H)).toHaveLength(1)
  expect(blocked.events.filter(e=>e.code===EV_DEATH&&e.horse===H)).toHaveLength(0)
- expect(triggers(blocked,38)).toHaveLength(0)
+ expect(triggers(blocked,38).every(e=>!blocked.events.some(x=>x.code===GUARD&&x.tau===e.tau))).toBe(true)
  const second=played([37,38],{profiles,cpu:{0:[19,20,6],2:[19,20,6]}})
  const guard=second.events.find(e=>e.code===GUARD&&e.horse===H)!, death=second.events.find(e=>e.code===EV_DEATH&&e.horse===H)!
  expect(death.tau).toBe(guard.tau)
- expect(triggers(second,38)).toHaveLength(1)
- expect(frame(second,death.tau).motion.fixed).toBe(120n)
+ expect(triggers(second,38).every(e=>e.tau!==death.tau)).toBe(true)
+ expect(frame(second,death.tau).motion.fixed).toBe(0n)
 })
 
 test('tinker snapshots a tail-only loadout and target debuffs survive immunity acquired later', () => {

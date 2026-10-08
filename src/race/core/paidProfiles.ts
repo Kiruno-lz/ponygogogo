@@ -1,12 +1,14 @@
 import { keccak256, toBytes, type Hex } from 'viem'
 import { chainEntropy } from './chainEntropy.ts'
+import { PLAYER_BALANCE } from '../paid/playerBalance.ts'
 
 export type PaidProfile = { base: number; acceleration: number; cap: number }
 export type PaidTier = 1 | 2 | 3 | 4
 
 export const PAID_TRACK_LENGTH = 100_000n
 export const PAID_MAX_MS = 600_000n
-export const PLAYER_PAID_PROFILE: PaidProfile = { base: 1200, acceleration: 12, cap: 1800 }
+export const PLAYER_PAID_PROFILE: PaidProfile = { base: PLAYER_BALANCE.startSpeed, acceleration: PLAYER_BALANCE.acceleration, cap: PLAYER_BALANCE.speedCap }
+export const LEGACY_PLAYER_PAID_PROFILE: PaidProfile = { base: 1200, acceleration: 12, cap: 1800 }
 
 const BASE_DOMAIN = keccak256(toBytes('horse.base'))
 const ACCEL_DOMAIN = keccak256(toBytes('horse.acceleration'))
@@ -25,7 +27,7 @@ function sample(seed: Hex, anchor: Hex, domain: Hex, group: number, range: reado
 }
 
 /** Four opponent personalities are independent of the chosen visual horse ID. */
-export function derivePaidProfiles(seed: Hex, anchor: Hex, stakeTier: PaidTier, playerHorseId: number): PaidProfile[] {
+export function derivePaidProfiles(seed: Hex, anchor: Hex, stakeTier: PaidTier, playerHorseId: number, legacy = false): PaidProfile[] {
   if (playerHorseId < 0 || playerHorseId > 4 || !Number.isInteger(playerHorseId)) throw new Error('INVALID_HORSE')
   if (stakeTier < 1 || stakeTier > 4 || !Number.isInteger(stakeTier)) throw new Error('INVALID_TIER')
   const tier = TIERS[stakeTier - 1]
@@ -33,7 +35,7 @@ export function derivePaidProfiles(seed: Hex, anchor: Hex, stakeTier: PaidTier, 
   let group = 0
   for (let horseId = 0; horseId < 5; horseId++) {
     if (horseId === playerHorseId) {
-      profiles.push(PLAYER_PAID_PROFILE)
+      profiles.push(legacy ? LEGACY_PLAYER_PAID_PROFILE : PLAYER_PAID_PROFILE)
       continue
     }
     profiles.push({

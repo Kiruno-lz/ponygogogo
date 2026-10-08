@@ -11,13 +11,13 @@ export function ponyAbilityText(ponyId: number, lang: Lang): { name: string; des
     case 'rareSpecialist': return en
       ? { name: 'Rare Specialist', description: `Each acquired rare card adds ${speed} speed. Duration follows its card bonus: instant cards last ${defaultSeconds}s; permanent cards stay; theft follows stolen equipment.`, strategy: 'Rare cards and refreshes' }
       : { name: '稀有专精', description: `每获得稀有卡额外${speed}速度。时长跟随该卡附加效果：瞬时卡${defaultSeconds}秒，永久卡永久，窃取跟随装备。`, strategy: '稀有优先，刷新找稀有' }
-    case 'light': return en
-      ? { name: 'Travel Light', description: `Gain ${speed} speed while all equipment slots are empty.`, strategy: 'Speed, supplies and interference without equipment' }
-      : { name: '轻装', description: `所有装备槽为空时速度${speed}；装备任何物品后移除。`, strategy: '无装备速度、补给与干扰' }
+    case 'refresh': return en
+      ? { name: 'Refresh', description: `Start with ${rule.refreshCount} candidate-card refresh. Each refresh replaces one offered card and adds to card-granted credits. CPU horses do not refresh.`, strategy: 'Refresh to find build components' }
+      : { name: '刷新', description: `开局拥有${rule.refreshCount}次候选卡刷新；每次替换一张候选，与卡牌刷新额度累加。电脑马不刷新。`, strategy: '刷新寻找构筑组件' }
     case 'longEquipment': {
       const bonus = ((rule.equipmentDurationBps ?? 10000) - 10000) / 100
-      return en ? { name: 'Long Attachment', description: `Equipment acquired from a card lasts ${bonus}% longer. Theft and renewal are not extended.`, strategy: 'Equipment coverage over the remaining track' }
-        : { name: '长情', description: `选牌获得的装备初始时长+${bonus}%；偷来的装备与续期不延长。`, strategy: '装备覆盖更长路程' }
+      return en ? { name: 'Long Attachment', description: `Equipment acquired from a card lasts ${bonus}% longer. Theft and renewal are not extended. Gain ${speed} speed while any equipment is active, once regardless of item count.`, strategy: 'Equipment coverage over the remaining track' }
+        : { name: '长情', description: `选牌获得的装备初始时长+${bonus}%；偷来的装备与续期不延长；装备生效期间额外${speed}速度，多件装备不重复叠加。`, strategy: '装备覆盖更长路程' }
     }
     case 'diverse': return en
       ? { name: 'Bloom Together', description: `The first card of each main function adds ${speed} speed for ${seconds}s. Repeating a function does not trigger or renew it.`, strategy: 'Mix different card functions' }
@@ -32,8 +32,8 @@ export function ponyAbilityText(ponyId: number, lang: Lang): { name: string; des
       ? { name: 'Whatever Works', description: `Actively skipping a checkpoint gives ${speed} speed for ${seconds}s. Timeouts and cut panels do not trigger it.`, strategy: 'Choose whether to take the card or skip' }
       : { name: '随便跑跑', description: `主动放弃检查点时速度${speed}，持续${seconds}秒；超时、非法选择与断卡不触发。`, strategy: '主动放弃的取舍' }
     case 'food': return en
-      ? { name: 'Big Appetite', description: `A supply card that immediately restores stamina also restores ${(rule.staminaMicro ?? 0) / 1000000} extra stamina, capped. Periodic recovery does not trigger it.`, strategy: 'Immediate supplies' }
-      : { name: '大吃货', description: `获得补给卡且当刻真实增加体力时，额外普通恢复${(rule.staminaMicro ?? 0) / 1000000}体力；周期恢复不触发，不产生超上限。`, strategy: '即时补给' }
+      ? { name: 'Big Appetite', description: `Player starting stamina and capacity +${rule.staminaCapacityDelta}. A supply card that immediately restores stamina also restores ${(rule.staminaMicro ?? 0) / 1000000} extra stamina, allowed above capacity. Periodic recovery does not trigger it.`, strategy: 'Immediate supplies' }
+      : { name: '大吃货', description: `玩家初始体力和容量+${rule.staminaCapacityDelta}；获得补给卡且当刻真实增加体力时，额外恢复${(rule.staminaMicro ?? 0) / 1000000}体力；周期恢复不触发，可超过上限。`, strategy: '即时补给' }
     case 'repeat': return en
       ? { name: 'Repeat Rhythm', description: `Acquiring a card with a previously acquired main function gives ${speed} speed for ${seconds}s. Each card triggers at most once.`, strategy: 'Specialize in the same card function' }
       : { name: '重复节奏', description: `获得与此前卡牌同主功能的卡时，速度${speed}，持续${seconds}秒；每次获得至多触发一次。`, strategy: '同类专精' }

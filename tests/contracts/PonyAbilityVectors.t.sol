@@ -22,7 +22,7 @@ contract PonyAbilityVectorsTest is PaidRaceVectorAssertions {
     function testRosterVectorHeader() public view {
         string memory file = vm.readFile(FILE);
         require(vm.parseJsonBytes32(file, ".meta.rulesetHash") == PaidCardRules.RULESET_HASH, "v5 ruleset");
-        require(vm.parseJsonUint(file, ".meta.count") == 243, "243 directed and derived cases");
+        require(vm.parseJsonUint(file, ".meta.count") == 288, "288 directed and derived cases");
     }
 
     function testPonyVectorsChunk0() public view {

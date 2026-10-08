@@ -10,9 +10,14 @@ contract PonyRulesTest {
             require(rules[id].id == id && rules[id].enabled, "id/enabled");
         }
         require(keccak256(abi.encode(rules)) == PonyRules.ENCODED_RULES_HASH, "TS/Solidity role data differ");
-        require(PonyRules.get(5).capDelta == 100 && PonyRules.get(5).costDeltaBps == 2000, "ox");
-        require(PonyRules.get(3).durationMs == 20000 && PonyRules.get(3).bonusBps == 700, "diversity");
+        require(PonyRules.get(5).capDelta == 100 && PonyRules.get(5).costDeltaBps == 1000, "ox");
+        require(PonyRules.get(3).durationMs == 20000 && PonyRules.get(3).bonusBps == 300, "diversity");
         require(PonyRules.get(7).staminaMicro == 50000000, "food");
+        require(
+            PonyRules.get(1).ability == PonyRules.REFRESH && PonyRules.get(1).refreshCount == 1
+                && PonyRules.get(1).bonusBps == 0,
+            "Shadow refresh"
+        );
         require(!PonyRules.enabled(9), "unknown role enabled");
     }
 }

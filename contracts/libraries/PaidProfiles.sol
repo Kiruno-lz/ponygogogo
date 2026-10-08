@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {PlayerBalance} from "./PlayerBalance.sol";
+
 import {RaceEntropy} from "./RaceEntropy.sol";
 
 /// @notice Immutable personality derivation for the first paid ruleset candidate.
@@ -32,7 +34,11 @@ library PaidProfiles {
         uint256 group;
         for (uint256 horseId; horseId < 5; ++horseId) {
             if (horseId == playerHorseId) {
-                profiles[horseId] = Profile(1200, 12, 1800);
+                profiles[horseId] = Profile(
+                    uint32(PlayerBalance.START_SPEED),
+                    uint32(PlayerBalance.ACCELERATION),
+                    uint32(PlayerBalance.SPEED_CAP)
+                );
                 continue;
             }
             profiles[horseId] = Profile(

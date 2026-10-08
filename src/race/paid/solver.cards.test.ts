@@ -41,10 +41,10 @@ function instancesOf(ctx: Ctx, cardId: number): PaidTraceInstance[] {
 const checks: Record<number, (ctx: Ctx) => void> = {
   1: (ctx) => {
     const [inst] = instancesOf(ctx, 1)
-    expect(inst).toMatchObject({ kind: 'buff', startTau: ctx.tau, plannedEndTau: ctx.tau + 30_000n })
+    expect(inst).toMatchObject({ kind: 'buff', startTau: ctx.tau, plannedEndTau: ctx.tau + 20_000n })
     expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau).airborne).toBe(true)
-    expect(sampleHorse(ctx.r.trace!, ctx.horse, ctx.tau).pBps).toBe(2_000n)
-    expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau + 30_000n).airborne).toBe(false)
+    expect(sampleHorse(ctx.r.trace!, ctx.horse, ctx.tau).pBps).toBe(1_000n)
+    expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau + 20_000n).airborne).toBe(false)
   },
   2: (ctx) => {
     const death = ctx.r.events.find((e) => e.code === EV_DEATH && e.horse === ctx.horse)!
@@ -56,7 +56,7 @@ const checks: Record<number, (ctx: Ctx) => void> = {
   },
   3: (ctx) => {
     expect(instancesOf(ctx, 3)[0]!.plannedEndTau).toBe(ctx.tau + 20_000n)
-    expect(sampleHorse(ctx.r.trace!, ctx.horse, ctx.tau).pBps).toBe(4_000n)
+    expect(sampleHorse(ctx.r.trace!, ctx.horse, ctx.tau).pBps).toBe(3_000n)
     if (ctx.asPlayer) expect(ctx.r.checkpoints.slice(1).map((c) => c.reason)).toEqual(['cut', 'cut'])
     else expect(ctx.r.events.filter((e) => e.code === EV_CPU_CARD_CUT && e.horse === ctx.horse).length).toBe(2)
   },
@@ -70,7 +70,7 @@ const checks: Record<number, (ctx: Ctx) => void> = {
     if (ctx.asPlayer) {
       const stop = solvePaidCore(pickAt(fixtureInput({ playerDeck: [5, ...QUIET_DECK.filter((c) => c !== 5)].slice(0, 14) }), 1, 5),
         { stopAtPanel: 2 })
-      expect(stop.panel!.drawState.refreshCredits).toBe(1)
+      expect(stop.panel!.drawState.refreshCredits).toBe(3)
     } else {
       expect(ctx.r.finishTime).toEqual(quietResult.finishTime)
     }
@@ -83,7 +83,7 @@ const checks: Record<number, (ctx: Ctx) => void> = {
     expect(ctx.r.trace!.bombs.map((b) => b.placer)).toEqual([ctx.horse, ctx.horse, ctx.horse, ctx.horse])
   },
   7: (ctx) => {
-    expect(instancesOf(ctx, 7)[0]).toMatchObject({ kind: 'equip', slot: 0, plannedEndTau: ctx.tau + 40_000n })
+    expect(instancesOf(ctx, 7)[0]).toMatchObject({ kind: 'equip', slot: 0, plannedEndTau: ctx.tau + 20_000n })
     expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau).equipment.torso).toBe(7)
     const frame = ctx.r.trace!.keyframes[ctx.horse]!.find((f) => f.tau0 === ctx.tau)!
     expect(frame.stamina.cost).toBe(12_000n)
@@ -91,7 +91,7 @@ const checks: Record<number, (ctx: Ctx) => void> = {
   },
   8: (ctx) => {
     expect(instancesOf(ctx, 8)[0]).toMatchObject({ kind: 'equip', slot: 1, plannedEndTau: ctx.tau + 60_000n })
-    expect(sampleHorse(ctx.r.trace!, ctx.horse, ctx.tau).pBps).toBe(1_000n)
+    expect(sampleHorse(ctx.r.trace!, ctx.horse, ctx.tau).pBps).toBe(1000n)
   },
   9: (ctx) => {
     const attempts = ctx.r.events.filter((e) => (e.code === EV_SWAP || e.code === EV_SWAP_BLOCKED) && e.horse === ctx.horse)
@@ -107,11 +107,11 @@ const checks: Record<number, (ctx: Ctx) => void> = {
   },
   11: (ctx) => {
     const bursts = ctx.r.events.filter((e) => e.code === EV_WHEEL_BURST && e.horse === ctx.horse)
-    expect(bursts.map((e) => [e.tau - ctx.tau, e.arg])).toEqual([[7_000n, 1n], [14_000n, 2n], [21_000n, 3n], [28_000n, 4n]])
+    expect(bursts.map((e) => [e.tau - ctx.tau, e.arg])).toEqual([[0n, 1n], [10_000n, 11n], [20_000n, 21n]])
     expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau + 1n)).toMatchObject({ airborne: true, equipment: { hooves: 11 } })
     const fixedAt = (tau: bigint) => ctx.r.trace!.keyframes[ctx.horse]!.find((f) => f.tau0 === tau)!.motion.fixed
-    expect(fixedAt(ctx.tau + 7_000n)).toBe(10n)
-    expect(fixedAt(ctx.tau + 28_000n)).toBe(40n)
+    expect(fixedAt(ctx.tau)).toBe(100n)
+    expect(fixedAt(ctx.tau + 20_000n)).toBe(300n)
   },
   12: (ctx) => {
     const draw = ctx.asPlayer
@@ -128,24 +128,24 @@ const checks: Record<number, (ctx: Ctx) => void> = {
   14: (ctx) => {
     const frame = ctx.r.trace!.keyframes[ctx.horse]!.find((f) => f.tau0 === ctx.tau)!
     expect(frame.stamina.regen).toBe(20_000n)
-    const after = ctx.r.trace!.keyframes[ctx.horse]!.find((f) => f.tau0 === ctx.tau + 5_000n)!
+    const after = ctx.r.trace!.keyframes[ctx.horse]!.find((f) => f.tau0 === ctx.tau + 15_000n)!
     expect(after.stamina.regen).toBe(10_000n)
   },
   15: (ctx) => {
-    expect(sampleHorse(ctx.r.trace!, ctx.horse, ctx.tau).stamina).toBe(STAMINA_CAPACITY - 14_000n * ctx.tau + 200_000_000n)
+    expect(sampleHorse(ctx.r.trace!, ctx.horse, ctx.tau).stamina).toBe(STAMINA_CAPACITY - 14_000n * ctx.tau + 250_000_000n)
   },
   16: (ctx) => {
-    expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau + 9_999n).wired).toBe(true)
-    expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau + 10_000n).wired).toBe(false)
+    expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau + 39_999n).wired).toBe(true)
+    expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau + 40_000n).wired).toBe(false)
   },
   17: (ctx) => expect(sampleHorse(ctx.r.trace!, ctx.horse, ctx.tau).v - sampleHorse(quietResult.trace!, ctx.horse, ctx.tau).v)
-    .toBe(10_000n),
+    .toBe(100_000n),
   18: (ctx) => expect(sampleHorse(ctx.r.trace!, ctx.horse, ctx.tau).v - sampleHorse(quietResult.trace!, ctx.horse, ctx.tau).v)
-    .toBe(20_000n),
+    .toBe(200_000n),
   21: (ctx) => {
     expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau).blindedPro).toBe(true)
     expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau - 1n).blindedPro).toBe(false)
-    expect(ctx.r.trace!.keyframes[ctx.horse]!.find((f) => f.tau0 === ctx.tau)!.motion.fixed).toBe(10n)
+    expect(ctx.r.trace!.keyframes[ctx.horse]!.find((f) => f.tau0 === ctx.tau)!.motion.baseBonus).toBe(100n)
   },
 }
 

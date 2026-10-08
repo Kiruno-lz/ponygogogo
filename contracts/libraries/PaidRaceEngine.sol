@@ -10,6 +10,7 @@ import {PaidRaceMotion} from "./PaidRaceMotion.sol";
 import {PaidRaceCold} from "./PaidRaceCold.sol";
 import {PaidSwap} from "./PaidSwap.sol";
 import {PonyRules} from "./PonyRules.sol";
+import {PlayerBalance} from "./PlayerBalance.sol";
 import {RaceEntropy} from "./RaceEntropy.sol";
 
 /// @notice Solidity port of the paid ruleset v4 reference solver (src/race/paid/solver.ts). The TS solver is the
@@ -252,6 +253,7 @@ library PaidRaceEngine {
         int256 fixedDelta;
         bool gated;
         uint256 nextDist;
+        int256 baseBonus;
     }
 
     struct Panel {
@@ -290,6 +292,7 @@ library PaidRaceEngine {
         uint256 player;
         uint256 currentTau;
         uint32[5] coats;
+        uint8[5] hairTypes;
         Params params;
         PaidCardRules.Rule[40] rules;
         PaidRaceMotion.Horse[5] horses;
@@ -460,12 +463,21 @@ library PaidRaceEngine {
         st.player = input.playerHorseId;
         if (input.ponyAbilities) st.ponyWords = PaidRaceCold.ponyWords(input.roster);
         _loadParams(st);
-        PaidRaceMotion.initHorses(st.horses, input.profiles, st.ponyWords, UNFINISHED_TAU);
+        PaidRaceMotion.initHorses(
+            st.horses,
+            input.profiles,
+            st.ponyWords,
+            UNFINISHED_TAU,
+            input.ponyAbilities ? st.player : PaidRaceMotion.NONE
+        );
         for (uint256 i; i < MAX_INSTANCES; ++i) {
             st.instNext[i] = NEVER;
         }
         st.instMin = NEVER;
         st.draw = PaidDrawRules.initial();
+        if (input.ponyAbilities && uint8(st.ponyWords[st.player] >> 128) == PonyRules.REFRESH) {
+            st.draw.refreshCredits = uint8(st.ponyWords[st.player] >> 152);
+        }
     }
 
     function _rule(State memory st, uint8 id) private pure returns (PaidCardRules.Rule memory) {
@@ -563,6 +575,7 @@ library PaidRaceEngine {
         horse.aggRegen += inst.regenBps;
         horse.aggCost += inst.costDelta;
         horse.fixedK += inst.fixedDelta;
+        horse.baseBonus += inst.baseBonus;
         if (inst.airborne) horse.aggAirborne += 1;
         if (inst.wired) horse.aggWired += 1;
         if (inst.well) st.wellsDirty = true;
@@ -601,7 +614,8 @@ library PaidRaceEngine {
             return inst.start + st.params.swapPeriod * inst.count;
         }
         if (inst.kind == KIND_EQUIP && inst.wheel) {
-            uint256 at = inst.start + st.params.wheelPeriod * (inst.count + 1);
+            if (inst.count >= _rule(st, 11).count) return NEVER;
+            uint256 at = inst.start + st.params.wheelPeriod * (PaidCardRules.flameLayer(inst.count) - 1);
             return at < inst.end ? at : NEVER;
         }
         if (inst.kind == KIND_WATCH && st.currentTau < inst.end) {
@@ -620,14 +634,14 @@ library PaidRaceEngine {
         if (card == 23 && count == 0) return uint256(start) + r.periodMs;
         PaidRaceMotion.Horse memory h = st.horses[inst.owner];
         if (card == 24) {
-            if (h.s <= r.thresholdMicro) return now_;
+            if (h.s < r.thresholdMicro) return now_;
             uint256 cost = _cost(h);
-            uint256 regen = REGEN_PER_MS * (BPS + h.aggRegen) / BPS;
+            uint256 regen = h.baseRegen * (BPS + h.aggRegen) / BPS;
             // Preserve the old packed ABI test, including any bits in dist/nextDist above bit 127.
             uint256 state_ = h.dist | inst.nextDist << 64 | uint256(h.exhausted || h.overcap ? 1 : 0) << 128;
             if (state_ >> 128 == 0 && cost > regen) {
                 uint256 d = cost - regen;
-                return uint256(now_) + (h.s - r.thresholdMicro + d - 1) / d;
+                return uint256(now_) + (h.s - r.thresholdMicro + d) / d;
             }
         }
         if (card == 40 && count < r.count) {
@@ -755,17 +769,35 @@ library PaidRaceEngine {
         if (sub == 0) {
             horse.b = horse.capMilli;
             horse.atCap = true;
+            horse.recoveryAccel = 0;
             _log(st, EV_BASE_CAP, tau, h, int256(horse.b));
         } else if (horse.exhausted) {
             horse.exhausted = false;
-            horse.overcap = horse.s > STAMINA_CAPACITY;
+            if (horse.exhaustCapMilli > 0) horse.recoveryAccel = PlayerBalance.ACCELERATION;
+            horse.overcap = horse.s > horse.staminaCapacity;
             _log(st, EV_EXHAUST_EXIT, tau, h, int256(horse.s));
         } else if (horse.overcap) {
             horse.overcap = false;
             _log(st, EV_OVERCAP_END, tau, h, int256(horse.s));
         } else {
+            for (uint256 i; i < st.instanceCount; ++i) {
+                Instance memory listener = st.instances[i];
+                if (
+                    listener.active && listener.owner == h && listener.kind == KIND_WATCH && listener.cardId == 38
+                        && tau < listener.end
+                ) {
+                    _endInstance(st, listener, i + 1);
+                    _triggerLog(st, listener, tau);
+                    _recover(st, h, _rule(st, 38).staminaMicro, tau);
+                    return;
+                }
+            }
             horse.s = 0;
             horse.exhausted = true;
+            if (horse.exhaustCapMilli > 0) {
+                if (horse.b > horse.exhaustCapMilli) horse.b = horse.exhaustCapMilli;
+                if (horse.b < horse.capMilli) horse.atCap = false;
+            }
             _log(st, EV_EXHAUST_ENTER, tau, h, 0);
         }
     }
@@ -805,15 +837,19 @@ library PaidRaceEngine {
                 }
             } else if (inst.cardId == 40) {
                 inst.nextDist += r.radiusMicro;
-                st.horses[inst.owner].fixedK += r.triggerFixedSpeed;
-                _log(st, EV_FIXED, tau, inst.owner, r.triggerFixedSpeed);
+                int256 next = PaidCardRules.mileageSpeed(inst.count);
+                int256 delta = next - inst.baseBonus;
+                st.horses[inst.owner].baseBonus += delta;
+                inst.baseBonus = next;
+                _log(st, EV_FIXED, tau, inst.owner, delta);
             }
             _touch(st, inst, index);
         } else {
+            inst.fixedDelta += int256(st.params.wheelDeltaV);
+            st.horses[inst.owner].fixedK += int256(st.params.wheelDeltaV);
+            _log(st, EV_WHEEL_BURST, tau, inst.owner, int256(PaidCardRules.flameLayer(inst.count)));
             inst.count += 1;
             _touch(st, inst, index);
-            st.horses[inst.owner].fixedK += int256(st.params.wheelDeltaV);
-            _log(st, EV_WHEEL_BURST, tau, inst.owner, int256(inst.count));
         }
     }
 
@@ -839,30 +875,12 @@ library PaidRaceEngine {
                 return;
             }
         }
-        for (uint256 i; i < count; ++i) {
-            Instance memory inst = st.instances[i];
-            if (inst.active && inst.owner == h && inst.kind == KIND_FIXED) _endInstance(st, inst, i + 1);
-        }
         horse.b = 0;
-        horse.fixedK = 0;
         horse.atCap = false;
+        if (horse.exhaustCapMilli > 0) horse.recoveryAccel = PlayerBalance.ACCELERATION;
         (Instance memory respawn, uint256 id) = _addInstance(st, tau, h, 0, KIND_RESPAWN, RESPAWN_MS);
         _activate(st, respawn, id);
         _log(st, EV_DEATH, tau, h, int256(id));
-        for (uint256 i; i < count; ++i) {
-            Instance memory inst = st.instances[i];
-            if (!inst.active || inst.owner != h || inst.kind != KIND_WATCH || inst.cardId != 38 || tau >= inst.end) {
-                continue;
-            }
-            _endInstance(st, inst, i + 1);
-            _triggerLog(st, inst, tau);
-            PaidCardRules.Rule memory r = _rule(st, 38);
-            (Instance memory burst, uint256 bid) = _addInstance(st, tau, h, 38, KIND_FIXED, r.triggerDurationMs);
-            burst.fixedDelta = r.fixedSpeed;
-            _activate(st, burst, bid);
-            _log(st, EV_FIXED, tau, h, r.fixedSpeed);
-            break;
-        }
     }
 
     function _swapAttempt(State memory st, Instance memory inst, uint256 index, uint256 tau) private pure {
@@ -969,9 +987,11 @@ library PaidRaceEngine {
             inst.luck = effect == PaidCardRules.EFFECT_SPEED_DEATH;
             inst.wired = effect == PaidCardRules.EFFECT_WIRED;
             _activate(st, inst, id);
+            if (effect == PaidCardRules.EFFECT_WIRED && horse.s < 1_000_000) horse.s = 1_000_000;
             if (effect == PaidCardRules.EFFECT_DRAW_CUT) horse.drawCut = true;
             if (effect == PaidCardRules.EFFECT_WIRED && horse.exhausted) {
                 horse.exhausted = false;
+                if (horse.exhaustCapMilli > 0) horse.recoveryAccel = PlayerBalance.ACCELERATION;
                 horse.overcap = false;
                 _log(st, EV_EXHAUST_EXIT, tau, h, int256(horse.s));
             }
@@ -1003,12 +1023,13 @@ library PaidRaceEngine {
             lootMs = _steal(st, h, src, tau);
         } else if (effect == PaidCardRules.EFFECT_ADRENALINE) {
             horse.s += st.params.adrenaline;
-            if (!horse.exhausted) horse.overcap = horse.s > STAMINA_CAPACITY;
+            if (!horse.exhausted) horse.overcap = horse.s > horse.staminaCapacity;
         } else if (effect == PaidCardRules.EFFECT_FIXED || effect == PaidCardRules.EFFECT_BLIND_FIXED) {
-            horse.fixedK += int256(rule.fixedSpeed);
+            horse.baseBonus += int256(rule.fixedSpeed);
             if (effect == PaidCardRules.EFFECT_BLIND_FIXED) horse.blindedPro = true;
         } else if (effect == PaidCardRules.EFFECT_COAT) {
             st.coats[h] = rule.coatRgb;
+            st.hairTypes[h] |= rule.id == 19 ? 1 : 2;
         } else if (effect >= PaidCardRules.EFFECT_PAY) {
             lootMs = _newCard(st, h, rule, tau);
         }
@@ -1081,7 +1102,7 @@ library PaidRaceEngine {
             if (factor < int256(uint256(PaidCardRules.MIN_COST_FACTOR_BPS))) {
                 factor = int256(uint256(PaidCardRules.MIN_COST_FACTOR_BPS));
             }
-            return COST_PER_MS * uint256(factor) / BPS;
+            return h.baseCost * uint256(factor) / BPS;
         }
     }
 
@@ -1121,20 +1142,14 @@ library PaidRaceEngine {
         uint8 card = uint8(inst.cardId);
         PaidCardRules.Rule memory r = _rule(st, card);
         p = r.pBps;
-        if (card == 26 && h.aggWired != 0) {
-            p += int256(uint256(r.bonusBps));
-        } else if (card == 27 && h.aggAirborne != 0) {
+        if (card == 27 && h.aggAirborne != 0) {
             p += int256(uint256(r.bonusBps));
         } else if (card == 28 && h.aggAirborne != 0) {
             p = 0;
         } else if (card == 29) {
-            uint32 coat = st.coats[inst.owner];
-            if (coat == _rule(st, 20).coatRgb) {
-                p = 0;
-                regen = r.regenBonusBps;
-            } else if (coat != _rule(st, 19).coatRgb) {
-                p = r.fallbackBps;
-            }
+            uint8 types = st.hairTypes[inst.owner];
+            p = types == 3 ? int256(r.pBps) : int256(0);
+            regen = types != 0 ? r.regenBonusBps : 0;
         } else if (card == 33 && (h.equipTorso != 0 || h.equipTail != 0 || h.equipHooves != 0)) {
             p = r.fallbackBps;
         }
@@ -1149,14 +1164,21 @@ library PaidRaceEngine {
         _activate(st, inst, id);
     }
 
+    function _pay(State memory st, uint256 h, uint256 amount, uint256 tau) private pure {
+        PaidRaceMotion.Horse memory horse = st.horses[h];
+        uint256 floor = horse.aggWired > 0 ? 1_000_000 : 0;
+        uint256 available = horse.s > floor ? horse.s - floor : 0;
+        uint256 paid = amount < available ? amount : available;
+        horse.s -= paid;
+        _log(st, EV_RESOURCE, tau, h, -int256(paid));
+    }
+
     function _recover(State memory st, uint256 h, uint256 amount, uint256 tau) private pure {
         PaidRaceMotion.Horse memory horse = st.horses[h];
-        // An over-cap horse gains zero; otherwise s + gain is bounded by STAMINA_CAPACITY.
         unchecked {
-            uint256 room = horse.s < STAMINA_CAPACITY ? STAMINA_CAPACITY - horse.s : 0;
-            uint256 gain = amount < room ? amount : room;
-            horse.s += gain;
-            _log(st, EV_RESOURCE, tau, h, int256(gain));
+            horse.s += amount;
+            if (!horse.exhausted) horse.overcap = horse.s > horse.staminaCapacity;
+            _log(st, EV_RESOURCE, tau, h, int256(amount));
         }
     }
 
@@ -1224,8 +1246,7 @@ library PaidRaceEngine {
             if (a.kind <= PaidRaceCardPlan.GATE) {
                 _activateAction(st, r, a, tau);
             } else if (a.kind == PaidRaceCardPlan.PAY) {
-                st.horses[h].s -= uint256(a.value);
-                _log(st, EV_RESOURCE, tau, h, -a.value);
+                _pay(st, h, uint256(a.value), tau);
             } else if (a.kind == PaidRaceCardPlan.RECOVER) {
                 _recover(st, a.horse, uint256(a.value), tau);
             } else if (a.kind == PaidRaceCardPlan.RECYCLE) {
@@ -1239,7 +1260,13 @@ library PaidRaceEngine {
                 _touch(st, inst, id - 1);
                 _log(st, EV_EQUIP_REFRESH, tau, h, int256(id));
             } else if (a.kind == PaidRaceCardPlan.FIXED) {
-                st.horses[h].fixedK += a.value;
+                if (a.duration > 0) {
+                    (Instance memory inst, uint256 id) = _addInstance(st, tau, h, r.id, KIND_FIXED, a.duration);
+                    inst.fixedDelta = a.value;
+                    _activate(st, inst, id);
+                } else {
+                    st.horses[h].fixedK += a.value;
+                }
                 _log(st, EV_FIXED, tau, h, a.value);
             } else if (a.kind == PaidRaceCardPlan.TARGET) {
                 _log(st, EV_TARGET, tau, h, a.value);
@@ -1264,6 +1291,10 @@ library PaidRaceEngine {
         if (gate) inst.costDelta = a.value;
         if (watch && r.id == 23) inst.regenBps = a.aux;
         if (watch && r.id == 40) inst.nextDist = a.aux;
+        if (watch && r.id == 40) {
+            inst.baseBonus = r.fixedSpeed;
+            _log(st, EV_FIXED, tau, a.horse, r.fixedSpeed);
+        }
         _activate(st, inst, id);
     }
 
@@ -1298,9 +1329,12 @@ library PaidRaceEngine {
         inst.well = effect == PaidCardRules.EFFECT_GRAVITY;
         inst.wheel = effect == PaidCardRules.EFFECT_WHEEL;
         inst.airborne = inst.wheel;
+        if (inst.wheel) inst.fixedDelta = rule.fixedSpeed;
+        inst.count = 1;
         _activate(st, inst, id);
         horse.setEquip(slot, id);
         _log(st, EV_EQUIP_ON, tau, h, int256(id));
+        if (inst.wheel) _log(st, EV_WHEEL_BURST, tau, h, 1);
         _onEquipment(st, h, tau);
         return duration;
     }

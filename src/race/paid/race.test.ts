@@ -6,7 +6,8 @@ import { derivePaidCoreInput, solvePaidRace } from './race.ts'
 import { solvePaidCore } from './solver.ts'
 import { FIXTURE_ANCHOR, FIXTURE_SEED } from './testkit.ts'
 
-const input = { seed: FIXTURE_SEED, openAnchor: FIXTURE_ANCHOR, stakeTier: 3 as const, playerHorseId: 2, choices: [null, null, null] as const }
+const input = { seed: FIXTURE_SEED, openAnchor: FIXTURE_ANCHOR, stakeTier: 3 as const, playerHorseId: 2,
+  roster: [0, 1, 2, 3, 4], choices: [null, null, null] as const }
 
 test('solvePaidRace derives personalities and decks from the opening anchor only', () => {
   const core = derivePaidCoreInput(input)

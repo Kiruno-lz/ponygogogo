@@ -9,6 +9,9 @@ export type PaidMotion = {
   aEff: bigint
   mult: bigint
   fixed: bigint
+  /** Permanent fixed speed in b, before percentage modifiers; units/s. */
+  baseBonus?: bigint
+  exhaustPenalty?: bigint
 }
 
 /** Stamina parameters frozen over one interval; cost/regen in µstamina per ms. */
@@ -19,6 +22,9 @@ export type PaidStaminaMotion = {
   wired: boolean
   cost: bigint
   regen: bigint
+  capacity?: bigint
+  exhaustRelease?: bigint
+  overcapCostDivisor?: bigint
 }
 
 export function ceilDiv(numerator: bigint, denominator: bigint): bigint {
@@ -32,16 +38,16 @@ export function multiplierOf(pBps: bigint): bigint {
   return m > 0n ? m : 0n
 }
 
-/** Constant exhausted speed: max(0, floor(b·m/10000) + (K − E)·1000). */
+/** Frozen exhausted base speed with modifiers; E defaults to the legacy/opponent penalty. */
 export function exhaustedSpeed(m: PaidMotion): bigint {
-  const v = m.b * m.mult / BPS + (m.fixed - EXHAUST_PENALTY) * 1000n
+  const v = (m.b + (m.baseBonus ?? 0n) * 1000n) * m.mult / BPS + (m.fixed - (m.exhaustPenalty ?? EXHAUST_PENALTY)) * 1000n
   return v > 0n ? v : 0n
 }
 
 /** Δpos over dt whole milliseconds; non-decreasing in dt because m, b, aEff, K ≥ 0. */
 export function motionDelta(m: PaidMotion, dt: bigint): bigint {
   if (m.exhausted) return exhaustedSpeed(m) * dt
-  let b = m.b
+  let b = m.b + (m.baseBonus ?? 0n) * 1000n
   const initial = b * m.mult + m.fixed * 1000n * BPS
   if (initial < 0n) {
     const slope = m.aEff * m.mult
@@ -60,7 +66,7 @@ export function speedAt(m: PaidMotion, capMilli: bigint, dt: bigint): bigint {
   if (m.exhausted) return exhaustedSpeed(m)
   const grown = m.b + m.aEff * dt
   const b = grown > capMilli ? capMilli : grown
-  const v = b * m.mult / BPS + m.fixed * 1000n
+  const v = (b + (m.baseBonus ?? 0n) * 1000n) * m.mult / BPS + m.fixed * 1000n
   return v > 0n ? v : 0n
 }
 
@@ -88,19 +94,23 @@ export function wellFieldBps(ownerPos: bigint, targetPos: bigint): bigint {
 }
 
 export function staminaAfter(x: PaidStaminaMotion, dt: bigint): bigint {
+  const capacity = x.capacity ?? STAMINA_CAPACITY
   if (x.exhausted) {
     const next = x.s + x.regen * dt
-    return next > STAMINA_CAPACITY ? STAMINA_CAPACITY : next
+    return next > capacity ? capacity : next
   }
-  if (x.overcap) return x.s - x.cost * dt
+  if (x.overcap) return x.s - (x.cost / (x.overcapCostDivisor ?? 1n)) * dt
   const next = x.s + (x.regen - x.cost) * dt
-  return next < 0n ? 0n : next > STAMINA_CAPACITY ? STAMINA_CAPACITY : next
+  const floor = x.wired ? 1_000_000n : 0n
+  return next < floor ? floor : next > capacity ? capacity : next
 }
 
 /** ms until the next stamina threshold (0 = due now), or null when none is scheduled. */
 export function staminaEventDt(x: PaidStaminaMotion): bigint | null {
-  if (x.exhausted) return x.s >= STAMINA_CAPACITY ? 0n : ceilDiv(STAMINA_CAPACITY - x.s, x.regen)
-  if (x.overcap) return x.s <= STAMINA_CAPACITY ? 0n : ceilDiv(x.s - STAMINA_CAPACITY, x.cost)
+  const capacity = x.capacity ?? STAMINA_CAPACITY
+  const release = x.exhaustRelease ?? capacity
+  if (x.exhausted) return x.s >= release ? 0n : ceilDiv(release - x.s, x.regen)
+  if (x.overcap) return x.s <= capacity ? 0n : ceilDiv(x.s - capacity, x.cost / (x.overcapCostDivisor ?? 1n))
   const net = x.regen - x.cost
   if (net >= 0n || x.wired) return null
   return ceilDiv(x.s, -net)

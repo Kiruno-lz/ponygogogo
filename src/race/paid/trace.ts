@@ -115,7 +115,7 @@ export function sampleHorse(trace: PaidTrace, horse: number, tau: bigint): PaidH
   return {
     pos: frame.pos + delta,
     dist: frame.dist + delta,
-    b: grown > frame.capMilli ? frame.capMilli : grown,
+    b: (grown > frame.capMilli ? frame.capMilli : grown) + (frame.motion.baseBonus ?? 0n) * 1000n,
     v: frame.finished ? 0n : speedAt(frame.motion, frame.capMilli, dt),
     stamina: staminaAfter(frame.stamina, dt),
     lane: frame.lane,

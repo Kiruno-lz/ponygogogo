@@ -181,8 +181,10 @@ describe('P3 real PaidRaceSolver × PonyGame on anvil', () => {
     // The deployed Solver always runs the roster path, so both sides use DEFAULT_ROSTER: this compares the
     // production hot core against the display solver, not the archived no-roster rules (D4 keeps legacy replay
     // rosterless, which is the LegacyCoreSolverProbe path, not this one).
+    const archived = decodeInput(cases.find((c) => c.name === 'derived-0')!.input)
     const inputs = [
-      { ...decodeInput(cases.find((c) => c.name === 'derived-0')!.input), roster: [...DEFAULT_ROSTER] },
+      derivePaidCoreInput({seed:archived.seed,openAnchor:archived.openAnchor,stakeTier:1,
+        playerHorseId:archived.playerHorseId,roster:[...DEFAULT_ROSTER],choices:archived.choices}),
       derivePaidCoreInput({
         seed: '0x8486a37a59c4f66a573ec56d925ee0ed39ad950970db563e1877bfbcd8205a5b',
         openAnchor: '0xee2f19d2d601b98cfc8b613200766bb21cbc4294476db78e9372d2f52a7a7f2e',
