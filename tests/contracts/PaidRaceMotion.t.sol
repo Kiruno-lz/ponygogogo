@@ -137,7 +137,7 @@ contract PaidRaceMotionTest {
         require(_word(h, PaidRaceMotion.H_FINISH_TIME) == 29, "finishTime offset");
         require(_word(h, PaidRaceMotion.H_FINISH_WALL) == 30, "finishWall offset");
         require(PaidRaceMotion.H_FINISH_TIME == 0x220 && PaidRaceMotion.H_FINISH_WALL == 0x240, "finish offsets");
-        require(PaidRaceMotion.HORSE_WORDS * 32 == PaidRaceMotion.H_BASE_BONUS + 32, "raw ABI size");
+        require(PaidRaceMotion.HORSE_WORDS * 32 == PaidRaceMotion.H_RECOVERY_ACCEL + 32, "raw ABI size");
         h.staminaCapacity = 300_000_000;
         h.exhaustRelease = 135_000_000;
         h.baseCost = 20_000;

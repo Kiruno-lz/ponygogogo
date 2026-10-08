@@ -30,11 +30,11 @@ library PaidRaceMotion {
     uint256 internal constant CHECKPOINT_MICRO = 25_000_000_000;
     uint256 internal constant BPS = 10_000;
     uint256 internal constant MIN_COST = PaidCardRules.MIN_COST_FACTOR_BPS;
-    uint256 internal constant HORSE_WORDS = 48;
+    uint256 internal constant HORSE_WORDS = 49;
     uint256 internal constant STAMINA_CAPACITY = 1_000_000_000;
     uint256 internal constant COST_PER_MS = 24_000;
     uint256 internal constant REGEN_PER_MS = 10_000;
-    /// @dev Legacy/opponent exhaustion penalty E = 10 units/s, in mu/s.
+    /// @dev Legacy exhaustion penalty E = 10 units/s, in mu/s.
     uint256 internal constant EXHAUST_PENALTY_MILLI = 10_000;
     uint256 internal constant RK_STEP_MS = PaidCardRules.RK_STEP_MS;
     uint256 internal constant NEVER = 0xffffffff;

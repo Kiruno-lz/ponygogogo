@@ -38,7 +38,7 @@ export function multiplierOf(pBps: bigint): bigint {
   return m > 0n ? m : 0n
 }
 
-/** Frozen exhausted base speed with modifiers; E defaults to the legacy/opponent penalty. */
+/** Frozen exhausted base speed with modifiers; E defaults to the legacy penalty. */
 export function exhaustedSpeed(m: PaidMotion): bigint {
   const v = (m.b + (m.baseBonus ?? 0n) * 1000n) * m.mult / BPS + (m.fixed - (m.exhaustPenalty ?? EXHAUST_PENALTY)) * 1000n
   return v > 0n ? v : 0n
