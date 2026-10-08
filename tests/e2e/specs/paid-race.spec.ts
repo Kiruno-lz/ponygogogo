@@ -109,9 +109,10 @@ async function startPaid(page: Page, horseId: number, shot?: string): Promise<vo
   if (shot) {
     for (let i = 1; i < 5; i++) await expect(chips.nth(i)).toBeEnabled()
     await page.screenshot({ path: `${SHOT}/${shot}.png` })
+    await expect(page.getByTestId('difficulty')).toHaveCount(0)
     await checkScreen(page, {
-      ids: ['bet-panel'], texts: ['select-balance', 'potential-win', 'difficulty'],
-      disjoint: ['select-balance', 'potential-win', 'difficulty'], url: /localhost:5178/,
+      ids: ['bet-panel'], texts: ['select-balance', 'potential-win'],
+      disjoint: ['select-balance', 'potential-win'], url: /localhost:5178/,
     })
   }
   const countdown = page.getByTestId('countdown').waitFor({ state: 'visible', timeout: 20_000 })

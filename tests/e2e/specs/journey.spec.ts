@@ -43,7 +43,7 @@ test('完整动线：加载 → 首页 → 选马与免费档 → 比赛 → 选
   await expect(page.getByTestId('paid-closed')).toHaveText(/有奖合约尚未部署|Paid contracts not deployed yet/)
   await expect(page.getByTestId('potential-win')).toHaveText(/免费试玩|Free practice/)
   await expect(page.getByTestId('potential-win')).not.toContainText('MON')
-  await expect(page.getByTestId('difficulty')).not.toBeEmpty()
+  await expect(page.getByTestId('difficulty')).toHaveCount(0)
   await page.screenshot({ path: `${SHOT}/03-select.png` })
 
   // --- 起跑倒计时 与 比赛 HUD ---
