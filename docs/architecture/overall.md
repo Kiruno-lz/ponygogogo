@@ -24,6 +24,8 @@ Mera Passkey → 根 EOA → Monad sma-b
 图鉴：独立 PRF → 浏览器加密 → Worker/D1 密文同步
 ```
 
+`src/App.tsx` 组合页面与流程；`src/app/useAssets.ts` 管理资源加载，`src/ui/wallet/useWalletSession.ts` 管理账户生命周期，`src/ui/race/useRaceScene.ts` 管理 Phaser。UI 按 shared/home/wallet/select/race/collection/settings/loading/showcase 聚合，页面类型放在对应 types.ts 或 raceView.ts，避免领域模块反向导入页面。`theme.css` 依次加载 base、controls、screens、result 样式，保持原布局与层级。
+
 ## 3. 规则模块
 
 免费试玩与有奖比赛共用 `src/race/paid/` 的确定性规则表和事件求时器。区别只在时钟与锚：有奖比赛由链上规范时间线和链上入场锚驱动（`src/race/paidDriver.ts`），免费试玩由本地时钟和本地派生的锚驱动（`src/race/driver.ts`），结果只在本地展示，不能转为有奖结算输入。卡牌参数以 `src/race/paid/cardRules.ts` 为唯一来源，并生成 Solidity 规则表与跨语言向量。
@@ -71,6 +73,9 @@ Phaser 绘制赛道；选牌面板与图鉴由 DOM 呈现并共用 `src/cards/Ca
 `src/result/` 负责冲线之后的那一屏：名次、总返还、净盈亏、本场三张牌的回顾（图标加名称，数据取自 `paidCardDef`）。名次徽记拆成两层——木牌+名次条的 `nameplate.webp` 在下，按名次取图的奖章 `medal-1..5.webp` 在上（母版在 `art-src/art/result/`），与原画里奖章压在木牌之上的顺序等价；名次数字画在奖章牌面上，DOM 只保留一个供读屏与测试取值的隐藏节点。它在冲线封存后立即可显示，**先标记为待验证预览，不等链上确认才展示画面**——奖金结果由 PonyGame 独立复算（第 1 节），资金状态用结算印章（结算中 / 已结算 / 结算失败 / 已判负）单独标注，交易状态词汇见[链上与经济 §6](../chain-and-economy.md)，名次以 `SessionSettled` 为准。名次预览与资金状态不得合并成一个"结算中"转圈，否则玩家会以为名次还没定。
 
 //TODO - 卡面一致性测试：对同一 `cardId`，选牌面板、图鉴、HUD 生效槽与结算回顾的名称、说明与品质都取自 `paidCardDef`；关闭动画（`prefers-reduced-motion: reduce`）与正常动画两条路径下，同一输入序列产生的名次与输入序列编码完全相等（目前 `motion.spec.ts` 只检查流程不变）。
+
+所有手写中文界面描述、卡牌/角色名称及描述模板、资源和同步错误位于 `src/ui/i18n.ts`；数值仍以规则表插值。修改中文文字只需编辑该文件。图片中的美术字需要修改素材；LoadingScreen、Hud、ResultScreen 与海报的装饰英文保持原样。缺失键显式报错，双语键集合由类型检查保持一致。
+
 
 ## 9. 出图与分享
 

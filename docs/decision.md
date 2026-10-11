@@ -12,13 +12,13 @@
 
 ## 比赛规则与权威结果
 
-- 有奖比赛由 Monad 上的 PonyGame/PaidRaceSolver 复算，PonyVault 按合约结算结果直接向玩家智能账户付款。浏览器只负责操作、动画与待确认预览；Envio 只作可回滚的历史和统计读模型，不决定资金或比赛终态。仓库规则集为带名单与角色能力的 v5，真实部署状态见[链上服务交付](plan/onchain-services.md)。
+- 有奖比赛由 Monad 上的 PonyGame/PaidRaceSolver 复算，PonyVault 按合约结算结果直接向玩家智能账户付款。浏览器只负责操作、动画与待确认预览；Envio 只作可回滚的历史和统计读模型，不决定资金或比赛终态。仓库规则集为带名单与角色能力的 v0.1，真实部署状态见[链上服务交付](plan/onchain-services.md)。
 - 不引入 Game Server、TEE 或结果签名者作为裁判。TypeScript 规则内核用于预览、测试和跨实现对照，不能替代 Solidity 验证。
 - 规则输入来自开场 seed 与可验证区块哈希、实际选择交易时间与区块哈希、五名参赛者的角色名单，以及冻结的卡牌和角色能力规则。权威比赛时钟依据链上秒级时间；本地时钟、浏览器暂停、gogo 输入和客户端声称的名次均不构成结算证据。
 - 结算按事件驱动求解整场五马冲线时间，不按固定步长或浏览器帧在链上回放。无动态场区间使用解析积分；重力井按实时距离影响五马耦合轨迹，以步长不超过 250 ms 的定点 RK2 中点积分和事件定位处理；遇已知事件或首次越过时截断。步长在共享 `PAID_CARD_GLOBALS.rkStepMs` 中定义、生成 Solidity 常量并纳入 `rulesetHash`。练习与有奖展示读取同一 TS 求时器的规范轨迹，不按渲染帧重新积分。
 - 结算保留物理排序 `rawRank`；合约验证【版本答案】后得到付款与战绩使用的 `settlementRank`。客户端不能写入特殊名次，也不能用浏览器名次决定奖金。
-- 规则与赔率在开场时冻结。修改有奖规则须生成新的规则版本并部署新的求时器/Game；未完成会话继续由其原绑定版本结算或判负。
-- 求时器部署为单个 `PaidRaceSolver`：Engine 唯一持有比赛状态与事件顺序，Motion、watch/gated 和冷路径 `PaidRaceCold` 均编为内部库调用。派生、规则表、发牌、新卡决策与最终排序保留独立领域文件；不独立部署 Support，不通过外部 ABI 搬运比赛状态，不引入组件注册表或 DELEGATECALL。体积按 Monad 协议上限验收：runtime ≤ 131,072 B、initcode ≤ 262,144 B；EIP-170 只作对照。执行 gas 以 Monad 计价验收。依据见[单体求时器对照](_reaserch/paid-solver-inline-support.md)。
+- 规则与赔率在开场时冻结。修改有奖规则须生成匹配的新规则哈希并部署求时器/Game；当前客户端仅接入采用的部署，不保留历史版本识别或恢复入口。
+- 求时器部署为单个 `PaidRaceSolver`：Engine 唯一持有比赛状态与事件顺序，Motion、watch/gated 和冷路径 `PaidRaceCold` 均编为内部库调用。派生、规则表、发牌、新卡决策与最终排序保留独立领域文件；不独立部署 Support，不通过外部 ABI 搬运比赛状态，不引入组件注册表或 DELEGATECALL。体积按 Monad 协议上限验收：runtime ≤ 131,072 B、initcode ≤ 262,144 B；EIP-170 只作对照。执行 gas 以 Monad 计价验收。源码边界见[链上架构](architecture/onchain.md)。
 
 ## 资金与账户
 
@@ -42,8 +42,8 @@
 ## 身份、图鉴与服务
 
 - 钱包身份使用单一正式域名 `ponygo.kiruno.cc`。WebAuthn PRF 与 `rpId` 绑定；换域名会派生不同账户，域名变更不视为无缝迁移。
-- 有奖正常结算独立抽取稀有卡或非默认角色，链上 `PonyRewards` 记录获得物且跨 Game 版本复用；解锁不决定链上入场资格、返奖或名次。图鉴与选马共同读取默认开放集合、链上位图与已解密收藏的并集。
-- 图鉴使用独立于钱包的 PRF 命名空间派生加密与签名密钥。浏览器加密图鉴内容，D1 只保存密文及验签、版本管理所需的公开元数据，另有一次性挑战与按 IP 哈希的限流计数；Worker 通过一次性挑战验证签名，并用版本号条件写入处理并发更新。明文 v2 同时保存 `rareCardIds` 与 `unlockedPonyIds`，沿用 v1 加密 envelope；旧数组只读兼容，未知 ID/schema 不覆写，并发冲突重新解密求并集。
+- 有奖正常结算独立抽取稀有卡或非默认角色，当前链上 `PonyRewards` 记录获得物；解锁不决定链上入场资格、返奖或名次。图鉴与选马共同读取默认开放集合、链上位图与已解密收藏的并集。
+- 图鉴使用独立于钱包的 PRF 命名空间派生加密与签名密钥。浏览器加密图鉴内容，D1 只保存密文及验签、版本管理所需的公开元数据，另有一次性挑战与按 IP 哈希的限流计数；Worker 通过一次性挑战验证签名，并用版本号条件写入处理并发更新。明文 `schemaVersion: "0.1"` 同时保存 `rareCardIds` 与 `unlockedPonyIds`，密文 envelope、AES 附加认证、同步签名和两种 PRF 用途域统一到 v0.1；不读取旧测试格式，并发冲突重新解密求并集。
 - 合约/RPC 是会话和资金状态的权威来源。索引器、浏览器缓存和 Worker 存储都不能代替合约状态；图鉴密文不构成链上卡牌所有权证明。
 - 网站使用 Vite/React/Phaser；有奖规则使用 TypeScript 参考实现与 Solidity/Foundry 合约；静态站点、图鉴 Worker 和 D1 部署到 Cloudflare。
 

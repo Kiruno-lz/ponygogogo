@@ -2,29 +2,24 @@
 
 [链上服务交付记录](onchain-services.md)维护部署验收状态；缓存、限制与命令只在本文定义。部署目标是 **Cloudflare Workers 静态资源**，正式域名 `ponygo.kiruno.cc`。Worker 本身与自定义域的绑定在 Cloudflare 侧管理，本文只管仓库这边的构建、缓存与核验。
 
-## 1. 命令
+## 1. 发布入口与状态
+
+**Cloudflare 实际配置、迁移、生产/preview 发布及正式域名验收未完成，按 review 留到主分支使用原项目 .env 执行。** 本次仅完成仓库实现、构建与 dry run。
+
+正式 Worker 为 `ponygo`，保持 `ponygo.kiruno.cc`；preview 为 `ponygogogo-preview`。根目录 `wrangler.toml` 是服务名、静态资源、API、D1 与 cron 的配置来源。`DEPLOY_ENV` 只接受空串（正式）或 preview，发布脚本显式传入对应环境，先迁移 D1 再发布 Worker。
 
 ```bash
-# 本地/CI 一键构建 + 部署（环境自检 → tsc 类型检查 → vite build → 体积与限制核验 → wrangler 部署）
-bash scripts/deploy.sh
-
-# 只构建和核验，不部署
-DRY_RUN=1 bash scripts/deploy.sh
-
-# 已构建好 dist/ 时手动部署（名字与目录都从 wrangler.toml 读，不在命令行重复）
-npx wrangler deploy
+DRY_RUN=1 bash scripts/deploy.sh                # 构建、缓存与平台限制核验
+npx wrangler deploy --dry-run --env ''         # 正式 Worker 打包预检
+DEPLOY_ENV=preview bash scripts/deploy.sh      # 实际 preview 迁移与发布
+DEPLOY_ENV= bash scripts/deploy.sh             # 实际正式迁移与发布
 ```
 
-接 Git 自动构建时（Workers Builds），面板里两个字段填：
+执行前核对原项目 .env 的当前 Game/Vault、Alchemy 与 Envio 公共端点；当前合约地址见[链上服务交付](onchain-services.md)。VITE_* 会进入浏览器包，密钥、ENVIO_API_TOKEN 与 Cloudflare 凭据不得使用此前缀。
 
-| 字段 | 值 |
-| --- | --- |
-| 构建命令 | `bun run build` |
-| 部署命令 | `npx wrangler deploy` |
+图鉴迁移 0003 删除测试密文、挑战和限流记录；0004 创建 Keeper 游标、会话集合和租约表。正式 Worker 每两分钟运行共享 Keeper 核心，preview 不启用 cron。RPC、当前 Game、起始块在 vars；通过 `wrangler secret put KEEPER_PRIVATE_KEY --env ''` 配置服务密钥，不能放入仓库、VITE_* 或日志。发布后核对 cron、D1 和密钥绑定，执行 Keeper 空跑及正式域名通行密钥/收藏往返，检查网络错误与冲突恢复。
 
-两者都是默认值，不需要改——配置的真源是 `wrangler.toml`，它声明了 `[assets] directory` 与 SPA 回退方式。
-
-`package.json` 里也登记了 `bun run deploy`，等价于 `bash scripts/deploy.sh`；但本项目 `bun run <script>` 有已知故障（`CouldntReadCurrentDirectory`，见 `scripts/dev.sh` 的同类规避），确认可靠时一律直接执行 `bash scripts/deploy.sh`。首次部署或 CI 环境需要 `npx wrangler login`，或设置 `CLOUDFLARE_API_TOKEN` 环境变量。
+`package.json` 的 deploy 对应 `bash scripts/deploy.sh`；从仓库根执行。凭据使用已有 Wrangler 登录或限定 Workers/D1 范围的 Cloudflare API token。
 
 ## 2. 缓存策略
 
@@ -53,13 +48,13 @@ npx wrangler deploy
 
 账户由 WebAuthn 的 PRF 扩展派生，`rpId` 取 `location.hostname`（[架构第 6 节](../architecture/overall.md)），而 PRF 的输出决定助记词与地址。**同一个人在两个域名下注册，拿到的是两个不同的钱包地址。** 通行密钥永远绑在它被创建的那个域名上，换域名不是迁移而是断代，玩家只能用助记词重新导入。
 
-所以 Pages 项目即便挂多个自定义域，这个应用也只认一个。
+所以 Worker 即便挂多个自定义域，这个应用也只认一个。
 
 （真要让两个来源共享账户，WebAuthn 有 Related Origin Requests：`rpId` 固定，用 `/.well-known/webauthn` 声明允许的来源。浏览器支持面还窄，本项目不需要，不引入。）
 
 ### 3.2 规范域名由应用自己守
 
-`src/chain/canonicalHost.ts` 的 `enforceCanonicalHost()` 在挂载 React 之前跑，域名不是 `ponygo.kiruno.cc` 就 `location.replace` 过去，路径、查询串与片段原样带过去。**后果是从任何别的域名打开都会落到规范域名**，包括 Pages 自带的 `*.pages.dev`。
+`src/chain/canonicalHost.ts` 的 `enforceCanonicalHost()` 在挂载 React 之前跑，域名不是 `ponygo.kiruno.cc` 就 `location.replace` 过去，路径、查询串与片段原样带过去。**后果是从任何别的域名打开都会落到规范域名**，包括 Worker 自带的 `*.workers.dev`。
 
 放行规则写死在那里并有 L1 覆盖（`src/chain/canonicalHost.test.ts`）：本机、回环、私有网段与 `.local` 一律不跳——局域网真机试玩走的就是这些，而且本地那套 `rpId` 本来就不参与线上账户。
 

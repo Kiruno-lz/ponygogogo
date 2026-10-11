@@ -59,7 +59,7 @@ R(session) = max(maxPayout - stake, 0)
 | `contracts/libraries/PonyRules.sol`、`RewardRules.sol` | 内部库 | 由 TS 规范表生成角色能力、启用目录与独立获得抽取参数 |
 | `contracts/libraries/PaidSwap.sol`、`RaceEntropy.sol` | 内部库 | 交换快照决策与用途域分离的确定性派生 |
 
-内部库与继承模块不对应独立业务部署地址。采用[单体对照研究](../_reaserch/paid-solver-inline-support.md)验证的源码边界：Engine 唯一持有比赛状态、时间映射与事件生命周期；Motion、watch/gated 与 PaidRaceCold 全部在 Solver 的同一内存帧内执行。Cold 只提供派生、规则、快照决策、发牌与排序的纯函数，不拥有另一套比赛状态。Solver 不创建或链接外部计算合约，不使用 DELEGATECALL 或组件注册表；生产结算与诊断入口共用同一 Engine/Motion 内核。
+内部库与继承模块不对应独立业务部署地址。源码边界：Engine 唯一持有比赛状态、时间映射与事件生命周期；Motion、watch/gated 与 PaidRaceCold 全部在 Solver 的同一内存帧内执行。Cold 只提供派生、规则、快照决策、发牌与排序的纯函数，不拥有另一套比赛状态。Solver 不创建或链接外部计算合约，不使用 DELEGATECALL 或组件注册表；生产结算与诊断入口共用同一 Engine/Motion 内核。
 
 ```mermaid
 flowchart LR
@@ -117,7 +117,7 @@ flowchart LR
 
 `PonyGame` 发 `SessionOpened`（sessionId、玩家、马、下注、seed、`openedAt`、`openedBlock`、`rulesetHash`、`roster[5]`）、`CardChosen`（检查点、`cardId`（0 为主动放弃）、刷新位置、`txSec`、区块号）、`RandomAnchorSealed`（源区块与实际哈希）、`SessionSettled`（`finishTime[5]`、`rawOrder`、`settlementOrder`、玩家结算名次、返还、`digest`、实际获得的三张牌）、`SessionForfeited`（含判负原因）；Vault 发 `StakeLocked`、`StakeSettled`（判负为返还 0）和庄家资金事件。Envio 按合约事件建立比赛历史、玩家战绩、马匹胜率与 Vault 统计。RPC/合约决定资金与会话状态；Envio 仅作可回滚的读模型，不能决定付款。链重组后按最终 canonical 事件重算统计。
 
-正常有奖结算在完成求时、名次校验与会话状态更新后，以结算父区块哈希独立抽取获得物，再由 Vault 直接返还。获得概率 20%，未拥有稀有卡权重 1、非默认角色权重 3；判负与试玩不抽取。奖励预留和有界账本调用防止奖励读取或记录失败阻断返奖；获得物不参与 Solver、名次或返奖。`PonyRewards.CollectibleGranted` 及 Game 的 `RewardsBound` / `CollectibleSkipped` 进入 Envio，角色统计按 `roster` 映射；账本跨 Game 复用，历史事件按原 Game 的 ABI 解码。浏览器将链上位图与解密收藏求并集，明文 v2 同时保存稀有卡与角色，沿用 v1 加密 envelope、PRF salt 与条件写入；冲突求并集，失败保留进度，退出作废旧请求。
+正常有奖结算在完成求时、名次校验与会话状态更新后，以结算父区块哈希独立抽取获得物，再由 Vault 直接返还。获得概率 20%，未拥有稀有卡权重 1、非默认角色权重 3；判负与试玩不抽取。奖励预留和有界账本调用防止奖励读取或记录失败阻断返奖；获得物不参与 Solver、名次或返奖。`PonyRewards.CollectibleGranted` 及 Game 的 `RewardsBound` / `CollectibleSkipped` 进入 Envio，角色统计按 `roster` 映射；账本按注册权限接收当前 Game 的奖励；客户端和索引器仅使用当前部署 ABI。浏览器将链上位图与解密收藏求并集，明文 schemaVersion 与密文 envelope 均为 0.1，AES 附加认证、同步签名与 PRF 用途域均为 v0.1，不保留旧测试格式，使用条件写入；冲突求并集，失败保留进度，退出作废旧请求。
 
 ## 7. 验收门禁
 

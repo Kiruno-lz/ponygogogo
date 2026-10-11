@@ -57,8 +57,8 @@
 ### 4. 增加开发验收入口（完成）
 
 - 在 `src/App.tsx` 增加开发专用页面状态和入口；首页仅开发构建渲染按钮。
-- 在 `src/ui/HomeScreen.tsx` 放置与首页现有按钮体系一致的轻量入口，不增加生产文案或资源需求。
-- 新建 `src/ui/EffectShowcaseScreen.tsx` 与确定性场景驱动器，选项动态取自 `PAID_CARD_POOL` 并显示卡牌名称/效果说明；复用 `RaceScene`，提供暂停、逐步推进、重播和返回首页。
+- 在 `src/ui/home/HomeScreen.tsx` 放置与首页现有按钮体系一致的轻量入口，不增加生产文案或资源需求。
+- 新建 `src/ui/showcase/EffectShowcaseScreen.tsx` 与确定性场景驱动器，选项动态取自 `PAID_CARD_POOL` 并显示卡牌名称/效果说明；复用 `RaceScene`，提供暂停、逐步推进、重播和返回首页。
 - 场景覆盖所有卡牌，重点检查 C-02 翻转中心/拖尾分镜、C-06 炸弹、装备类、C-09 音效、C-12 风、C-13 转移、HUD 状态和 reduced-motion；C-10/C-11 保持约定的身体特效禁区。
 - 开发入口不得接受 `PaidRaceDriver`，不得调用钱包、网络、结算、真实时间 RNG 或写入持久化比赛记录。
 
@@ -83,5 +83,5 @@
 
 ## 当前代码前提
 
-- `src/ui/RaceScreen.tsx` 已将成功 `swap` 事件映射至 `audio.sfx_swap`，`public/assets/manifest.json` 已登记该音频；本计划增加回归测试，避免后续入口重构丢失现有行为。
+- `src/ui/race/RaceScreen.tsx` 已将成功 `swap` 事件映射至 `audio.sfx_swap`，`public/assets/manifest.json` 已登记该音频；本计划增加回归测试，避免后续入口重构丢失现有行为。
 - `src/game/effects.ts`、`src/game/effects.test.ts` 和 `public/assets/art/effects/` 的素材已纳入版本控制。原始 `art-src/` 被忽略，本计划只依赖已生成的运行时 WebP。

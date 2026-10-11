@@ -904,7 +904,7 @@ C-04 与稀有专精在获得卡时各创建独立速度实例。有限卡跟随
 
 ### 8.3 制作与验收
 
-C-22 至 C-40 共 19 张已接入 TS 与 Solidity 事件求时器，卡池、卡面、图鉴、HUD、结算回顾与触发反馈同步使用正式卡牌。`src/race/paid/cardRules.ts` 是卡牌参数的唯一来源，生成 Solidity 与前端文案；当前规则集为带角色名单与初始能力的 `paid-race-v5`；卡牌主功能分类与角色能力表共同进入规则哈希。机制由 `cardRules.test.ts`、`newCards.test.ts`、`tests/contracts/PaidRaceNewCards.t.sol` 与跨语言向量验证。
+C-22 至 C-40 共 19 张已接入 TS 与 Solidity 事件求时器，卡池、卡面、图鉴、HUD、结算回顾与触发反馈同步使用正式卡牌。`src/race/paid/cardRules.ts` 是卡牌参数的唯一来源，生成 Solidity 与前端文案；当前规则集为带角色名单与初始能力的 `paid-race-v0.1`；卡牌主功能分类与角色能力表共同进入规则哈希。机制由 `cardRules.test.ts`、`newCards.test.ts`、`tests/contracts/PaidRaceNewCards.t.sol` 与跨语言向量验证。
 
 | 制作项 | 验收内容 |
 | --- | --- |
@@ -917,7 +917,7 @@ C-22 至 C-40 共 19 张已接入 TS 与 Solidity 事件求时器，卡池、卡
 | 放弃与成长 | 躺平只奖励未来主动放弃；登神每独立里程 14000 递进 B=−200/+100/+300/+500/+1000，最多四层；交换不增里程、死亡不重置 |
 | 跨实现与表现 | 相同输入下 TS/Solidity 的目标、事件顺序/时间、资源、速度贡献和五马冲线/结算排序逐字段一致；gogo、帧率、动效与资源缺失不改结果 |
 
-验收证据：`tests/vectors/paid-race-v4.json` 的 360 组向量在 TS 与 Solidity 间逐字段一致，其中 80 组真实派生输入另与部署在测试 EVM 中的生产求时器比较；`tests/e2e/specs/new-cards.spec.ts` 覆盖中英文卡面、三选一与翻新后的 HUD 时长。各层通过数量见[链上服务交付](plan/onchain-services.md)的基线。此验收不包含网络部署或真实付费交易。
+验收证据：`tests/vectors/paid-race-v0.1.json` 的 360 组向量在 TS 与 Solidity 间逐字段一致，其中 80 组真实派生输入另与部署在测试 EVM 中的生产求时器比较；`tests/e2e/specs/new-cards.spec.ts` 覆盖中英文卡面、三选一与翻新后的 HUD 时长。各层通过数量见[链上服务交付](plan/onchain-services.md)的基线。此验收不包含网络部署或真实付费交易。
 
 每场五马最多15次卡牌获得，每匹三次获得直接生成的主体、通用附加和后续单次奖励保守计≤9，总计≤45；C-31未来装备获得奖励另保守计≤10。C-32之前最多通过两次获得持有两件装备，逐件独立加速计入三次获得的预算。最多20枚炸弹及五次运气E死亡产生≤25份重生；目录角色互不重复，稀有专精/百花齐放/主动放弃/重复节奏保守追加3/3/3/2，共11。合计保守≤91，小于96容量。火焰三个档位只更新既有实例；翻新不触发改装达人。
 
