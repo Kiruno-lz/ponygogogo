@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { PONY_CATALOG } from '../../../src/game/ponyCatalog.ts'
-import { PlayerPlaque } from '../../../src/ui/RaceArt.tsx'
+import { PlayerPlaque } from '../../../src/ui/race/RaceArt.tsx'
 import '../../../src/ui/theme.css'
 
 createRoot(document.getElementById('root')!).render(<div data-testid="plaque-grid"

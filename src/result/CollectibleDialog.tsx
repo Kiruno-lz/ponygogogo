@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CollectibleGrant } from '../chain/rewards.ts'
 import { Card } from '../cards/Card.tsx'
-import { StageDialog } from '../ui/StageDialog.tsx'
+import { StageDialog } from '../ui/shared/StageDialog.tsx'
 import { t, type Lang } from '../ui/i18n.ts'
 import { collectibleView } from './collectibleView.ts'
 import { CollectibleConfetti } from './CollectibleConfetti.tsx'

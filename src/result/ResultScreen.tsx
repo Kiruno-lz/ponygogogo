@@ -21,10 +21,10 @@ import { paidCardDef } from '../race/cards/paidCards.ts'
 import { SIM_HZ } from '../race/core/constants.ts'
 import type { RaceResult } from '../race/core/types.ts'
 import { ponyById, ponyIdAt } from '../game/ponyCatalog.ts'
-import { usePress } from '../ui/Button.tsx'
+import { usePress } from '../ui/shared/Button.tsx'
 import { t, type Lang } from '../ui/i18n.ts'
-import { deadlineText, type DeadlineView } from '../ui/paidText.ts'
-import { useNow } from '../ui/useNow.ts'
+import { deadlineText, type DeadlineView } from '../ui/race/paidText.ts'
+import { useNow } from '../ui/shared/useNow.ts'
 
 /** 奖台踏面与角色中轴，五匹马按各自蹄底对齐 */
 const HERO_BASELINE = 739

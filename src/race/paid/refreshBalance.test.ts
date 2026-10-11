@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { fixtureInput, pickAt } from './testkit.ts'
 import { solvePaidCore } from './solver.ts'
 import { sampleHorse } from './trace.ts'
-import { ponyAbilityText } from '../../ui/ponyAbilityText.ts'
+import { ponyAbilityText } from '../../ui/shared/ponyAbilityText.ts'
 import { paidCardRule } from './cardRules.ts'
 
 function input(playerPony = 1) {
