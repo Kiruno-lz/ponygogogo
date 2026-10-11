@@ -111,12 +111,15 @@
 .wallet-tx { width: 100%; margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; font-size: 18px; font-weight: 700; line-height: 1.45; }
 .wallet-tx.failed { color: #a32c17; }
 .wallet-tx a { color: #7a3512; font-weight: 800; }
-/* 最近战绩：索引器的只读记录，五列一行，窄于资金区、字号次一级 */
-.wallet-history { width: 100%; display: flex; flex-direction: column; gap: 4px; font-size: 17px; }
+/* 最近战绩：索引器的只读记录，六列一行，窄于资金区、字号次一级 */
+.wallet-history { width: 100%; padding-right: 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; font-size: 17px; }
 .wallet-history h3 { margin: 0; font-size: 20px; font-weight: 800; opacity: .78; }
+.wallet-history-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.wallet-history-payout { font-weight: 700; white-space: nowrap; }
+.wallet-history a { color: #7a3512; text-decoration: underline; }
 .wallet-history p { margin: 0; }
-.wallet-history ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
-.wallet-history li { display: grid; grid-template-columns: 130px 1fr 110px 110px 90px; gap: 12px; align-items: baseline; font-weight: 700; }
+.wallet-history ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; max-height: 284px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.wallet-history li { display: grid; grid-template-columns: 1.2fr 1fr 1.3fr 1fr .8fr .9fr; gap: 8px; align-items: baseline; font-weight: 700; line-height: 24px; flex-shrink: 0; }
 .wallet-history li > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wallet-history li > span:last-child { text-align: right; }
 .wallet-history small { font-size: 14px; opacity: .65; line-height: 1.4; }
