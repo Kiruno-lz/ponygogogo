@@ -398,7 +398,6 @@ export default function App() {
             onLogin={() => void login()}
             onOpenWallet={() => setWalletOpen(true)}
             onLogout={logout}
-            onToggleLang={() => setSettings((s) => ({ ...s, lang: s.lang === 'zh' ? 'en' : 'zh' }))}
             onOpenEffects={import.meta.env.DEV ? () => go('effectShowcase') : undefined}
           />
         )}

@@ -32,6 +32,10 @@ test('every English and Chinese collection slot keeps its copy inside the frame'
     const result = await page.evaluate(`(${cardCheck})()`)
     expect(result).toEqual({ cards: PAID_CARD_POOL.length, faces: PAID_CARD_POOL.length - RARE, locked: RARE, overflow: 0 })
     await page.getByRole('button', { name: /^返回$|^Back$/ }).click()
-    if (language === 'zh') await page.getByRole('button', { name: 'EN', exact: true }).click()
+    if (language === 'zh') {
+      await page.locator('.home-settings').click()
+      await page.getByRole('button', { name: 'English', exact: true }).click()
+      await page.keyboard.press('Escape')
+    }
   }
 })

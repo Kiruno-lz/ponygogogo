@@ -16,14 +16,13 @@ import { TransientNotice } from '../shared/TransientNotice.tsx'
 export type { WalletBusy } from '../wallet/types.ts'
 
 export function HomeScreen({ lang, account, gameAccount, balance, busy, error, errorKey, onDismissError, onStart, onCollection, onSettings,
-  onRegister, onLogin, onOpenWallet, onLogout, onToggleLang, onOpenEffects }: {
+  onRegister, onLogin, onOpenWallet, onLogout, onOpenEffects }: {
   /** 根 EOA 只决定「是否已登录」；木牌上展示的是游戏账户（sma-b）的地址与余额 */
   lang: Lang; account: WalletAccount | null; gameAccount: GameAccount | null
   /** sma-b 的原生 MON 余额；null = 还没读到 */
   balance: bigint | null; busy: WalletBusy; error: string | null
   onStart: () => void; onCollection: () => void; onSettings: () => void
   onRegister: () => void; onLogin: () => void; onOpenWallet: () => void; onLogout: () => void
-  onToggleLang: () => void
   errorKey?: unknown
   onDismissError: () => void
   /** 仅由 Vite 开发构建传入；生产首页不显示验收入口 */
@@ -54,7 +53,6 @@ export function HomeScreen({ lang, account, gameAccount, balance, busy, error, e
       {error && <TransientNotice className="home-wallet-error" testId="wallet-error" role="alert" noticeKey={errorKey ?? error} onDismiss={onDismissError}>{error}</TransientNotice>}
       {onOpenEffects && <Chip label={t(lang, 'home.effectShowcase')} onClick={onOpenEffects}
         style={{ position: 'absolute', left: 38, bottom: 30, fontSize: 15, padding: '5px 12px' }} />}
-      <Chip label={t(lang, 'home.toggleLang')} onClick={onToggleLang} style={{ position: 'absolute', right: 38, bottom: 30, fontSize: 15, padding: '5px 12px' }}/>
     </div>
   </div>
 }

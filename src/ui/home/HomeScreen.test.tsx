@@ -16,7 +16,6 @@ const baseProps = {
   onLogin: () => {},
   onOpenWallet: () => {},
   onLogout: () => {},
-  onToggleLang: () => {},
   onDismissError: () => {},
 }
 
