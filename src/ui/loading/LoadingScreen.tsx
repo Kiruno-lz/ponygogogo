@@ -79,7 +79,7 @@ export function LoadingScreen({
       {ready && !failed && (
         <WoodButton
           zh={t(lang, 'loading.enter')}
-          en="ENTER"
+          en={lang === 'zh' ? 'ENTER' : undefined}
           onClick={onEnter}
           style={{ minWidth: 360 }}
         />
