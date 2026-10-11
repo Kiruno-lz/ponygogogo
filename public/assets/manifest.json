@@ -1649,5 +1649,33 @@
     "bytes": 148056,
     "sha256": "dd5ac38cf6f72e13",
     "tier": "result"
+  },
+  "art.collection.tabs-thumb": {
+    "kind": "image",
+    "path": "assets/art/collection/tabs-thumb.webp",
+    "bytes": 8272,
+    "sha256": "e7a8a6327615033e",
+    "tier": "race"
+  },
+  "art.collection.tabs-track": {
+    "kind": "image",
+    "path": "assets/art/collection/tabs-track.webp",
+    "bytes": 15522,
+    "sha256": "b066ebc4864471cd",
+    "tier": "race"
+  },
+  "art.collection.background": {
+    "kind": "image",
+    "path": "assets/art/collection/background.webp",
+    "bytes": 106082,
+    "sha256": "bbbb00a6a3116dea",
+    "tier": "race"
+  },
+  "art.collection.pony-panel": {
+    "kind": "image",
+    "path": "assets/art/collection/pony-panel.webp",
+    "bytes": 120530,
+    "sha256": "b63a9a14f697f49e",
+    "tier": "race"
   }
 }

@@ -2,6 +2,14 @@
   "note": "实测显示尺寸（设计画布 px）。[0,0] = 禁止降采样，理由见 scripts/measure-display-sizes.ts",
   "measuredAt": "2026-09-19",
   "sizes": {
+    "/assets/art/collection/tabs-thumb": [
+      145,
+      72
+    ],
+    "/assets/art/collection/tabs-track": [
+      304,
+      111
+    ],
     "/assets/art/home/collection": [
       526,
       174
@@ -369,9 +377,19 @@
     "/assets/art/ponies/1-plaque-portrait": [
       155,
       155
+    ],
+    "/assets/art/collection/pony-panel": [
+      360,
+      480
     ]
   },
   "seenAt": {
+    "/assets/art/collection/tabs-thumb": [
+      "collection"
+    ],
+    "/assets/art/collection/tabs-track": [
+      "collection"
+    ],
     "/assets/art/home/collection": [
       "home"
     ],
@@ -825,6 +843,9 @@
     "/assets/art/ponies/1-plaque-portrait": [
       "select",
       "race"
+    ],
+    "/assets/art/collection/pony-panel": [
+      "collection"
     ]
   }
 }

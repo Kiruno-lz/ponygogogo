@@ -230,11 +230,12 @@ def main() -> int:
     parser.add_argument('--pony', type=int, choices=range(9), nargs='+', help='Rebuild only these character assets in an existing manifest')
     parser.add_argument('--running-only', action='store_true', help='With --pony, rebuild only running sheets')
     parser.add_argument('--collectibles', action='store_true', help='Rebuild only the reward reveal textures in an existing manifest')
+    parser.add_argument('--collection-ui', action='store_true', help='Rebuild only the collection backgrounds and category switch in an existing manifest')
     args = parser.parse_args()
     pony_ids = args.pony
     if args.running_only and pony_ids is None:
         parser.error('--running-only requires --pony')
-    incremental = pony_ids is not None or args.collectibles
+    incremental = pony_ids is not None or args.collectibles or args.collection_ui
     if not SRC.is_dir():
         print(f"找不到素材母版目录 {SRC}", file=sys.stderr)
         return 1
@@ -339,9 +340,8 @@ def main() -> int:
                 wanted |= {f'art/{folder}/{prefix}-{pony}.webp' for pony in pony_ids for folder, prefix in (('result','hero'),('share','horse'))}
         if args.collectibles:
             wanted |= {f'art/collectibles/{name}.webp' for name in ('front-pony-titled', 'front-card-titled', 'keep-button', 'back', 'confetti')}
-            for legacy in ('front', 'front-pony', 'front-card'):
-                manifest.pop(f'art.collectibles.{legacy}', None)
-                (OUT / f'art/collectibles/{legacy}.webp').unlink(missing_ok=True)
+        if args.collection_ui:
+            wanted |= {f'art/collection/{name}.webp' for name in ('background', 'tabs-track', 'tabs-thumb', 'pony-panel')}
         items = [item for item in items if item.rel in wanted]
         if {item.rel for item in items} != wanted:
             raise ValueError('Incomplete incremental source assets: ' + ', '.join(sorted(wanted - {item.rel for item in items})))
