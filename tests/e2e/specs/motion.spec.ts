@@ -124,7 +124,7 @@ test('开启减弱动效后取消旋转与大幅缩放，但保留按下反馈�
   await expect(page.getByTestId('screen-settings')).toBeVisible()
   const toggle = page.locator('.chip', { hasText: /^关$|^Off$/ }).first()
   if (await toggle.count()) await toggle.click()
-  await page.getByRole('button', { name: /返回|Back/ }).first().click()
+  await page.keyboard.press('Escape')
   await expect(page.getByTestId('screen-home')).toBeVisible()
   await expect(page.locator('.stage-host')).toHaveClass(/reduced/)
 

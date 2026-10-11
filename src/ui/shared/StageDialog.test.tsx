@@ -6,6 +6,8 @@ import { RegisterModal } from '../wallet/RegisterModal.tsx'
 import { WalletModal } from '../wallet/WalletModal.tsx'
 import { openModal,type KeySource,type ModalHost } from './modalHost.ts'
 import { StageDialog } from './StageDialog.tsx'
+import { SettingsScreen } from '../settings/SettingsScreen.tsx'
+import { DEFAULT_SETTINGS } from '../settings/settings.ts'
 
 const noop = () => undefined
 
@@ -194,6 +196,13 @@ describe('openModal', () => {
 describe('modals sit on StageDialog', () => {
   const cases = [
     {
+      testId: 'screen-settings',
+      label: t('en', 'settings.title'),
+      html: renderToStaticMarkup(
+        <SettingsScreen lang="en" settings={DEFAULT_SETTINGS} onChange={noop} onBack={noop} />,
+      ),
+    },
+    {
       testId: 'paid-resume',
       label: t('en', 'resume.title'),
       html: renderToStaticMarkup(
@@ -229,4 +238,9 @@ describe('modals sit on StageDialog', () => {
       expect(c.html).not.toContain('aria-modal')
     })
   }
+  test('wallet and settings have no close or back button', () => {
+    for (const c of cases.filter(c => ['wallet-modal', 'screen-settings'].includes(c.testId))) {
+      expect(c.html).not.toMatch(/>(Close|Back)<\/span>/)
+    }
+  })
 })

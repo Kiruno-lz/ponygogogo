@@ -33,7 +33,7 @@ export function RegisterModal({ lang, defaultName, busy, onConfirm, onClose }: {
     // 通行密钥弹窗进行中不可关：Escape、点遮罩与取消按钮同一条规则
     <StageDialog label={t(lang, 'wallet.nameTitle')} testId="register-modal" busy={busy} onDismiss={onClose}>
       {/* 只有一个输入框，回车即隐式提交 */}
-      <form className="panel wallet-modal wallet-dialog" onSubmit={(e) => { e.preventDefault(); confirm() }}>
+      <form className="panel stage-modal-panel wallet-modal wallet-dialog" onSubmit={(e) => { e.preventDefault(); confirm() }}>
         <h2 className="h-title">{t(lang, 'wallet.nameTitle')}</h2>
         <p className="wallet-dialog-hint">{t(lang, 'wallet.nameHint')}</p>
         <label className="wallet-name-field">

@@ -60,7 +60,10 @@ test('钱包动线：取名注册 → 游戏账户领币 → 账户与余额 →
   // 签名账户里没有钱，不露出迁移入口
   await expect(page.getByTestId('wallet-migrate')).toHaveCount(0)
   await page.screenshot({ path: `${SHOT}/22-wallet-modal.png` })
-  await page.getByRole('button', { name: /^关闭$|^Close$/ }).click()
+  await expect(page.getByRole('button', { name: /^关闭$|^Close$/ })).toHaveCount(0)
+  const stageBox = (await page.getByTestId('stage').boundingBox())!
+  await page.mouse.click(stageBox.x + 10, stageBox.y + 10)
+  await expect(page.getByTestId('wallet-modal')).toBeHidden()
 
   // 木牌上的摘要就是游戏账户，不是签名账户
   await expect(page.getByTestId('wallet-label')).toHaveText(`${game.slice(0, 10)}…${game.slice(-4)}`)
@@ -77,7 +80,7 @@ test('钱包动线：取名注册 → 游戏账户领币 → 账户与余额 →
   await expect(page.getByTestId('wallet-mnemonic')).toBeHidden()
 
   // --- 退出：面板里没有退出按钮，走首页木牌上的入口 ---
-  // 这次用 Escape 关（关闭按钮上面已经点过）：焦点回到打开它的木牌，助记词随面板一起卸掉
+  // 这次用 Escape 关（上面已验证点边缘关闭）：焦点回到打开它的木牌，助记词随面板一起卸掉
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('wallet-modal')).toBeHidden()
   await expect(page.getByTestId('wallet-open')).toBeFocused()

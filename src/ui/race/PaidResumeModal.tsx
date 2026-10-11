@@ -26,7 +26,7 @@ export function PaidResumeModal({ lang, stakeLabel, deadline, busy, canSettle, o
   return (
     // 进行中不可关：Escape、点遮罩与「稍后」按钮同一条规则
     <StageDialog label={t(lang, 'resume.title')} testId="paid-resume" busy={busy} onDismiss={onLater}>
-      <div className="panel wallet-modal wallet-dialog">
+      <div className="panel stage-modal-panel wallet-modal wallet-dialog">
         <h2 className="h-title">{t(lang, 'resume.title')}</h2>
         <p className="wallet-dialog-hint">{t(lang, 'resume.body', { stake: stakeLabel })}</p>
         {deadlineLine && (

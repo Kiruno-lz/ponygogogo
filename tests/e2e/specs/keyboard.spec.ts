@@ -80,6 +80,7 @@ test('模态窗口：Escape 关闭且焦点回到入口、Tab 困在窗口里、
   // --- 打开：原生模态 dialog，名字是标题，初始焦点在输入框 ---
   await signUp.click()
   await expect(modal).toBeVisible()
+  await expect(modal.locator('.wallet-dialog')).toHaveCSS('display', 'flex')
   await expect(modal).toHaveJSProperty('open', true)
   expect(await modal.evaluate((d) => d.matches(':modal'))).toBe(true)
   await expect(page.getByRole('dialog', { name: /给这把通行密钥起个名字|Name this passkey/ })).toBeVisible()

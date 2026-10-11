@@ -186,7 +186,7 @@ export async function readAddress(page: Page): Promise<string> {
   await page.getByTestId('wallet-open').click()
   await expect(page.getByTestId('wallet-modal')).toBeVisible()
   const game = (await page.getByTestId('wallet-address').innerText()).trim()
-  await page.getByRole('button', { name: /^关闭$|^Close$/ }).click()
+  await page.keyboard.press('Escape')
   await expect(page.getByTestId('wallet-modal')).toBeHidden()
   return game
 }
