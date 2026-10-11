@@ -19,6 +19,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { createPublicClient, http, toFunctionSelector, type Address, type Hex } from 'viem'
+import { formatMon } from '../../../src/chain/amount.ts'
 import { ponyGameAbi } from '../../../src/chain/paidCalls.ts'
 import { readSessionFacts, recoverPaidSession, type SessionReader } from '../../../src/chain/paidSession.ts'
 import { solveFromFacts } from '../../../src/race/paidResult.ts'
@@ -112,7 +113,7 @@ async function startPaid(page: Page, horseId: number, shot?: string): Promise<vo
     await expect(page.getByTestId('difficulty')).toHaveCount(0)
     await checkScreen(page, {
       ids: ['bet-panel'], texts: ['select-balance', 'potential-win'],
-      disjoint: ['select-balance', 'potential-win'], url: /localhost:5178/,
+      disjoint: ['select-balance', 'potential-win'], url: new RegExp(BASE),
     })
   }
   const countdown = page.getByTestId('countdown').waitFor({ state: 'visible', timeout: 20_000 })
@@ -142,7 +143,7 @@ async function playPanels(page: Page, stop: () => Promise<boolean>, shots: strin
             ids: ['card-panel', 'choice-timer', 'card-choice-0', 'card-choice-1', 'card-choice-2', 'card-skip'],
             texts: ['choice-timer', 'card-skip'],
             disjoint: ['card-choice-0', 'card-choice-1', 'card-choice-2'],
-            url: /localhost:5178/, title: /Ponygogogo/,
+            url: new RegExp(BASE), title: /Ponygogogo/,
           })
           shotPanel = true
         }
@@ -172,7 +173,7 @@ async function expectSettled(page: Page, player: Address, prefix: string): Promi
     ids: ['screen-result', 'settle-stamp', 'settle-tx', 'result-mode', 'result-prize', 'result-net-value', 'result-verify'],
     texts: ['settle-stamp', 'settle-tx', 'result-mode', 'result-prize', 'result-net-value', 'result-verify'],
     disjoint: ['settle-stamp', 'settle-tx', 'result-prize'],
-    url: /localhost:5178/, title: /Ponygogogo/,
+    url: new RegExp(BASE), title: /Ponygogogo/,
   })
   await expect(page.getByTestId('settle-stamp')).toHaveText(/已结算|Settled/)
   await expect(page.getByTestId('result-mode')).toHaveText(/0\.3 MON/)
@@ -198,7 +199,7 @@ test('有奖动线：入场 → 选牌上链 → 冲线待验证 → 自动结�
 
   await startPaid(page, 2, 'paid-00-select')
   await page.screenshot({ path: `${SHOT}/paid-01-entry.png` })
-  await checkScreen(page, { ids: ['screen-race', 'countdown'], url: /localhost:5178/, title: /Ponygogogo/ })
+  await checkScreen(page, { ids: ['screen-race', 'countdown'], url: new RegExp(BASE), title: /Ponygogogo/ })
   // the payable Game.openSession call is reported until it is included
   await expect(page.getByTestId('countdown')).toBeHidden({ timeout: 60_000 })
   await expect(page.getByTestId('gogo')).toBeVisible()
@@ -206,7 +207,7 @@ test('有奖动线：入场 → 选牌上链 → 冲线待验证 → 自动结�
   await page.screenshot({ path: `${SHOT}/paid-02-race.png` })
   await checkScreen(page, {
     ids: ['stamina-bar', 'leaderboard', 'gogo'], texts: ['board-row-0'], disjoint: ['leaderboard', 'gogo'],
-    url: /localhost:5178/, title: /Ponygogogo/,
+    url: new RegExp(BASE), title: /Ponygogogo/,
   })
 
   const picks = await playPanels(page, async () => page.getByTestId('paid-pending-verify').isVisible().catch(() => false), 'paid-03', 480_000)
@@ -214,7 +215,7 @@ test('有奖动线：入场 → 选牌上链 → 冲线待验证 → 自动结�
   await page.screenshot({ path: `${SHOT}/paid-04-finish.png` })
   await checkScreen(page, {
     ids: ['paid-pending-verify', 'leaderboard'], texts: ['paid-pending-verify'], disjoint: ['paid-pending-verify', 'leaderboard'],
-    url: /localhost:5178/, title: /Ponygogogo/, transient: true,
+    url: new RegExp(BASE), title: /Ponygogogo/, transient: true,
   })
 
   await expectSettled(page, player, 'paid-05')
@@ -224,7 +225,7 @@ test('有奖动线：入场 → 选牌上链 → 冲线待验证 → 自动结�
   await page.getByTestId('result-btn-home').click()
   await expect(page.getByTestId('screen-home')).toBeVisible()
   await page.getByTestId('wallet-open').click()
-  await expect(page.getByTestId('wallet-balance')).toHaveText(`${(Number(balance) / 1e18).toFixed(4)} MON`)
+  await expect(page.getByTestId('wallet-balance')).toHaveText(`${formatMon(balance, 4)} MON`)
 })
 
 test('刷新恢复：第一次选择上链后刷新 → 登录 → 恢复窗口 → 继续比赛 → 结算', async ({ page }) => {
@@ -248,10 +249,10 @@ test('刷新恢复：第一次选择上链后刷新 → 登录 → 恢复窗口 
   await page.screenshot({ path: `${SHOT}/resume-02-modal.png` })
   await checkScreen(page, {
     ids: ['paid-resume', 'paid-resume-later', 'paid-resume-deadline'], texts: ['paid-resume-later', 'paid-resume-deadline'],
-    url: /localhost:5178/, title: /Ponygogogo/,
+    url: new RegExp(BASE), title: /Ponygogogo/,
   })
   await expect(page.getByTestId('paid-resume')).toContainText(/0\.3 MON/)
-  // no refunds (session protocol v2): the modal states the settlement deadline, conservatively in whole minutes
+  // no refunds (session protocol v0.1): the modal states the settlement deadline, conservatively in whole minutes
   await expect(page.getByTestId('paid-resume-deadline')).toHaveText(/请在约 \d+ 分钟内结算，否则视为放弃/)
   await page.getByRole('button', { name: /继续比赛|Resume race/ }).click()
   await expect(page.getByTestId('screen-race')).toBeVisible()
@@ -259,7 +260,7 @@ test('刷新恢复：第一次选择上链后刷新 → 登录 → 恢复窗口 
   await expect(page.getByTestId('countdown')).toHaveCount(0)
   await page.waitForTimeout(800)
   await page.screenshot({ path: `${SHOT}/resume-03-race.png` })
-  await checkScreen(page, { ids: ['stamina-bar', 'leaderboard'], url: /localhost:5178/, title: /Ponygogogo/ })
+  await checkScreen(page, { ids: ['stamina-bar', 'leaderboard'], url: new RegExp(BASE), title: /Ponygogogo/ })
   // the on-chain choice survived the reload: the preview keeps it (checked against the chain facts)
   const { i, pub } = chain()
   const facts = await recoverPaidSession(pub as unknown as SessionReader, i.game, player)
@@ -308,7 +309,7 @@ test('结算失败：印章「结算失败」、按钮行下方的说明与重�
     ids: ['screen-result', 'settle-stamp', 'settle-detail', 'settle-retry', 'result-verify'],
     texts: ['settle-stamp', 'settle-retry', 'result-verify'],
     disjoint: ['settle-detail', 'result-btn-home', 'result-btn-share', 'result-btn-again'],
-    url: /localhost:5178/, title: /Ponygogogo/,
+    url: new RegExp(BASE), title: /Ponygogogo/,
   })
   // the stamp sits on the paper; the star button's transparent box covers that corner by design, so only the
   // paper rows are checked against it

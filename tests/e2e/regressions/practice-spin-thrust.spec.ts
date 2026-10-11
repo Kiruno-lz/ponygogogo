@@ -4,8 +4,8 @@ import { enterHome, open, startRace } from '../helpers.ts'
 test('真实免费试玩取得 C-02 后显示玩家翻面与螺旋分镜，到期后消失', async ({ page }, testInfo) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  // RaceDriver's real practice.open anchor derives C-02 as the first candidate for horse 0.
-  await open(page, 'mockDelay=0&raceSpeed=6&seed=0x00000033')
+  // RaceDriver's real practice.open anchor derives C-02 as the second candidate for the selected pony.
+  await open(page, 'mockDelay=0&raceSpeed=6&seed=0x8255eff8185d6e809f29b9125fab0e99fc44efed84f36f59e83c93d30920015c')
   await enterHome(page)
   await page.evaluate(async () => {
     const path = performance.getEntriesByType('resource').map((entry) => entry.name)
@@ -20,7 +20,7 @@ test('真实免费试玩取得 C-02 后显示玩家翻面与螺旋分镜，到�
   })
   await startRace(page, 0)
   await expect(page.getByTestId('card-panel')).toBeVisible()
-  const card = page.getByTestId('card-choice-0').locator('.card-root')
+  const card = page.getByTestId('card-choice-1').locator('.card-root')
   await expect(card).toHaveAttribute('data-card', 'C-02')
   expect(await page.evaluate(() => {
     const scene = (window as any).__practiceSpinScene

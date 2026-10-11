@@ -5,6 +5,8 @@ test('GOGOGO 仅显示居中文字，正方形底图保持原按钮面积和点�
   await open(page, 'mockDelay=0')
   await enterHome(page)
   await page.getByRole('button', { name: '特效验收' }).click()
+  await page.getByTestId('horse-0').click()
+  await page.locator('.select-race-cta button').click()
   const gogo = page.getByTestId('gogo')
   await expect(gogo).toBeVisible()
   await expect(gogo).toHaveText('GOGOGO')

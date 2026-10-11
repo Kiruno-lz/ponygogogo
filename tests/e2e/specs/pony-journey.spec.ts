@@ -5,7 +5,7 @@ test.use({ viewport: { width: 1640, height: 1050 } })
 
 async function selectNewRole(page: import('@playwright/test').Page, id: number) {
   await page.goto('/tests/e2e/fixtures/pony-journey.html?raceSpeed=40')
-  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: '队列上移', exact: true }).click()
+  for (let i = 0; i < 4; i++) await page.getByTestId('pony-queue-down').click()
   await page.getByTestId(`horse-${id}`).click()
   await page.locator('button.btn-star').last().click()
 }

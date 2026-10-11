@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test'
 import { enterHome, open, startRace } from '../helpers.ts'
 
 for (const scenario of [
-  { name: '第一名', seed: '0x55854f87801942d6914cec9a4643de76a72b057254ce0a2d041dad7ae8c880bc', rank: 1, jingle: 'audio.jingle_win', pick: true },
-  { name: '第四名', seed: '0x5d837b839bafc6f78af9bdcc08bbec09ddda86dd49949cb66f70b7f0a59cc08b', rank: 4, jingle: 'audio.jingle_lose', pick: false },
+  { name: '第一名', seed: '0x7c44c27a924bb23c2f77f92fc50f8afca974c426109c6a1b43e37f8f56cd4730', rank: 1, jingle: 'audio.jingle_win', pick: true },
+  { name: '第四名', seed: '0x57433104dad1c73869b0738f9216642a8a21617b513663de0f130f88628cb978', rank: 4, jingle: 'audio.jingle_lose', pick: false },
 ]) test(`免费试玩${scenario.name}：玩家冲线播放正确旋律一次，电脑马和结算页不重复播放`, async ({ page }, testInfo) => {
   await open(page, `raceSpeed=16&seed=${scenario.seed}`)
   await enterHome(page)
