@@ -113,7 +113,7 @@ export function ResultScreen(p: ResultScreenProps) {
               <Row label={t(p.lang, 'result.mode')} value={t(p.lang, 'result.paid', { stake: paid.stakeLabel })} top={308} testId="result-mode" />
               <Row
                 label={t(p.lang, 'result.payout')}
-                value={payout !== null ? `${formatMon(payout, 4)} MON` : t(p.lang, 'result.pendingValue')}
+                value={payout !== null ? `${formatMon(payout, 1)} MON` : t(p.lang, 'result.pendingValue')}
                 top={352}
                 testId="result-prize"
               />
@@ -130,7 +130,7 @@ export function ResultScreen(p: ResultScreenProps) {
           <div className="result-practice" data-testid="result-net">
             <span className="result-practice-label">{t(p.lang, 'result.net')}</span>
             <span className="result-practice-value mono" data-testid="result-net-value">
-              {payout !== null ? `${payout >= paid.stake ? '+' : ''}${formatMon(payout - paid.stake, 4)}` : '—'}
+              {payout !== null ? `${payout >= paid.stake ? '+' : ''}${formatMon(payout - paid.stake, 1)}` : '—'}
             </span>
           </div>
         ) : (
@@ -208,7 +208,7 @@ export function ResultScreen(p: ResultScreenProps) {
           </span>
         )}
         {paid && !showDetail && (
-          <span className="result-combo result-verify" data-testid="result-verify">{verifyText}</span>
+          <span key={settled?.rank} className="result-combo result-verify result-confirmed-rank" data-testid="result-verify">{verifyText}</span>
         )}
 
         {/* 标题木牌整块无字，主副标题在这里排版 */}
@@ -232,7 +232,7 @@ export function ResultScreen(p: ResultScreenProps) {
         {paid && showDetail && (
           <div className="result-settle-detail" data-testid="settle-detail">
             <div className="result-settle-line">
-              <span className="result-settle-verify" data-testid="result-verify">{verifyText}</span>
+              <span key={settled?.rank} className={`result-settle-verify${settled ? ' result-confirmed-rank' : ''}`} data-testid="result-verify">{verifyText}</span>
               <span className="result-settle-text">
                 {paid.grantError && paid.phase === 'settled' ? t(p.lang, 'grant.readFailed') : paid.phase === 'failed'
                   ? t(p.lang, 'result.settleFailed', { reason: paid.detail ?? '' })
