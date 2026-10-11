@@ -11,7 +11,7 @@ function asHex(bytes: Uint8Array): string {
 }
 
 function message(origin: string, method: string, path: string, publicKey: string, challengeId: string, challenge: string, payload: unknown): Uint8Array {
-  return new TextEncoder().encode(['ponygogogo/collection/v1', origin, method, path, publicKey, challengeId, challenge, JSON.stringify(payload)].join('\n'))
+  return new TextEncoder().encode(['ponygogogo/collection/v0.1', origin, method, path, publicKey, challengeId, challenge, JSON.stringify(payload)].join('\n'))
 }
 
 async function challenge(fetchImpl: typeof fetch, publicKey: string): Promise<Challenge> {
@@ -60,7 +60,7 @@ export async function readRemoteCollection(
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`COLLECTION_READ_${response.status}`)
   const record = await response.json() as RemoteCollection
-  if (!Number.isSafeInteger(record.version) || record.version < 1 || record.envelope?.version !== 1) {
+  if (!Number.isSafeInteger(record.version) || record.version < 1 || record.envelope?.version !== '0.1') {
     throw new Error('INVALID_REMOTE_COLLECTION')
   }
   return record

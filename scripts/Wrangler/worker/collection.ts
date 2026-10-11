@@ -13,7 +13,7 @@ const TTL_MS = 120_000
 const noStore = { 'Cache-Control': 'no-store' }
 
 type Challenge = { challenge: string; challengeId: string; expiresAt: number }
-type Envelope = { version: 1; iv: string; ciphertext: string }
+type Envelope = { version: '0.1'; iv: string; ciphertext: string }
 type Document = { version: number; envelope: Envelope }
 
 function json(value: unknown, status = 200): Response {
@@ -38,7 +38,7 @@ async function digest(value: Uint8Array): Promise<string> {
 }
 
 export function signedMessage(origin: string, method: string, path: string, publicKey: string, challengeId: string, challenge: string, payload: unknown): Uint8Array {
-  return encoder.encode(['ponygogogo/collection/v1', origin, method, path, publicKey.toLowerCase(), challengeId, challenge, JSON.stringify(payload)].join('\n'))
+  return encoder.encode(['ponygogogo/collection/v0.1', origin, method, path, publicKey.toLowerCase(), challengeId, challenge, JSON.stringify(payload)].join('\n'))
 }
 
 async function readJson(request: Request): Promise<Record<string, unknown> | null> {
@@ -58,7 +58,7 @@ async function readJson(request: Request): Promise<Record<string, unknown> | nul
 function validEnvelope(value: unknown): value is Envelope {
   if (value === null || typeof value !== 'object') return false
   const item = value as Record<string, unknown>
-  return item.version === 1
+  return item.version === '0.1'
     && typeof item.iv === 'string' && /^0x[0-9a-fA-F]{24}$/.test(item.iv)
     && typeof item.ciphertext === 'string' && /^0x[0-9a-fA-F]{32,4096}$/.test(item.ciphertext)
 }
@@ -116,7 +116,7 @@ async function readDocument(db: D1, userId: string): Promise<Response> {
   const row = await db.prepare('SELECT version, iv, ciphertext FROM collection_documents WHERE user_id = ?')
     .bind(userId).first<{ version: number; iv: string; ciphertext: string }>()
   if (!row) return fail('COLLECTION_NOT_FOUND', 404)
-  return json({ version: row.version, envelope: { version: 1, iv: row.iv, ciphertext: row.ciphertext } } satisfies Document)
+  return json({ version: row.version, envelope: { version: '0.1', iv: row.iv, ciphertext: row.ciphertext } } satisfies Document)
 }
 
 async function writeDocument(db: D1, userId: string, publicKey: string, payload: unknown): Promise<Response> {

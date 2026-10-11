@@ -7,7 +7,6 @@
  * 注册：创建一把 rpId 下的通行密钥（名字由玩家自己起）→ 取 PRF 输出 → 派生根 EOA → 解析 sma-b → 给 sma-b 领测试币。
  * 登录：唤起某一把通行密钥的断言 → 同一个 PRF 输出 → 同一个根地址 → 同一个 sma-b。
  * 登出：结束签名会话把私钥清零，账户从内存里移除。
- * 迁入：早期版本把测试币领到了根 EOA，`migrateRootFunds` 用根 EOA 自付 Gas 把余额转进 sma-b。
  *
  * **一个 rpId 下可以有多把通行密钥，每把对应一个独立账户。** 登录不限定凭据，由系统自己
  * 列出全部让玩家挑；哪一把派生出了当前账户只记在内存里，导出助记词必须重新验证同一把，
@@ -21,8 +20,8 @@ import {
   createPasskeyWithPrfOutput,
   getPasskeyPrfOutput,
   isMeraError,
-  type EvmAddress,
   type Ed25519SigningSession,
+  type EvmAddress,
   type PasskeyCredentialTransport,
   type Secp256k1SigningSession,
   type WebAuthnClient,
@@ -30,38 +29,28 @@ import {
 import { toViemAccount } from '@category-labs/mera/viem'
 import {
   createPublicClient,
-  createWalletClient,
-  hexToBytes,
   http,
-  sha256,
-  toBytes,
   type Address,
-  type Hex,
   type LocalAccount,
   type PublicClient,
-  type Transport,
+  type Transport
 } from 'viem'
-import { accountFromMnemonic, mnemonicFromPrf, shortAddress } from './derive.ts'
 import { AlchemyAccount, createAlchemyAccount, type AccountClient, type CallAccount } from './alchemy.ts'
+import { accountFromMnemonic, mnemonicFromPrf, shortAddress } from './derive.ts'
 import { DEV_CHAIN, DirectEoaAccount, devFaucet, type DevChain } from './devChain.ts'
 import { claimFaucet, type FaucetResult } from './faucet.ts'
 import {
   readFunds,
   trackCall,
-  trackTransaction,
   type FundsSnapshot,
-  type ReceiptResult,
   type TrackOptions,
   type TrackResult,
 } from './funds.ts'
-import { MIGRATION_MIN_WEI, planMigration } from './migration.ts'
+import { collectionPrf } from './collectionIdentity.ts'
 import { CHAIN, DEFAULT_PASSKEY_NAME, RPC_URL, RP_NAME, defaultRpId } from './network.ts'
 
 /** 名字只是认证器列表里的标签，别让它长到撑爆系统弹窗 */
 const MAX_NAME_LEN = 32
-const COLLECTION_PRF_SALT = hexToBytes(sha256(toBytes('ponygogogo/collection/encryption/v1')))
-const COLLECTION_IDENTITY_SALT = hexToBytes(sha256(toBytes('ponygogogo/collection/identity/v1')))
-
 /** 根 EOA：签名者与 sma-b 的 owner，不持有游戏资金。 */
 export type WalletAccount = {
   readonly address: EvmAddress
@@ -106,10 +95,6 @@ export type RegisterOutcome = {
   readonly funded: boolean
 }
 
-export type MigrationOutcome =
-  | { readonly state: 'submitted'; readonly hash: Hex; readonly amount: bigint }
-  | { readonly state: 'skipped'; readonly reason: 'too-small'; readonly balance: bigint }
-
 /** 界面要按类别给出不同的引导，所以错误必须是可判别的码，不是一句话。 */
 export type WalletErrorCode =
   | 'unsupported' // 环境没有 WebAuthn
@@ -143,7 +128,6 @@ export type WalletDeps = {
   alchemyPolicyId?: string
   /** 注入的 Alchemy 钱包客户端工厂；不传就按 API key 连真实服务 */
   alchemyClient?: (signer: LocalAccount) => AccountClient
-  /** Vault 地址；不传就用构建期配置，null 表示未部署 */
   /** 交易状态轮询节奏；测试注入 0 间隔 */
   txPoll?: Pick<TrackOptions, 'pollMs' | 'timeoutMs'>
   /**
@@ -382,14 +366,6 @@ export class MeraWallet {
     return this.readBalance(game.address)
   }
 
-  /** 根 EOA 的原生余额：只用来决定要不要露出「迁入游戏账户」。 */
-  async readRootBalance(): Promise<bigint> {
-    if (!this.account) throw new WalletError('locked', 'Wallet is locked')
-    // 开发链上根 EOA 就是游戏账户，没有东西可迁
-    if (this.devChain) return 0n
-    return this.readBalance(this.account.address)
-  }
-
   /** 指定块高度的 sma-b 原生 MON 余额。 */
   async readFunds(): Promise<FundsSnapshot> {
     if (!this.account) throw new WalletError('locked', 'Wallet is locked')
@@ -401,67 +377,11 @@ export class MeraWallet {
     return trackCall(await this.callAccount(), callId, { ...this.txPoll, ...(onProgress ? { onProgress } : {}) })
   }
 
-  async trackTransaction(hash: Hex): Promise<ReceiptResult> {
-    return trackTransaction(this.client, hash, this.txPoll)
-  }
-
   /** 重新领一次测试币，发给 sma-b；界面上的「再领一次」走这里。 */
   async claimFaucet(): Promise<FaucetResult> {
     if (!this.account) throw new WalletError('locked', 'Wallet is locked')
     const game = await this.resolveGameAccount()
     return this.requestFaucet(game.address)
-  }
-
-  /**
-   * 把根 EOA 的原生余额（扣掉手续费上限）转进 sma-b。普通 EOA 交易，由 Mera 签名器签名、
-   * 经公共 RPC 发出，根地址自付 Gas；扣完手续费不足 `MIGRATION_MIN_WEI` 就跳过。
-   * 返回交易哈希，入块与否由 `trackTransaction` 追。
-   */
-  async migrateRootFunds(): Promise<MigrationOutcome> {
-    const signer = this.signer
-    const session = this.session
-    if (!signer || !session) throw new WalletError('locked', 'Wallet is locked')
-    // 每对读互不依赖，并行发出；按原先的先后取结果，都失败时报的仍是逐个读时的那一个
-    const settled = <T>(r: PromiseSettledResult<T>): T => {
-      if (r.status === 'rejected') throw r.reason
-      return r.value
-    }
-    const [gameRead, balanceRead] = await Promise.allSettled([
-      this.resolveGameAccount(),
-      this.client.getBalance({ address: signer.address }),
-    ])
-    const game = settled(gameRead)
-    const balance = settled(balanceRead)
-    if (balance < MIGRATION_MIN_WEI) return { state: 'skipped', reason: 'too-small', balance }
-    const [gasRead, feesRead] = await Promise.allSettled([
-      // 金额不影响转账的 gas，按 1 wei 估，免得估算本身因「余额不够付 value」而失败
-      this.client.estimateGas({ account: signer.address, to: game.address, value: 1n }),
-      this.client.estimateFeesPerGas(),
-    ])
-    const gas = settled(gasRead)
-    const fees = settled(feesRead)
-    const plan = planMigration(balance, gas, fees.maxFeePerGas)
-    if (!plan.ok) return { state: 'skipped', reason: 'too-small', balance }
-    // 估算期间玩家可能已经退出或换了账户：签名器已经失效，别拿旧会话发交易
-    if (this.session !== session) throw new WalletError('locked', 'Wallet changed during migration')
-    try {
-      // nonce 与 chainId 显式给出：viem 否则会先试 eth_fillTransaction，节点填回的 gas/费率会覆盖
-      // 上面按余额算好的数，value + 手续费上限就可能超过余额
-      const nonce = await this.client.getTransactionCount({ address: signer.address, blockTag: 'pending' })
-      const hash = await createWalletClient({ account: signer, chain: CHAIN, transport: this.transport }).sendTransaction({
-        to: game.address,
-        value: plan.amount,
-        gas,
-        maxFeePerGas: fees.maxFeePerGas,
-        maxPriorityFeePerGas: fees.maxPriorityFeePerGas,
-        nonce,
-        chainId: CHAIN.id,
-        type: 'eip1559',
-      })
-      return { state: 'submitted', hash, amount: plan.amount }
-    } catch (err) {
-      throw toWalletError(err)
-    }
   }
 
   /**
@@ -498,14 +418,7 @@ export class MeraWallet {
     if (!known || !session) throw new WalletError('locked', 'Wallet is locked')
     let key: Uint8Array | null = null
     try {
-      const asserted = await getPasskeyPrfOutput({
-        rpId: this.rpId,
-        credential: { credentialId: known.credentialId, ...(known.transports ? { transports: known.transports } : {}) },
-        prfSalt: COLLECTION_PRF_SALT,
-        ...(this.webAuthnClient ? { webAuthnClient: this.webAuthnClient } : {}),
-      })
-      key = asserted.prfOutput
-      if (asserted.credentialId !== known.credentialId) throw new Error('CREDENTIAL_MISMATCH')
+      key = await collectionPrf('encryption', this.rpId, known, this.webAuthnClient)
       if (this.session !== session) throw new WalletError('locked', 'Wallet changed during collection key derivation')
       return key
     } catch (err) {
@@ -525,14 +438,7 @@ export class MeraWallet {
     const pending = (async () => {
       let key: Uint8Array | null = null
       try {
-        const asserted = await getPasskeyPrfOutput({
-          rpId: this.rpId,
-          credential: { credentialId: known.credentialId, ...(known.transports ? { transports: known.transports } : {}) },
-          prfSalt: COLLECTION_IDENTITY_SALT,
-          ...(this.webAuthnClient ? { webAuthnClient: this.webAuthnClient } : {}),
-        })
-        key = asserted.prfOutput
-        if (asserted.credentialId !== known.credentialId) throw new Error('CREDENTIAL_MISMATCH')
+        key = await collectionPrf('identity', this.rpId, known, this.webAuthnClient)
         if (this.session !== session) throw new WalletError('locked', 'Wallet changed during collection identity derivation')
         const identity = createEd25519SigningSession({ privateKey: key })
         this.collectionIdentity = identity

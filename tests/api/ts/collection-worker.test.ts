@@ -60,7 +60,7 @@ afterEach(() => db.close())
 test('图鉴密文首次创建、读取、条件更新和冲突', async () => {
   const missing = await signed('/api/collection/read', 'POST', {})
   expect(missing.response.status).toBe(404)
-  const envelope = { version: 1, iv: '0x' + '12'.repeat(12), ciphertext: '0x' + '34'.repeat(32) }
+  const envelope = { version: '0.1', iv: '0x' + '12'.repeat(12), ciphertext: '0x' + '34'.repeat(32) }
   const created = await signed('/api/collection', 'PUT', { expectedVersion: 0, envelope })
   expect(created.response.status).toBe(200)
   expect(await created.response.json()).toEqual({ version: 1 })
@@ -103,7 +103,7 @@ test('签名还必须绑定 challengeId，不能在另一条同值挑战上复�
 
 test('跨域与过大密文拒绝，静态资源仍直接透传', async () => {
   expect((await send('/api/collection/challenge', 'POST', { publicKey }, { Origin: 'https://evil.example' })).status).toBe(403)
-  const envelope = { version: 1, iv: '0x' + '12'.repeat(12), ciphertext: '0x' + '34'.repeat(3000) }
+  const envelope = { version: '0.1', iv: '0x' + '12'.repeat(12), ciphertext: '0x' + '34'.repeat(3000) }
   expect((await signed('/api/collection', 'PUT', { expectedVersion: 0, envelope })).response.status).toBe(400)
   expect((await handler.fetch(new Request(origin + '/'), env())).status).toBe(200)
 })

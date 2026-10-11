@@ -42,7 +42,7 @@ export function collectibleGrantFromLogs(logs: readonly CollectibleLog[], ledger
 }
 
 export function collectionFromGrant(grant: CollectibleGrant): CollectionProgress {
-  return normalizeCollection({ schemaVersion: 2 as const,
+  return normalizeCollection({ schemaVersion: '0.1' as const,
     rareCardIds: grant.assetKind === 'rareCard' ? [`C-${String(grant.assetId).padStart(2, '0')}`] : [],
     unlockedPonyIds: grant.assetKind === 'pony' ? [grant.assetId] : [],
   })
