@@ -5,7 +5,7 @@ import {IPaidRaceSolver} from "../../contracts/interfaces/IPaidRaceSolver.sol";
 import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 import {PaidRaceVectorBase} from "./PaidRaceVectorBase.sol";
 
-/// @dev Shared field-by-field comparisons for legacy and roster-aware parity vectors.
+/// @dev Shared field-by-field comparisons for core and roster parity vectors.
 abstract contract PaidRaceVectorAssertions is PaidRaceVectorBase {
     /// @notice Worst legal solve. Alchemy caps a sponsored user operation at 27M total gas and adds about 11%, so
     /// the settlement's solve must stay at or below 23.5M. This is an infrastructure budget, not a measurement:

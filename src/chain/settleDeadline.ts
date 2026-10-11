@@ -1,5 +1,5 @@
 /**
- * 结算期限（会话协议 v2）：没有退款，所需随机锚过窗（EIP-2935，8191 块）且未封存时任何人可判负，返还 0。
+ * 结算期限（会话协议 v0.1）：没有退款，所需随机锚过窗（EIP-2935，8191 块）且未封存时任何人可判负，返还 0。
  *
  * 所需锚 = 开场块与每个已存选择所在块；已封存的锚不再过期。期限由最早未封存的那个决定：
  * 最后一个仍可读的块是 `b + 8191`，结算交易必须落在它之内，所以还剩 `b + 8191 − 链头` 块。
@@ -9,7 +9,7 @@ import type { Hex } from 'viem'
 
 /** RandomAnchor.HISTORY_WINDOW */
 export const ANCHOR_HISTORY_BLOCKS = 8191n
-/** 8191 块约 47 分钟（docs/plan/onchain-services.md「会话协议 v2」），即约 344 ms/块 */
+/** 8191 块约 47 分钟（docs/plan/onchain-services.md「会话协议 v0.1」），即约 344 ms/块 */
 export const DEFAULT_BLOCK_MS = 344
 /** 少于这么多块时平均块时间受整秒时间戳影响太大，只用默认值 */
 const MIN_SPAN_BLOCKS = 64n

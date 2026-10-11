@@ -20,7 +20,7 @@ import {
 const PAY = [0, 3, 1.5, 1, 0, 0]
 const RANDOM_CARDS = new Set([4, 9, 12, 13])
 const NEUTRAL = [9, 10, 11, 12, 13]
-const H = (s: string): Hex => keccak256(toBytes(`cpu-difficulty/v1/${s}`))
+const H = (s: string): Hex => keccak256(toBytes(`cpu-difficulty/v0.1/${s}`))
 const arg = (name: string, d: string) => { const i = process.argv.indexOf(`--${name}`); return i < 0 ? d : process.argv[i + 1]! }
 
 type Action = { cardId: number; refreshSlots: number[] }

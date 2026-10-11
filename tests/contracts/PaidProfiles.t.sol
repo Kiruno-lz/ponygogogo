@@ -3,7 +3,6 @@ pragma solidity ^0.8.28;
 
 import {PaidProfiles} from "../../contracts/libraries/PaidProfiles.sol";
 import {PlayerBalance} from "../../contracts/libraries/PlayerBalance.sol";
-import {LegacyPaidProfiles} from "./legacy/LegacyPaidProfiles.sol";
 
 contract PaidProfilesTest {
     bytes32 internal constant SEED =
@@ -53,18 +52,5 @@ contract PaidProfilesTest {
         }
     }
 
-    /// @dev The archived no-roster personalities replayed by LegacyCoreSolverProbe.
-    function testLegacyTierVectors() public pure {
-        PaidProfiles.Profile[5] memory p = LegacyPaidProfiles.derive(SEED, ANCHOR, 2, 1);
-        require(p[0].base == 1212 && p[0].acceleration == 14 && p[0].cap == 1913, "tier 2 group 0");
-        require(p[1].base == 1200 && p[1].acceleration == 12 && p[1].cap == 1800, "legacy player");
-        require(p[2].base == 1245 && p[2].acceleration == 12 && p[2].cap == 1853, "tier 2 group 1");
-        require(p[3].base == 1237 && p[3].acceleration == 11 && p[3].cap == 1802, "tier 2 group 2");
-        require(p[4].base == 1254 && p[4].acceleration == 14 && p[4].cap == 1786, "tier 2 group 3");
-        p = LegacyPaidProfiles.derive(SEED, ANCHOR, 4, 1);
-        require(p[0].base == 1332 && p[0].acceleration == 16 && p[0].cap == 2073, "tier 4 group 0");
-        require(p[2].base == 1365 && p[2].acceleration == 14 && p[2].cap == 2013, "tier 4 group 1");
-        require(p[3].base == 1357 && p[3].acceleration == 13 && p[3].cap == 1962, "tier 4 group 2");
-        require(p[4].base == 1374 && p[4].acceleration == 16 && p[4].cap == 1946, "tier 4 group 3");
-    }
+
 }

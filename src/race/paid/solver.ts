@@ -50,7 +50,7 @@ export type PaidChoiceSlots = readonly [PaidChoiceSlot | null, PaidChoiceSlot | 
 
 /** Fully explicit solver input; there is deliberately no gogo/camera field. */
 export type PaidCoreInput = {
-  /** Missing only for legacy rules/records. Identity never follows lane changes. */
+  /** Optional for isolated core simulations. Identity never follows lane changes. */
   roster?: readonly number[]
   profiles: readonly PaidCoreProfile[]
   playerHorseId: number
@@ -1212,7 +1212,7 @@ function tauLimit(st: State, untilWall: bigint): bigint {
 }
 
 /**
- * Reference solver for paid ruleset v4; every rule quantity is an integer and every loop is bounded. Stored choices
+ * Reference solver for paid ruleset v0.1; every rule quantity is an integer and every loop is bounded. Stored choices
  * never make it throw: only malformed input and the unreachable instance/bomb/event caps do.
  */
 export function solvePaidCore(input: PaidCoreInput, opts: PaidSolveOptions = {}): PaidSolveResult {

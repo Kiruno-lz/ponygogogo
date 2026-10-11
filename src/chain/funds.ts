@@ -1,5 +1,5 @@
 /** 玩家资金只读取智能账户的原生 MON；比赛开场直接支付，结算直接收款。 */
-import type { Address, Hex, PublicClient } from 'viem'
+import type { Address, PublicClient } from 'viem'
 import type { CallAccount, CallProgress } from './alchemy.ts'
 
 export type FundsSnapshot = {
@@ -42,26 +42,6 @@ export async function trackCall(account: CallAccount, callId: string, opts: Trac
       if (progress.state !== 'pending') return progress
     }
     if (now() >= deadline) return { state: 'timeout', callId }
-    await sleep(pollMs)
-  }
-}
-
-export type ReceiptResult = { state: 'success' | 'reverted'; hash: Hex } | { state: 'timeout'; hash: Hex }
-
-/** 普通 EOA 交易（根账户迁入）的回执轮询，语义同 `trackCall`。 */
-export async function trackTransaction(
-  client: Pick<PublicClient, 'getTransactionReceipt'>, hash: Hex, opts: Omit<TrackOptions, 'onProgress'> = {},
-): Promise<ReceiptResult> {
-  const { pollMs = 1000, timeoutMs = 90_000, sleep = defaultSleep, now = Date.now } = opts
-  const deadline = now() + timeoutMs
-  for (;;) {
-    try {
-      const receipt = await client.getTransactionReceipt({ hash })
-      return { state: receipt.status === 'success' ? 'success' : 'reverted', hash }
-    } catch {
-      // 还没入块（TransactionReceiptNotFoundError）与网络抖动同样处理：继续等到超时
-    }
-    if (now() >= deadline) return { state: 'timeout', hash }
     await sleep(pollMs)
   }
 }

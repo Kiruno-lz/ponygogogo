@@ -4,22 +4,21 @@
  * 注册与登录落在同一个根地址与同一个 sma-b、测试币与余额都在 sma-b 上、除 sma-b 公开地址外什么都不落盘、
  * 根账户余额能迁入 sma-b、领水与 sma-b 失败不影响注册成功、失败被分类成可判别的错误码。
  */
-import { beforeEach, describe, expect, test } from 'bun:test'
+import { beforeEach,describe,expect,test } from 'bun:test'
 import {
-  custom,
-  getAddress,
-  keccak256,
-  parseTransaction,
-  recoverTransactionAddress,
-  type Address,
-  type TransactionSerialized,
+custom,
+getAddress,
+keccak256,
+parseTransaction,
+recoverTransactionAddress,
+type Address,
+type TransactionSerialized,
 } from 'viem'
 import type { AccountClient } from '../../../src/chain/alchemy.ts'
-import { MIGRATION_MIN_WEI } from '../../../src/chain/migration.ts'
-import { MeraWallet, WalletError, type WalletDeps } from '../../../src/chain/wallet.ts'
+import { accountFromMnemonic,mnemonicFromPrf } from '../../../src/chain/derive.ts'
 import { CHAIN } from '../../../src/chain/network.ts'
-import { accountFromMnemonic, mnemonicFromPrf } from '../../../src/chain/derive.ts'
-import { FakeAuthenticator, type FakeAuthenticatorMode } from '../../fakes/authenticator.ts'
+import { MeraWallet,WalletError,type WalletDeps } from '../../../src/chain/wallet.ts'
+import { FakeAuthenticator,type FakeAuthenticatorMode } from '../../fakes/authenticator.ts'
 
 const RP_ID = 'ponygogogo.test'
 const ONE_MON = 10n ** 18n
@@ -428,17 +427,14 @@ describe('通行密钥钱包契约', () => {
     expect(again.ok).toBe(true)
     expect(rig.faucet.bodies.map((b) => b.address)).toEqual([out.game!.address, out.game!.address])
     expect(await rig.wallet.refreshBalance()).toBe(2n * ONE_MON)
-    expect(await rig.wallet.readRootBalance()).toBe(0n)
     expect(out.balance).toBe(ONE_MON)
   })
 
-  test('未登录时读余额、读资金、领水、迁移都报 locked，而不是打空请求', async () => {
+  test('未登录时读余额、读资金、领水都报 locked，而不是打空请求', async () => {
     for (const call of [
       () => rig.wallet.refreshBalance(),
-      () => rig.wallet.readRootBalance(),
       () => rig.wallet.readFunds(),
       () => rig.wallet.claimFaucet(),
-      () => rig.wallet.migrateRootFunds(),
       () => rig.wallet.resolveGameAccount(),
     ]) {
       const err = await call().catch((e: unknown) => e)
@@ -475,34 +471,6 @@ describe('通行密钥钱包契约', () => {
     const out = await rig.wallet.register()
     expect(await rig.wallet.readFunds()).toEqual({ blockNumber: 1234n, player: out.game!.address, wallet: ONE_MON })
     expect(rig.chain.calls).not.toContain('eth_call')
-  })
-
-  test('根账户余额迁入 sma-b：根地址自付 Gas，转出余额减去 gas 上限 × maxFee', async () => {
-    const out = await rig.wallet.register()
-    rig.chain.credit(out.account.address, 2n * ONE_MON)
-    const res = await rig.wallet.migrateRootFunds()
-    const maxFee = GAS_PRICE * 12n / 10n + 2n * 10n ** 9n // viem：baseFee × 1.2 + priority
-    expect(res.state).toBe('submitted')
-    if (res.state !== 'submitted') return
-    expect(res.amount).toBe(2n * ONE_MON - 21_000n * maxFee)
-    expect(rig.chain.sentRaw).toEqual([{ from: out.account.address, to: out.game!.address, value: res.amount, gas: 21_000n, maxFeePerGas: maxFee }])
-    // Monad 支持 eth_fillTransaction 且会填回更高的费率；钱包必须不给它覆盖的机会
-    expect(rig.chain.calls).not.toContain('eth_fillTransaction')
-    expect(await rig.wallet.trackTransaction(res.hash)).toEqual({ state: 'success', hash: res.hash })
-    expect(rig.chain.balanceOf(out.game!.address)).toBe(ONE_MON + res.amount)
-    // 实际只扣 gas × 实付单价，差额零头留在根地址
-    expect(rig.chain.balanceOf(out.account.address)).toBe(21_000n * (maxFee - GAS_PRICE))
-  })
-
-  test('根账户余额不值得迁移时跳过，不签名也不发交易', async () => {
-    const out = await rig.wallet.register()
-    rig.chain.credit(out.account.address, MIGRATION_MIN_WEI - 1n)
-    expect(await rig.wallet.migrateRootFunds()).toEqual({ state: 'skipped', reason: 'too-small', balance: MIGRATION_MIN_WEI - 1n })
-    // 扣掉手续费上限后恰好差 1 wei 才够门槛：仍然跳过
-    rig.chain.credit(out.account.address, 21_000n * (GAS_PRICE * 12n / 10n + 2n * 10n ** 9n))
-    expect((await rig.wallet.migrateRootFunds()).state).toBe('skipped')
-    expect(rig.chain.sentRaw).toHaveLength(0)
-    expect(rig.chain.calls).not.toContain('eth_sendRawTransaction')
   })
 
   test('用户取消通行密钥弹窗 → cancelled', async () => {

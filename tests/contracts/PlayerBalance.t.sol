@@ -99,16 +99,4 @@ contract PlayerBalanceTest {
         require(h.s == 300_000_000, "overcap costs 10 per second without regeneration");
     }
 
-    /// @dev Records without a roster keep the archived stamina model on every horse.
-    function testLegacyHorsesKeepArchivedStamina() public pure {
-        PaidRaceMotion.Horse[5] memory horses;
-        PaidProfiles.Profile[5] memory profiles = PaidProfiles.derive(bytes32(0), bytes32(0), 1, 3);
-        uint256[5] memory words;
-        PaidRaceMotion.initHorses(horses, profiles, words, 600001, PaidRaceMotion.NONE);
-        for (uint256 i; i < 5; ++i) {
-            PaidRaceMotion.Horse memory h = horses[i];
-            require(h.s == 1_000_000_000 && h.staminaCapacity == 1_000_000_000, "legacy capacity");
-            require(h.baseCost == 24_000 && h.overcapCostDivisor == 1 && h.exhaustCapMilli == 0, "legacy rates");
-        }
-    }
 }

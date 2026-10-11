@@ -13,7 +13,7 @@ import {PonyRules} from "./PonyRules.sol";
 import {PlayerBalance} from "./PlayerBalance.sol";
 import {RaceEntropy} from "./RaceEntropy.sol";
 
-/// @notice Solidity port of the paid ruleset v4 reference solver (src/race/paid/solver.ts). The TS solver is the
+/// @notice Solidity port of the paid ruleset v0.1 reference solver (src/race/paid/solver.ts). The TS solver is the
 /// specification: every handler below mirrors its namesake there, in the same order, and folds the same event
 /// digest. Memory only; card parameters come from the generated PaidCardRules table.
 /// @dev Deviations are representation only: effect totals per horse are kept incrementally instead of looping over
@@ -338,7 +338,7 @@ library PaidRaceEngine {
 
     // ------------------------------------------------------------ entry points
 
-    /// @notice solvePaidCore. Stored choices never make it revert (有奖规则 v3): only malformed profiles/decks, options
+    /// @notice solvePaidCore. Stored choices never make it revert (有奖规则 v0.1): only malformed profiles/decks, options
     /// and the unreachable instance/bomb/event/owner caps do.
     function solve(CoreInput memory input, Options memory opts) internal pure returns (Result memory) {
         (State memory st, uint256 tau, uint256 status) = _run(input, opts);
@@ -1416,7 +1416,7 @@ library PaidRaceEngine {
         return PaidDrawRules.State(d.cursor, d.tailCursor, d.refreshCredits, d.automatic, d.forfeited);
     }
 
-    /// @notice invalidChoice: the stored choice for checkpoint k counts as no transaction (有奖规则 v3).
+    /// @notice invalidChoice: the stored choice for checkpoint k counts as no transaction (有奖规则 v0.1).
     function _invalidChoice(State memory st, uint256 k, uint256 tau, uint256 reason) private pure {
         st.records[k - 1].invalidReason = reason;
         _log(st, EV_CHOICE_INVALID, tau, st.player, int256(k << 4 | reason));

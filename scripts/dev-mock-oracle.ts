@@ -1,7 +1,7 @@
 /**
  * 替身求时器对齐器：只在本地开发链、且部署的是 tests/contracts/MockPaidRaceSolver.sol 时运行。
  *
- * 替身不跑比赛规则，它的冲线/名次是可配置的常量（会话协议 v2 下 chooseCard 不调用求时器，替身也不判定选择）。
+ * 替身不跑比赛规则，它的冲线/名次是可配置的常量（会话协议 v0.1 下 chooseCard 不调用求时器，替身也不判定选择）。
  * 为了让浏览器 → 链 → 浏览器的完整流程在真实 PaidRaceSolver 之外也能跑通，本脚本监听 PonyGame 的
  * SessionOpened / CardChosen，读出会话事实，用 **同一个 TS 参考求时器**（不合法的已存选择按无交易处理）求出
  * 玩家的 rawRank、settlementRank、finishWall，写回替身。于是结算放行时刻与结算名次都与浏览器预览一致；

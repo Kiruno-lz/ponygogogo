@@ -40,7 +40,7 @@ test('Mera 身份签名协议往返，只在客户端解密稀有卡并以版本
   const key = crypto.getRandomValues(new Uint8Array(32))
   try {
     expect(await readRemoteCollection(identity, localFetch, origin)).toBeNull()
-    const envelope = await encryptCollection(['C-18', 'C-21'], key)
+    const envelope = await encryptCollection({ schemaVersion: '0.1', rareCardIds: ['C-18', 'C-21'], unlockedPonyIds: [] }, key)
     expect(await writeRemoteCollection(identity, 0, envelope, localFetch, origin)).toBe(1)
     const remote = await readRemoteCollection(identity, localFetch, origin)
     expect(remote?.version).toBe(1)
@@ -56,19 +56,19 @@ test('a conflicting second device write is read and merged without losing either
   const identity = createEd25519SigningSession({ privateKey: new Uint8Array(32).fill(0x61) })
   const key = new Uint8Array(32).fill(0x62)
   try {
-    await writeRemoteCollection(identity, 0, await encryptCollection(['C-18'], key), localFetch, origin)
+    await writeRemoteCollection(identity, 0, await encryptCollection({ schemaVersion: '0.1', rareCardIds: ['C-18'], unlockedPonyIds: [] }, key), localFetch, origin)
     let raced = false
     const racingFetch = (async (url: RequestInfo | URL, init?: RequestInit) => {
       if (String(url) === '/api/collection' && init?.method === 'PUT' && !raced) {
         raced = true
-        const other = await encryptCollection({ schemaVersion: 2, rareCardIds: ['C-18', 'C-21'], unlockedPonyIds: [7] }, key)
+        const other = await encryptCollection({ schemaVersion: '0.1' as const, rareCardIds: ['C-18', 'C-21'], unlockedPonyIds: [7] }, key)
         await writeRemoteCollection(identity, 1, other, localFetch, origin)
       }
       return localFetch(url, init)
     }) as typeof fetch
     const next = await syncCollectionProgress(identity, key,
-      { schemaVersion: 2, rareCardIds: ['C-02'], unlockedPonyIds: [8] }, racingFetch, origin)
-    expect(next.progress).toEqual({ schemaVersion: 2, rareCardIds: ['C-02', 'C-18', 'C-21'], unlockedPonyIds: [7, 8] })
+      { schemaVersion: '0.1' as const, rareCardIds: ['C-02'], unlockedPonyIds: [8] }, racingFetch, origin)
+    expect(next.progress).toEqual({ schemaVersion: '0.1' as const, rareCardIds: ['C-02', 'C-18', 'C-21'], unlockedPonyIds: [7, 8] })
     const remote = await readRemoteCollection(identity, localFetch, origin)
     expect(remote!.version).toBe(3)
     expect(await decryptCollection(remote!.envelope, key)).toEqual(next.progress)
@@ -78,7 +78,7 @@ test('a conflicting second device write is read and merged without losing either
 test('an unchanged collection is read without a write; cancellation never writes', async () => {
   const identity = createEd25519SigningSession({ privateKey: new Uint8Array(32).fill(0x71) })
   const key = new Uint8Array(32).fill(0x72)
-  const initial = { schemaVersion: 2 as const, rareCardIds: ['C-02'], unlockedPonyIds: [5] }
+  const initial = { schemaVersion: '0.1' as const, rareCardIds: ['C-02'], unlockedPonyIds: [5] }
   let writes = 0
   const counted = (async (url: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === 'PUT') writes++
@@ -104,7 +104,7 @@ test('switching account during the write challenge cancels before submitting the
     return response
   }) as typeof fetch
   try {
-    await expect(syncCollectionProgress(identity, key, { schemaVersion: 2, rareCardIds: ['C-02'], unlockedPonyIds: [8] },
+    await expect(syncCollectionProgress(identity, key, { schemaVersion: '0.1' as const, rareCardIds: ['C-02'], unlockedPonyIds: [8] },
       switchingFetch, origin, () => current)).rejects.toThrow('COLLECTION_CANCELLED')
     expect(writes).toBe(0)
     expect(await readRemoteCollection(identity, localFetch, origin)).toBeNull()
@@ -116,9 +116,9 @@ test('a valid encrypted future schema cannot be replaced by an empty or older cl
   const key = new Uint8Array(32).fill(0x92), iv = new Uint8Array(12).fill(0x93)
   const imported = await crypto.subtle.importKey('raw', key, 'AES-GCM', false, ['encrypt'])
   const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv,
-    additionalData: new TextEncoder().encode('ponygogogo/collection/v1') }, imported,
+    additionalData: new TextEncoder().encode('ponygogogo/collection/v0.1') }, imported,
     new TextEncoder().encode(JSON.stringify({ schemaVersion: 3, rareCardIds: ['C-02'], unlockedPonyIds: [8] })))
-  const envelope = { version: 1 as const, iv: bytesToHex(iv), ciphertext: bytesToHex(new Uint8Array(ciphertext)) }
+  const envelope = { version: '0.1' as const, iv: bytesToHex(iv), ciphertext: bytesToHex(new Uint8Array(ciphertext)) }
   let writes = 0
   const counted = ((url: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === 'PUT') writes++
@@ -126,7 +126,7 @@ test('a valid encrypted future schema cannot be replaced by an empty or older cl
   }) as typeof fetch
   try {
     await writeRemoteCollection(identity, 0, envelope, localFetch, origin)
-    await expect(syncCollectionProgress(identity, key, { schemaVersion: 2, rareCardIds: [], unlockedPonyIds: [] }, counted, origin))
+    await expect(syncCollectionProgress(identity, key, { schemaVersion: '0.1' as const, rareCardIds: [], unlockedPonyIds: [] }, counted, origin))
       .rejects.toThrow('INVALID_COLLECTION_SCHEMA')
     expect(writes).toBe(0)
     expect(await readRemoteCollection(identity, localFetch, origin)).toEqual({ version: 1, envelope })
@@ -136,15 +136,15 @@ test('a valid encrypted future schema cannot be replaced by an empty or older cl
 test('a failed write retains remote and newly granted progress and leaves the server document intact', async () => {
   const identity = createEd25519SigningSession({ privateKey: new Uint8Array(32).fill(0xa1) })
   const key = new Uint8Array(32).fill(0xa2)
-  const old = { schemaVersion: 2 as const, rareCardIds: ['C-31'], unlockedPonyIds: [7] }
+  const old = { schemaVersion: '0.1' as const, rareCardIds: ['C-31'], unlockedPonyIds: [7] }
   const unavailable = ((url: RequestInfo | URL, init?: RequestInit) => init?.method === 'PUT'
     ? Promise.resolve(new Response('temporarily unavailable', { status: 503 })) : localFetch(url, init)) as typeof fetch
   try {
     await writeRemoteCollection(identity, 0, await encryptCollection(old, key), localFetch, origin)
-    const error = await syncCollectionProgress(identity, key, { schemaVersion: 2, rareCardIds: ['C-02'], unlockedPonyIds: [8] }, unavailable, origin)
+    const error = await syncCollectionProgress(identity, key, { schemaVersion: '0.1' as const, rareCardIds: ['C-02'], unlockedPonyIds: [8] }, unavailable, origin)
       .catch(error => error)
     expect(error).toBeInstanceOf(CollectionWriteError)
-    expect(error.progress).toEqual({ schemaVersion: 2, rareCardIds: ['C-02', 'C-31'], unlockedPonyIds: [7, 8] })
+    expect(error.progress).toEqual({ schemaVersion: '0.1' as const, rareCardIds: ['C-02', 'C-31'], unlockedPonyIds: [7, 8] })
     const remote = (await readRemoteCollection(identity, localFetch, origin))!
     expect(remote.version).toBe(1)
     expect(await decryptCollection(remote.envelope, key)).toEqual(old)

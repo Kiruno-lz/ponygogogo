@@ -86,7 +86,7 @@ contract FieldStretchProbe {
 contract PaidRaceMotionTest {
     event log_named_uint(string key, uint256 val);
 
-    /// @dev Fixed benchmark: five twenty-second well lifetimes at H = 250 ms; refresh extends the v4 budget.
+    /// @dev Fixed benchmark: five twenty-second well lifetimes at H = 250 ms; refresh extends the current budget.
     uint256 internal constant CEILING_STEPS = 400;
     uint256 internal constant CEILING_MS = 100_000;
 
@@ -283,7 +283,7 @@ contract PaidRaceMotionTest {
     }
 
     /// @notice Compare a fixed 100-second field-work budget as 400 one-well steps or 80 five-well steps.
-    /// Refresh can extend well lifetimes; this benchmark is not the full v4 worst-case gas proof.
+    /// Refresh can extend well lifetimes; this benchmark is not the full worst-case gas proof.
     function testTheoreticalFieldCeilingGas() public {
         FieldStretchProbe probe = new FieldStretchProbe();
         (uint256 one, uint256 steps1,,) = probe.stretch(1, CEILING_MS);

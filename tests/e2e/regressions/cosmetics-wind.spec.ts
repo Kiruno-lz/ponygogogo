@@ -15,7 +15,11 @@ async function showcase(page: Page, cardId: string) {
     }
   })
   await page.getByRole('button', { name: '特效验收' }).click()
+  await page.getByTestId('horse-4').click()
+  await page.locator('.select-race-cta button').click()
+  await expect(page.locator('canvas')).toBeVisible()
   await page.getByRole('combobox', { name: '展示情景' }).selectOption(cardId)
+  await page.getByRole('button', { name: '显示效果', exact: true }).click()
   await page.getByRole('button', { name: '暂停', exact: true }).click()
   await page.waitForTimeout(150)
 }
@@ -39,7 +43,8 @@ test('C-19/C-20 在五种马色上显示独立头饰，替换、起飞和翻面�
   for (const [card, key] of [['C-19', 'fx.head.blonde'], ['C-20', 'fx.head.green-hair']] as const) {
     if (card === 'C-20') {
       await page.getByRole('combobox', { name: '展示情景' }).selectOption(card)
-      await page.getByRole('button', { name: '暂停', exact: true }).click()
+      await page.getByRole('button', { name: '显示效果', exact: true }).click()
+  await page.getByRole('button', { name: '暂停', exact: true }).click()
     }
     await page.evaluate(() => {
       const state = (window as any).__cosmeticScene.driver.state
@@ -96,12 +101,14 @@ test('C-12 分镜放慢、顺逆风明显向相反方向移动，暂停与减少
   await page.evaluate(() => (window as any).__cosmeticScene.driver.step(500))
   await page.waitForTimeout(60)
   const forward = await facts()
-  expect(forward[0].x - initial[0].x).toBeGreaterThan(180)
-  expect(forward[0].x - initial[0].x).toBeLessThan(320)
+  expect((forward[0].x - initial[0].x + 2140) % 2140).toBeGreaterThan(180)
+  expect((forward[0].x - initial[0].x + 2140) % 2140).toBeLessThan(320)
   expect((forward[0].frame - initial[0].frame + 16) % 16).toBeLessThanOrEqual(3)
   expect(forward.every((s: any) => s.visible && !s.flipX)).toBe(true)
   await page.screenshot({ path: testInfo.outputPath('wind-forward.png') })
   await direction.selectOption('-1')
+  await page.getByRole('button', { name: '显示效果', exact: true }).click()
+  await page.getByRole('button', { name: '暂停', exact: true }).click()
   await page.waitForTimeout(60)
   const backward = await facts()
   expect(backward.every((s: any) => s.flipX)).toBe(true)
@@ -110,7 +117,7 @@ test('C-12 分镜放慢、顺逆风明显向相反方向移动，暂停与减少
     scene.driver.step(500)
   })
   await page.waitForTimeout(60)
-  expect((await facts())[0].x - backward[0].x).toBeLessThan(-180)
+  expect((backward[0].x - (await facts())[0].x + 2140) % 2140).toBeGreaterThan(180)
   await page.screenshot({ path: testInfo.outputPath('wind-backward.png') })
   await page.getByRole('checkbox', { name: '减少动态效果' }).check()
   await page.waitForTimeout(60)

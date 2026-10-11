@@ -6,8 +6,10 @@ cd "$(dirname "$0")/.."
 
 # Worker 名与自定义域绑定在 Cloudflare 侧管理；名字的真源是 wrangler.toml 的 name，
 # 这里只用来在日志里显示
-PROJECT_NAME="${PROJECT_NAME:-ponygogogo}"
+PROJECT_NAME="${PROJECT_NAME:-ponygo}"
 SITE_URL="${SITE_URL:-https://ponygo.kiruno.cc}"
+TARGET_ENV="${DEPLOY_ENV:-}"
+[ "$TARGET_ENV" = "" ] || [ "$TARGET_ENV" = "preview" ] || { printf 'invalid DEPLOY_ENV\n'; exit 1; }
 DIST_DIR="dist"
 # Workers 静态资源硬限制：单文件 25 MiB、单次版本文件数免费计划 20000（付费计划 100000）
 # 本项目未声明付费计划，按免费计划的上限核验
@@ -53,7 +55,7 @@ printf '  %-13s %s\n' "dist/" "$(du -sh "$DIST_DIR" 2>/dev/null | cut -f1)"
 say "体积最大的 10 个文件（一眼看出是否把素材原图误打进了 dist/）："
 find "$DIST_DIR" -type f -exec du -k {} + 2>/dev/null | sort -rn | head -10 | awk -F'\t' '{printf "  %8s KiB  %s\n", $1, $2}'
 
-# ---- 5. Cloudflare Pages 硬限制核验 ----
+# ---- 5. Workers 静态资源限制核验 ----
 say "核验 Workers 静态资源限制（单文件 ≤ 25 MiB，单次版本 ≤ ${MAX_FILE_COUNT} 个文件）…"
 FILE_COUNT=$(find "$DIST_DIR" -type f | wc -l | tr -d ' ')
 say "文件数：$FILE_COUNT"
@@ -92,10 +94,10 @@ if [ "${DRY_RUN:-0}" = "1" ]; then
 fi
 
 # 先迁移再切 Worker；否则新 API 会在旧 schema 上启动。
-say "应用 production 图鉴 D1 迁移…"
-npx wrangler d1 migrations apply COLLECTION_DB --remote || die "production D1 迁移失败"
+say "应用 ${TARGET_ENV:-production} 图鉴 D1 迁移…"
+npx wrangler d1 migrations apply COLLECTION_DB --remote --env "$TARGET_ENV" || die "${TARGET_ENV:-production} D1 迁移失败"
 
 # 目录与名字都从 wrangler.toml 读，命令行不重复一遍，避免两处打架
 say "部署到 Cloudflare（Worker：$PROJECT_NAME）…"
-npx wrangler deploy || die "wrangler 部署失败"
+npx wrangler deploy --env "$TARGET_ENV" || die "wrangler 部署失败"
 say "部署完成 → $SITE_URL"

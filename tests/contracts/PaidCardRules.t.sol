@@ -10,7 +10,7 @@ contract PaidCardRulesTest {
             PaidCardRules.TABLE_HASH == 0x0aaa341ca75aedcc2a4c83b300312c7dfc1739278a37a146730d5e7b1cf937e0, "table hash"
         );
         require(
-            PaidCardRules.RULESET_HASH == 0x6378623098ec1be1026bb5a663baf5890d3fe02da549708afa1de3facfa371b6,
+            PaidCardRules.RULESET_HASH == 0x879f0d8d0cd93a3dc8bd9ceb80d2a692c239613042b55a43c0b6473a0c950f69,
             "ruleset hash"
         );
         PaidCardRules.Rule memory gravity = PaidCardRules.get(10);

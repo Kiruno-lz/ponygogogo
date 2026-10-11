@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { SelectScreen } from '../../../src/ui/SelectScreen.tsx'
+import { SelectScreen } from '../../../src/ui/select/SelectScreen.tsx'
 import '../../../src/ui/theme.css'
 
 function Fixture() {

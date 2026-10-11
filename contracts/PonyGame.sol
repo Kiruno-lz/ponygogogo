@@ -15,12 +15,12 @@ import {RandomAnchor} from "./libraries/RandomAnchor.sol";
 import {RewardRules} from "./libraries/RewardRules.sol";
 import {PonyRewards} from "./PonyRewards.sol";
 
-/// @notice 会话协议 v2: paid sessions, choice records, random-anchor sealing, authoritative settlement and forfeits.
+/// @notice 会话协议 v0.1: paid sessions, choice records, random-anchor sealing, authoritative settlement and forfeits.
 /// There are no refunds: a session that can never settle is forfeited by its player (payout 0).
 /// @dev The race rules live in the immutable solver; this contract only builds its input from on-chain facts
 /// (seed, T0, transaction seconds and blocks, sealed block hashes) and pays by the solver's settlement rank.
 /// chooseCard does not run the solver: whether a stored choice takes effect is judged by the settlement solve
-/// (有奖规则 v3), which ignores a rule-breaking choice.
+/// (有奖规则 v0.1), which ignores a rule-breaking choice.
 contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
     error InvalidConfiguration();
     error InsufficientRewardGas();

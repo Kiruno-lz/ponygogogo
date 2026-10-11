@@ -6,9 +6,9 @@
  * RPC、水龙头与 Alchemy 都在路由层拦下，测试不打真实测试网、不消耗水龙头额度。
  * 构建未配置 Vault 地址，所以余额直接读取智能账户，不提供 Vault 充值或提款。
  */
-import { expect, test } from '@playwright/test'
-import { enterHome, noConsoleErrors, open } from '../helpers.ts'
-import { ONE_MON, addAuthenticator, logout, readAddress, readAddresses, registerAs, smaFor, stubChain } from '../walletHarness.ts'
+import { expect,test } from '@playwright/test'
+import { enterHome,noConsoleErrors,open } from '../helpers.ts'
+import { addAuthenticator,logout,readAddress,readAddresses,registerAs,smaFor,stubChain } from '../walletHarness.ts'
 
 const SHOT = 'tests/e2e/screenshots'
 
@@ -93,42 +93,6 @@ test('钱包动线：取名注册 → 游戏账户领币 → 账户与余额 →
   // 登录不再领一次水
   expect(chain.faucetCalls()).toBe(1)
 
-  expect(errors).toEqual([])
-})
-
-test('签名账户里的旧余额迁入游戏账户：已提交 → 已入块，附交易链接', async ({ page }) => {
-  const errors = await noConsoleErrors(page)
-  await addAuthenticator(page)
-  const chain = await stubChain(page)
-  await open(page)
-  await enterHome(page)
-  await registerAs(page, '迁移')
-  await expect(page.getByTestId('balance')).toContainText('1.00 MON', { timeout: 30_000 })
-  const { game, signer } = await readAddresses(page, chain)
-
-  // 早期版本把测试币领到了签名账户
-  chain.credit(signer, 2n * ONE_MON)
-  await page.getByTestId('wallet-open').click()
-  await page.getByRole('button', { name: /^刷新余额$|^Refresh balance$/ }).click()
-  await expect(page.getByTestId('wallet-migrate')).toBeVisible()
-  await expect(page.getByTestId('wallet-migrate')).toContainText('2.0000 MON')
-  await page.screenshot({ path: `${SHOT}/25-wallet-migrate-offer.png` })
-
-  await page.getByTestId('wallet-migrate').getByRole('button', { name: /转入游戏账户|Move to game account/ }).click()
-  await expect(page.getByTestId('wallet-tx')).toHaveAttribute('data-phase', 'included', { timeout: 20_000 })
-  await expect(page.getByTestId('wallet-tx')).toContainText(/已入块|included/)
-  const tx = chain.rawTransactions()
-  expect(tx).toHaveLength(1)
-  expect(tx[0]!.from).toBe(signer)
-  expect(tx[0]!.to).toBe(game)
-  // 金额 = 余额 − 21000 × (1.2 × 100 gwei + 2 gwei)
-  expect(tx[0]!.value).toBe(2n * ONE_MON - 21_000n * 122n * 10n ** 9n)
-  const link = page.getByTestId('wallet-tx-link')
-  await expect(link).toHaveAttribute('href', /^https:\/\/testnet\.monadexplorer\.com\/tx\/0x[0-9a-f]{64}$/)
-  // 余额随之刷新：游戏账户涨了，签名账户只剩手续费零头，迁移入口收起
-  await expect(page.getByTestId('wallet-balance')).toHaveText('2.9974 MON')
-  await expect(page.getByTestId('wallet-migrate')).toHaveCount(0)
-  await page.screenshot({ path: `${SHOT}/26-wallet-migrated.png` })
   expect(errors).toEqual([])
 })
 

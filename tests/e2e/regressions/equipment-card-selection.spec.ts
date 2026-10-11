@@ -15,7 +15,11 @@ test('C-08 的彩虹发射端贴合尾根，并随马匹尺寸、起飞、翻面
     }
   })
   await page.getByRole('button', { name: '特效验收' }).click()
+  await page.getByTestId('horse-4').click()
+  await page.locator('.select-race-cta button').click()
+  await expect(page.locator('canvas')).toBeVisible()
   await page.getByRole('combobox', { name: '展示情景' }).selectOption('C-08')
+  await page.getByRole('button', { name: '显示效果', exact: true }).click()
   await page.getByRole('button', { name: '暂停', exact: true }).click()
   await expect.poll(() => page.evaluate(() => Boolean((window as any).__tailScene?.ponies.length))).toBe(true)
 

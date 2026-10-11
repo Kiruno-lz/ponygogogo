@@ -129,9 +129,9 @@
 - **重力井在积分内部计算。** 以该时刻真实距离给当前基础速度提供百分比贡献，不能把场视作单次触发事件或改基础上限。
 - **里程只累加自身运动积分。** 位置跳变后用新 `pos` 判断终点，但交换位移不计入 `dist`。
 
-跨语言向量 `tests/vectors/paid-race-v4.json`（360 组，由 `scripts/gen-paid-vectors.ts` 生成，`tests/contracts/PaidRaceSolverVectors.t.sol` 在 Solidity 复算）逐字段比较事件、摘要、检查点、冲线时间与结算排序；`gen-paid-card-rules.ts --check` 与 `gen-paid-vectors.ts --check` 校验生成物没有过期。
+跨语言向量 `tests/vectors/paid-race-v0.1.json`（360 组，由 `scripts/gen-paid-vectors.ts` 生成，`tests/contracts/PaidRaceSolverVectors.t.sol` 在 Solidity 复算）逐字段比较事件、摘要、检查点、冲线时间与结算排序；`gen-paid-card-rules.ts --check` 与 `gen-paid-vectors.ts --check` 校验生成物没有过期。
 
-//TODO - 在真实浏览器引擎中运行同一份向量：新增 Playwright 用例载入 `paid-race-v4.json`，断言浏览器求得的 `digest`、事件时间与量化冲线时间与向量一致（Bun 的 `vectors.test.ts` 与 Foundry 的向量复算已覆盖 Node 与 Solidity）。
+//TODO - 在真实浏览器引擎中运行同一份向量：新增 Playwright 用例载入 `paid-race-v0.1.json`，断言浏览器求得的 `digest`、事件时间与量化冲线时间与向量一致（Bun 的 `vectors.test.ts` 与 Foundry 的向量复算已覆盖 Node 与 Solidity）。
 
 ## 6. 表现层：插槽与资源
 
@@ -146,8 +146,8 @@ src/game/pony.ts          PonySprite：马体动画、状态、装备与头饰�
 src/game/effects.ts       支持的装备/天气素材、状态筛选与纯几何表现数据
 src/game/gogoCamera.ts    gogo 点击密度到镜头构图偏移
 src/game/sceneArt.ts      按资产 key 解码赛道与效果图片
-src/ui/raceEventAudio.ts  RaceEvent 到音效与冲线旋律的映射
-src/ui/RaceScreen.tsx     驱动器帧更新与 HUD 浮层
+src/ui/race/raceEventAudio.ts  RaceEvent 到音效与冲线旋律的映射
+src/ui/race/RaceScreen.tsx     驱动器帧更新与 HUD 浮层
 ```
 
 **表现层读取快照，规则层不知道表现层存在。** `paidSnapshot.ts` 把求时器轨迹按固定比例换成 `RaceState`（其中的 `EffectInstance` 带 `primitive` 与 `tags`，只供 HUD 与场景筛选）和 `RaceEvent`，不做任何速度、体力或名次计算。`RaceScene` 把赛道、环境和一次性事件分层绘制；`PonySprite` 负责马匹动画、状态和装备；`sceneArt.ts` 根据资产 key 解码背景与特效图。表现层按帧读取当前 `RaceState` 中的装备实例，所以转移后的装备跟随新持有者；`RaceEvent` 只用于需要播放一次的转移动画、声音、碰撞反馈或 `cardEffect` 浮字（触发、资源增减、固定值、目标、拦截、翻新）。规则层不导入 Phaser、音频或图片资源。
@@ -186,7 +186,7 @@ src/race/core/        入场派生与结算的纯函数（性格、牌堆、发�
 src/race/cards/       卡面：元数据（名称、梗源、图标）、由规则表生成的说明、完整40张由规则表生成的生产卡面与兼容导出
 src/race/*.ts         驱动器与快照：driver.ts（免费试玩）、paidDriver.ts（有奖）、paidSnapshot.ts、paidResult.ts、paidWindow.ts、raceView.ts
 contracts/Paid*.sol   求时器的 Solidity 复算；PaidCardRules.sol 由 cardRules.ts 生成
-tests/vectors/        跨语言向量 paid-race-v4.json、构筑分析 paid-card-builds.json
+tests/vectors/        跨语言向量 paid-race-v0.1.json、构筑分析 paid-card-builds.json
 ```
 
 规则表是纯数据：**加一张已有机制的卡，正常路径是往 `src/race/paid/cardRules.ts` 与 `src/race/cards/metadata.ts` 各加一条记录，不改求时器一行。** 如果一张新卡逼着你改求时器，按 §4.1 走完整流程。

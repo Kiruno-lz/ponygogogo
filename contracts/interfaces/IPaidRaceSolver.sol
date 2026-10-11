@@ -7,7 +7,7 @@ pragma solidity ^0.8.28;
 /// so that the browser, the keeper and PonyGame agree on the same RaceInput.
 interface IPaidRaceSolver {
     /// @dev A stored transaction as PonyGame.chooseCard recorded it, unvalidated: the solve judges it and ignores one
-    /// that breaks a rule (有奖规则 v3), logging CHOICE_INVALID into the digest.
+    /// that breaks a rule (有奖规则 v0.1), logging CHOICE_INVALID into the digest.
     struct ChoiceInput {
         bool present; // a player transaction exists for this checkpoint
         uint32 txSec; // block.timestamp - T0, seconds

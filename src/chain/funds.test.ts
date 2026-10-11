@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { type Address } from 'viem'
 import type { CallAccount, CallProgress, ContractCall } from './alchemy.ts'
 import { MON } from './amount.ts'
-import { readFunds, trackCall, trackTransaction } from './funds.ts'
+import { readFunds, trackCall } from './funds.ts'
 
 const PLAYER = '0x1111111111111111111111111111111111111111' as Address
 const HASH = `0x${'ab'.repeat(32)}` as const
@@ -52,16 +52,4 @@ describe('call tracking', () => {
     expect(await trackCall(acct, 'call-1', { ...fastClock(), pollMs: 1000, timeoutMs: 5000 })).toEqual({ state: 'timeout', callId: 'call-1' })
   })
 
-  test('EOA receipts: missing receipt means keep waiting', async () => {
-    let calls = 0
-    const client = {
-      getTransactionReceipt: async () => {
-        if (calls++ < 2) throw new Error('not found')
-        return { status: 'reverted' }
-      },
-    } as unknown as Parameters<typeof trackTransaction>[0]
-    expect(await trackTransaction(client, HASH, fastClock())).toEqual({ state: 'reverted', hash: HASH })
-    const never = { getTransactionReceipt: async () => { throw new Error('not found') } } as unknown as Parameters<typeof trackTransaction>[0]
-    expect(await trackTransaction(never, HASH, { ...fastClock(), timeoutMs: 3000 })).toEqual({ state: 'timeout', hash: HASH })
-  })
 })

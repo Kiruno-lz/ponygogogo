@@ -36,7 +36,7 @@ import { keccak256, type Hex } from 'viem'
  * | 27   | BASE_CAP      | 1          | horse          | b = C·1000                            |
  * | 28   | CHOICE_INVALID | 5 / 6 / 2 | player        | k·16 + INVALID_* (reason)             |
  *
- * CHOICE_INVALID (有奖规则 v3): a stored choice that breaks a rule counts as no transaction at checkpoint k. It is
+ * CHOICE_INVALID (有奖规则 v0.1): a stored choice that breaks a rule counts as no transaction at checkpoint k. It is
  * logged right after the panel event that decides it (PANEL_OPEN/AUTO/CUT when the panel opens, PANEL_CLOSE when the
  * player finishes inside it) or, for a checkpoint whose panel never opened, after the last event of a complete solve.
  */

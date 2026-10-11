@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import vectors from '../../../tests/vectors/pony-race-v5.json'
+import vectors from '../../../tests/vectors/pony-race-v0.1.json'
 import { PAID_RULESET_HASH } from './cardRules.ts'
 import { solvePaidCore } from './solver.ts'
 import { decodeInput, encodeRace, type PaidVectorCase } from './vectorCodec.ts'

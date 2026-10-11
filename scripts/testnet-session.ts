@@ -1,5 +1,5 @@
 /**
- * P5 测试网真实有奖会话（会话协议 v2）：走产品路径——src/chain/alchemy.ts 的 AlchemyAccount（sma-b，Alchemy 赞助）
+ * P5 测试网真实有奖会话（会话协议 v0.1）：走产品路径——src/chain/alchemy.ts 的 AlchemyAccount（sma-b，Alchemy 赞助）
  * + src/chain/paidSession.ts 的开场/选牌/结算——在 Monad 测试网跑一场
  * 直接支付下注开场 → 选牌 → 等规范冲线 → 结算，逐笔记录 call id、交易哈希、块、时间戳、gasUsed 与时延，
  * 并把 previewSettlement / SessionSettled 与 TS `solvePaidRace`（同一链上输入）逐字段比对。
@@ -755,7 +755,7 @@ async function heavyProbe(ctx: {
   log: Logger; prepare: Prepare; finish: Finish
 }): Promise<Record<string, unknown>> {
   const { cfg, pub, sma, solver, timed, log, prepare, finish } = ctx
-  const vectors = JSON.parse(readFileSync(resolve(ROOT, 'tests/vectors/pony-race-v5.json'), 'utf8')) as { meta: { rulesetHash: string }; cases: VectorCase[] }
+  const vectors = JSON.parse(readFileSync(resolve(ROOT, 'tests/vectors/pony-race-v0.1.json'), 'utf8')) as { meta: { rulesetHash: string }; cases: VectorCase[] }
   const { vector: heaviest, input } = heavySolverInput(vectors)
   const data = encodeFunctionData({ abi: solverAbi, functionName: 'solve', args: [input as never] })
   const result = await pub.readContract({ address: solver, abi: solverAbi, functionName: 'solve', args: [input as never] })

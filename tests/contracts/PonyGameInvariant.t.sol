@@ -6,7 +6,7 @@ import {PonyVault} from "../../contracts/PonyVault.sol";
 import {MockPaidRaceSolver} from "./MockPaidRaceSolver.sol";
 import {Eip2935, PonyGameBase, PonyVm} from "./PonyGameBase.sol";
 
-/// @notice Random session traffic for the invariant campaign (会话协议 v2: no refunds). Every action is a real
+/// @notice Random session traffic for the invariant campaign (会话协议 v0.1: no refunds). Every action is a real
 /// protocol call; a revert just discards that step, so ghosts only move on success. Choices are arbitrary: chooseCard
 /// stores whatever passes its shape checks.
 contract PonyGameHandler {

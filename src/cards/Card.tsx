@@ -83,6 +83,43 @@ function CollectibleCardName({ name }: { name: string }) {
   return <span ref={box} className="h-title collectible-card-name"><span ref={text}>{name}</span></span>
 }
 
+/** Fit the full authored copy while keeping room for its artwork; explicit newlines remain visible. */
+function CardDescription({ id, meme, effect, fontSize }: { id: string; meme: string; effect: string; fontSize: number }) {
+  const copy = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const text = copy.current!, art = text.parentElement!
+    const fit = () => {
+      if (!art.clientHeight || !text.clientWidth) return
+      const style = getComputedStyle(art)
+      const gap = style.rowGap.endsWith('%') ? parseFloat(style.rowGap) * art.clientHeight / 100 : parseFloat(style.rowGap) || 0
+      const room = (art.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) * .76 - gap
+      text.style.fontSize = `${fontSize}px`
+      if (text.scrollHeight <= room) return
+      let low = 0, high = fontSize
+      while (high - low > .1) {
+        const size = (low + high) / 2
+        text.style.fontSize = `${size}px`
+        if (text.scrollHeight <= room) low = size
+        else high = size
+      }
+      text.style.fontSize = `${low}px`
+    }
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(art)
+    let active = true
+    void document.fonts.ready.then(() => { if (active) fit() })
+    document.fonts.addEventListener('loadingdone', fit)
+    return () => { active = false; observer.disconnect(); document.fonts.removeEventListener('loadingdone', fit) }
+  }, [meme, effect, fontSize])
+  return <div ref={copy} id={id} className="card-copy" style={{
+    width: '100%', fontSize, lineHeight: 1.42, color: '#4a2a14', textAlign: 'center', fontWeight: 600, whiteSpace: 'pre-line',
+  }}>
+    <p className="card-meme">{meme}</p>
+    <p className="card-effect">{effect}</p>
+  </div>
+}
+
 export function Card({
   def,
   lang,
@@ -95,14 +132,16 @@ export function Card({
   badge,
 }: CardProps) {
   const f = FRAME[def.quality]
-  const h = HEIGHTS[size]
+  const gallery = size === 'gallery'
+  const h = gallery ? 390 : HEIGHTS[size]
   const scale = h / f.h
-  const w = f.w * scale
+  const w = gallery ? 290 : f.w * scale
   const [ax, ay, aw, ah] = f.art
   const [rx, ry, rw, rh] = f.ribbon
   const compact = size === 'hud'
-  const nameSize = Math.max(11, Math.round(h * (compact ? 0.11 : 0.056)))
-  const descSize = Math.max(9, Math.round(h * 0.035))
+  const textHeight = gallery ? HEIGHTS.gallery : h
+  const nameSize = Math.max(11, Math.round(textHeight * (compact ? 0.11 : 0.056)))
+  const descSize = Math.max(9, Math.round(textHeight * 0.035))
   const descId = useId()
   // 两种形态共用的根属性：E2E 与排版检查器靠 card-root / data-card / data-quality 找卡面
   const root = {
@@ -150,7 +189,7 @@ export function Card({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: compact ? 'center' : 'flex-start',
-          gap: compact ? 0 : '4%',
+          gap: compact ? 0 : gallery ? 14 : '4%',
           padding: compact ? 0 : '3% 2% 0',
         }}
       >
@@ -168,22 +207,8 @@ export function Card({
             filter: def.art.tint ? `hue-rotate(${def.art.tint}deg) saturate(1.25)` : undefined,
           }}
         />
-        {!compact && (
-          <p
-            id={descId}
-            style={{
-              margin: 0,
-              width: '100%',
-              fontSize: descSize,
-              lineHeight: 1.42,
-              color: '#4a2a14',
-              textAlign: 'center',
-              fontWeight: 600,
-            }}
-          >
-            {def.desc[lang]}
-          </p>
-        )}
+        {!compact && <CardDescription id={descId} meme={def.meme[lang]} effect={def.desc[lang]} fontSize={descSize} />}
+
       </div>
       {/* 缎带：卡名 */}
       <div
@@ -201,8 +226,9 @@ export function Card({
       >
         {!compact && (
           <span
-            className="h-title"
+            className="h-title card-name"
             style={{
+              transform: size === 'gallery' ? 'translateY(11px)' : undefined,
               fontSize: nameSize,
               color: '#5b2d10',
               textAlign: 'center',

@@ -5,8 +5,8 @@ import { EV_CARD, EV_EXHAUST_ENTER, EV_EXHAUST_EXIT, PAID_CHOICE_INVALID_NAMES }
 import { checkPaidChoice, classifyPaidChoice, type PaidChoiceSlots } from './solver.ts'
 import { decodeInput, encodeInput, solveVectorCase, type PaidVectorCase, type PaidVectorRace } from './vectorCodec.ts'
 
-/** tests/vectors/paid-race-v4.json is the Solidity port's oracle; it must stay equal to a fresh solve. */
-const file = JSON.parse(readFileSync(new URL('../../../tests/vectors/paid-race-v4.json', import.meta.url), 'utf8')) as {
+/** tests/vectors/paid-race-v0.1.json is the Solidity port's oracle; it must stay equal to a fresh solve. */
+const file = JSON.parse(readFileSync(new URL('../../../tests/vectors/paid-race-v0.1.json', import.meta.url), 'utf8')) as {
   meta: { rulesetHash: string; count: number }
   cases: PaidVectorCase[]
 }

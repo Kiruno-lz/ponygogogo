@@ -9,7 +9,7 @@
  *
  * **求解**：已入块的选择按真实 txSec 与块哈希；尚未发生的检查点按超时处理，得到完整轨迹供预览。
  * 点击后先用 checkPaidChoice 按预测的 txSec 预检（链上不再拦迟到的点击，不合法的就不发），再乐观地关面板并重解；
- * 回执到了以真实 txSec/锚重解。**入块不等于生效**（有奖规则 v3）：回执后用 classifyPaidChoice 判定，
+ * 回执到了以真实 txSec/锚重解。**入块不等于生效**（有奖规则 v0.1）：回执后用 classifyPaidChoice 判定，
  * 不合法的已存选择按无交易处理（超时、自动或断卡照常由规则推导），面板不再开启并给出一条原因说明；
  * 回退只剩调用本身畸形一种情况，与未上链的选择一样按超时重解。
  * 每次重解都记录「旧轨迹在当前画面时刻的位置 − 新轨迹的位置」作为逐马偏移，在 correctionMs 内线性衰减到 0，
@@ -390,7 +390,7 @@ export class PaidRaceDriver implements RaceScreenDriver {
     try {
       next = solvePaidCore({ ...core, choices: this.choices() })
     } catch {
-      // v3 求时器不会因不合法的选择抛错，只剩畸形输入；防御性地退回只用已上链的输入
+      // 求时器不会因不合法的选择抛错，只剩畸形输入；防御性地退回只用已上链的输入
       this.optimistic = null
       next = solvePaidCore({ ...core, choices: this.confirmed as unknown as PaidChoiceSlots })
     }

@@ -184,7 +184,7 @@ npx playwright test --config tests/e2e/playwright.config.ts regressions/modal-st
 
 ### 缺陷现象
 
-会话协议 v2 取消退款后，结算页在结算前要写明期限（「请在约 N 分钟内结算，否则视为放弃」）。期限作为第二行放进按钮行下方的 `settle-detail` 框里，`paid-race.spec.ts` 动线三（结算失败 → 重试）在 1280×720 视口下断言 `settle-detail inside viewport` 失败：框底 721.48 px，超出视口 0.48 px，截图里说明框压在舞台底边上。
+会话协议 v0.1 取消退款后，结算页在结算前要写明期限（「请在约 N 分钟内结算，否则视为放弃」）。期限作为第二行放进按钮行下方的 `settle-detail` 框里，`paid-race.spec.ts` 动线三（结算失败 → 重试）在 1280×720 视口下断言 `settle-detail inside viewport` 失败：框底 721.48 px，超出视口 0.48 px，截图里说明框压在舞台底边上。
 
 ### 根因假设
 

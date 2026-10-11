@@ -122,6 +122,4 @@ export function paidCardRuleTuple(card: PaidCardRule): number[] {
 export const PAID_CARD_RULES_HASH = keccak256(toBytes(JSON.stringify({ globals: PAID_CARD_GLOBALS,
   cards: PAID_CARD_RULES.map(paidCardRuleTuple), flameLayers: PAID_CARD_RULES.map(c => c.flameLayers ?? []), baseStages: PAID_CARD_RULES.map(c => c.baseStages ?? []), mainFunctions: PAID_CARD_RULES.map(c => CARD_MAIN_FUNCTION[c.mainFunction]) })))
 /** New rules are immutable per solver/Game deployment; the hash changes with any card or shared numeric-rule edit. */
-export const PAID_RULESET_HASH = keccak256(toBytes(`ponygogogo/paid-rules/v8/${PAID_CARD_RULES_HASH}/${PONY_RULES_HASH}/${PLAYER_BALANCE_HASH}`))
-/** Frozen v4 ABI identifier for reading previously deployed session records; current card fixtures use PAID_RULESET_HASH. */
-export const LEGACY_PAID_RULESET_HASH = '0x57f1149242930a98ef7819e90b5945887432efcc677578a290b19e355536af6e' as const
+export const PAID_RULESET_HASH = keccak256(toBytes(`ponygogogo/paid-rules/v0.1/${PAID_CARD_RULES_HASH}/${PONY_RULES_HASH}/${PLAYER_BALANCE_HASH}`))

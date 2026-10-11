@@ -1,4 +1,4 @@
-import type { DriverPhase } from './driver.ts'
+export type DriverPhase = 'countdown' | 'racing' | 'tail' | 'done'
 import type { RaceEvent, RaceInput, RaceState } from './core/types.ts'
 
 /**

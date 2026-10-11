@@ -3,9 +3,9 @@ import {
   encodeAbiParameters, encodeErrorResult, encodeEventTopics, keccak256, parseAbi, toHex, type Address, type Hex, type Log,
 } from 'viem'
 import type { CallAccount, CallProgress, ContractCall } from './alchemy.ts'
-import { ponyGameAbi, legacyPonyGameAbi } from './paidCalls.ts'
+import { ponyGameAbi } from './paidCalls.ts'
 import { ponyRewardsAbi } from './rewards.ts'
-import { LEGACY_PAID_RULESET_HASH, PAID_RULESET_HASH } from '../race/paid/cardRules.ts'
+import { PAID_RULESET_HASH } from '../race/paid/cardRules.ts'
 import {
   choosePaidCard, errorReason, openPaidSession, PaidSessionError, parseCardChosen, parseSessionOpened,
   parseSessionSettled, readSettleDeadline, revertName, settlePaidSession, SPONSOR_QUOTA_REASON, type PaidChainDeps, type PaidSessionFacts,
@@ -24,7 +24,7 @@ const ZERO = `0x${'00'.repeat(32)}` as Hex
 const STAKE = 10n ** 18n // tier 2 = 1 MON
 
 function eventLog(eventName: string, args: Record<string, unknown>, address: Address = GAME): Log {
-  const abi = eventName === 'SessionOpened' && !args.roster ? legacyPonyGameAbi : ponyGameAbi
+  const abi = ponyGameAbi
   const item = abi.find((i) => i.type === 'event' && i.name === eventName) as { inputs: readonly { name: string; type: string; indexed?: boolean }[] }
   const topics = encodeEventTopics({ abi, eventName: eventName as never, args: args as never }) as Hex[]
   const data = encodeAbiParameters(
@@ -60,14 +60,6 @@ describe('receipt parsing', () => {
     })
     expect(parseSessionOpened({ ...receipt, logs: [opened(OTHER)] }, GAME, PLAYER)).toBeNull()
     expect(() => parseSessionOpened({ ...receipt, logs: [opened(PLAYER, 99n)] }, GAME, PLAYER)).toThrow('OPEN_BLOCK_MISMATCH')
-  })
-
-  test('old opening logs retain legacy participant identity and do not activate new abilities', () => {
-    const log = eventLog('SessionOpened', { sessionId: SESSION, player: PLAYER, horseId: 2, stake: STAKE,
-      seed: SEED, openedAt: 1_790_000_000n, openedBlock: 100n, rulesetHash: LEGACY_PAID_RULESET_HASH })
-    const parsed = parseSessionOpened({ status: 'success', blockHash: BLOCK_HASH, blockNumber: 100n, logs: [log] }, GAME, PLAYER)
-    expect(parsed?.roster).toBeUndefined()
-    expect(parsed?.horseId).toBe(2)
   })
 
   test('CardChosen: matches session and checkpoint; anchor = block hash', () => {
@@ -173,7 +165,7 @@ function fakeAccount(onSend: (calls: readonly ContractCall[]) => string): CallAc
 
 const facts: PaidSessionFacts = {
   sessionId: SESSION, player: PLAYER, state: 1, horseId: 2, stakeTier: 2, stake: STAKE, seed: SEED, openedAt: 1_790_000_000,
-  openedBlock: 100n, openAnchor: BLOCK_HASH, choices: [null, null, null],
+  openedBlock: 100n, openAnchor: BLOCK_HASH, choices: [null, null, null], roster: [0,1,2,3,4],
 }
 
 const deps = (s: ChainState, account: CallAccount): PaidChainDeps => ({

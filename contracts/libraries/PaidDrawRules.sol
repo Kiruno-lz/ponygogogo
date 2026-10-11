@@ -60,7 +60,7 @@ library PaidDrawRules {
     }
 
     /// @notice classifyPaidDraw: 0 when applyChoice would accept the refreshes and card, else the INVALID_* code of
-    /// the first rule it breaks, in applyChoice's own order (有奖规则 v3). Cut is judged before auto. Never reverts.
+    /// the first rule it breaks, in applyChoice's own order (有奖规则 v0.1). Cut is judged before auto. Never reverts.
     function classify(uint8[14] memory deck, State memory state, uint8[] memory refreshSlots, uint8 chosenId)
         internal
         pure

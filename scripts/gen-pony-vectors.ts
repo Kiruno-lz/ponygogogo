@@ -8,7 +8,7 @@ import { fixtureInput, pickAt, fixtureAnchor, withSlot } from '../src/race/paid/
 import { solvePaidCore, type PaidCoreInput } from '../src/race/paid/solver.ts'
 import { solveVectorCase } from '../src/race/paid/vectorCodec.ts'
 
-const out = new URL('../tests/vectors/pony-race-v5.json', import.meta.url)
+const out = new URL('../tests/vectors/pony-race-v0.1.json', import.meta.url)
 const cases: ReturnType<typeof solveVectorCase>[] = []
 const patterns = [[], [2], [17], [4], [5], [7, 32], [1, 11], [17, 15, 7], [17, 18, 1],
   [0], [39, 0, 0], [15], [14], [16], [24], [36], [7, 25, 22], [13], [6, 2], [10, 32, 13], [19,29,20], [19,20,29], [29,19,20], [16,22], [8,32,30]]
@@ -45,8 +45,8 @@ for (const pony of PONY_RULES) {
 for (let i = 0; i < 45; i++) {
   const playerHorseId = i % 5, ids = roster(i % 9)
   ;[ids[0], ids[playerHorseId]] = [ids[playerHorseId]!, ids[0]!]
-  let input = derivePaidCoreInput({ seed: keccak256(toBytes(`pony-v5/seed/${i}`)),
-    openAnchor: keccak256(toBytes(`pony-v5/anchor/${i}`)), stakeTier: (i % 4 + 1) as 1 | 2 | 3 | 4,
+  let input = derivePaidCoreInput({ seed: keccak256(toBytes(`pony-v0.1/seed/${i}`)),
+    openAnchor: keccak256(toBytes(`pony-v0.1/anchor/${i}`)), stakeTier: (i % 4 + 1) as 1 | 2 | 3 | 4,
     playerHorseId, roster: ids, choices: [null, null, null] })
   for (const k of [1, 2, 3] as const) {
     const panel = solvePaidCore(input, { stopAtPanel: k, trace: false }).panel
@@ -62,4 +62,4 @@ const text = `{"meta":${JSON.stringify({ rulesetHash: PAID_RULESET_HASH, count: 
 if (process.argv.includes('--check')) {
   if (readFileSync(out, 'utf8') !== text) throw new Error('STALE_PONY_VECTORS')
 } else writeFileSync(out, text)
-console.log(`pony-race-v5.json: ${cases.length} roster/ability vectors`)
+console.log(`pony-race-v0.1.json: ${cases.length} roster/ability vectors`)

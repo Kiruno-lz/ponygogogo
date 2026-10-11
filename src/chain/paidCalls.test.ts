@@ -31,7 +31,7 @@ test('entry encodes the visible roster without an ownership gate and rejects mal
 test('entry rejects invalid horses, off-tier stakes and missing Game', () => {
   expect(() => openSessionCall(GAME, 5, STAKE)).toThrow('INVALID_PAID_ENTRY')
   expect(() => openSessionCall(GAME, 0, 0n)).toThrow('INVALID_PAID_ENTRY')
-  expect(() => openSessionCall(GAME, 0, 5n * 10n ** 16n)).toThrow('INVALID_PAID_ENTRY') // v1 0.05 MON
+  expect(() => openSessionCall(GAME, 0, 5n * 10n ** 16n)).toThrow('INVALID_PAID_ENTRY') // unsupported 0.05 MON
   expect(() => openSessionCall(`0x${'00'.repeat(20)}`, 0, STAKE)).toThrow('INVALID_CONTRACT_ADDRESS')
 })
 

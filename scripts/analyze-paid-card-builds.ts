@@ -68,7 +68,7 @@ function synergy(result: ReturnType<typeof solvePaidCore>, pair: number[], h: nu
 const rows = plans.map(pair=>({pair,races:0,acquiredBoth:0,triggered:0,threeCheckpointsReached:0,thirdCard:0,refreshes:0,ranks:[0,0,0,0,0]}))
 const random={races:0,rawRanks:[0,0,0,0,0],settlementRanks:[0,0,0,0,0],versionAnswer:0}
 for (let n=0;n<samples;n++) {
- const input=derivePaidCoreInput({seed:keccak256(toBytes(`card-builds/v4/seed/${n}`)),openAnchor:keccak256(toBytes(`card-builds/v4/anchor/${n}`)),stakeTier:(n%4+1) as 1|2|3|4,playerHorseId:n%5,roster:[...DEFAULT_ROSTER],choices:[null,null,null]})
+ const input=derivePaidCoreInput({seed:keccak256(toBytes(`card-builds/v0.1/seed/${n}`)),openAnchor:keccak256(toBytes(`card-builds/v0.1/anchor/${n}`)),stakeTier:(n%4+1) as 1|2|3|4,playerHorseId:n%5,roster:[...DEFAULT_ROSTER],choices:[null,null,null]})
  const base=play(input,null).result;random.races++;random.rawRanks[base.rawRank-1]!++;random.settlementRanks[base.settlementRank-1]!++;if(base.versionAnswer)random.versionAnswer++
  for(const row of rows) {
   const {result,refreshes}=play(input,row.pair); row.races++;row.refreshes+=refreshes;row.ranks[result.rawRank-1]!++

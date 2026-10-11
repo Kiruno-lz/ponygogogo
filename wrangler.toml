@@ -1,7 +1,15 @@
 
-name = "ponygogogo"
+name = "ponygo"
 compatibility_date = "2026-09-19"
 main = "./scripts/Wrangler/worker/collection.ts"
+
+[vars]
+KEEPER_RPC_URL = "https://testnet-rpc.monad.xyz"
+KEEPER_GAME_ADDRESS = "0x84a319aa7dAdE1fBD49FE135bb70feeD937eCe82"
+KEEPER_FROM_BLOCK = "69477594"
+
+[triggers]
+crons = ["*/2 * * * *"]
 
 [assets]
 directory = "./dist"
@@ -17,6 +25,9 @@ migrations_dir = "scripts/Wrangler/migrations"
 
 [env.preview]
 name = "ponygogogo-preview"
+
+[env.preview.triggers]
+crons = []
 
 [[env.preview.d1_databases]]
 binding = "COLLECTION_DB"

@@ -4,8 +4,8 @@ import { enterHome, open, startRace } from '../helpers.ts'
 test('重力井按共享的250ms求时轨迹展示运动与装备，到期后消失', async ({ page }, testInfo) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  // The actual practice anchor offers C-10 in slot 2 for horse 0.
-  await open(page, 'mockDelay=0&raceSpeed=6&seed=0x00000003')
+  // The actual practice anchor offers C-10 in slot 2 for the selected pony.
+  await open(page, 'mockDelay=0&raceSpeed=6&seed=0x400d5f200c5f2eae43b19613c7921dc9a34389503ef0f47c5074de671c9ad54d')
   await enterHome(page)
   await page.evaluate(async () => {
     const path = performance.getEntriesByType('resource').map((entry) => entry.name)

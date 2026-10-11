@@ -215,7 +215,7 @@ export type RaceEvent =
   | { type: 'combo'; horseId: number; tick: number }
 
 export interface RaceState {
-  /** Stable catalog ids indexed by the five race participants; absent in legacy records. */
+  /** Stable catalog ids indexed by the five race participants; optional for isolated core simulations. */
   roster?: readonly number[]
   seed: string
   rulesVersion: string

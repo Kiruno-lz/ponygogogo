@@ -12,7 +12,7 @@ import { decidePonyAction, legalPonyActions, playPonyStrategy } from './pony-str
 
 const outputFlag=process.argv.indexOf('--out')
 const out=resolve(outputFlag>=0?process.argv[outputFlag+1]!:'.cache/balance-refresh')
-const hash=(s:string)=>keccak256(toBytes(`balance-refresh/v1/${s}`))
+const hash=(s:string)=>keccak256(toBytes(`balance-refresh/v0.1/${s}`))
 const batches=['A','B','C']
 export function context(batch:string,n:number,pony:number) {
   const rivals=Array.from({length:9},(_,i)=>(i+n)%9).filter(p=>p!==pony).slice(0,4)

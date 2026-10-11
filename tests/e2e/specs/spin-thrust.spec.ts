@@ -20,11 +20,14 @@ async function openSpinScene(page: Page) {
     }
   })
   await page.getByRole('button', { name: '特效验收' }).click()
+  await page.getByTestId('horse-4').click()
+  await page.locator('.select-race-cta button').click()
+  await expect(page.locator('canvas')).toBeVisible()
   await expect.poll(() => page.evaluate(() => Boolean((window as any).__spinScene?.ponies.length))).toBe(true)
   await page.getByRole('button', { name: '暂停', exact: true }).click()
   await page.evaluate(() => {
     const driver = (window as any).__spinScene.driver
-    driver.restart()
+    driver.showEffect()
     driver.pause()
   })
   await page.waitForTimeout(100)
@@ -132,8 +135,17 @@ test('C-02 分镜随归属、移动、起飞和中心翻面正确绑定，并在
   })
 
   await page.getByRole('button', { name: '重播', exact: true }).click()
-  await page.waitForTimeout(6_300)
-  expect((await facts(page)).every((pony: any) => !pony.visible)).toBe(true)
+  await page.getByRole('button', { name: '暂停', exact: true }).click()
+  await page.evaluate(async () => {
+    const tracePath = '/src/race/paid/trace.ts'
+    const { wallAtTau } = await import(tracePath)
+    const driver = (window as any).__spinScene.driver
+    const trace = driver.canonicalResult().trace
+    const spin = trace.instances.find((effect: any) => effect.cardId === 2 && effect.horse === driver.state.playerHorseId && effect.endTau !== null)
+    if (!spin) throw new Error('Missing canonical spin lifetime')
+    driver.step(Number(wallAtTau(trace, spin.endTau + 1n)) - driver.elapsedWallMs)
+  })
+  await expect.poll(async () => (await facts(page)).every((pony: any) => !pony.visible)).toBe(true)
   await page.getByRole('combobox', { name: '展示情景' }).selectOption('C-07')
   await page.waitForTimeout(250)
   expect((await facts(page)).every((pony: any) => !pony.visible)).toBe(true)

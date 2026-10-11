@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { CollectionScreen } from '../../../src/ui/CollectionScreen.tsx'
+import { CollectionScreen } from '../../../src/ui/collection/CollectionScreen.tsx'
 import type { Lang } from '../../../src/ui/i18n.ts'
 import '../../../src/ui/theme.css'
 

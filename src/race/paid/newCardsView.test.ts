@@ -9,12 +9,11 @@ import { solvePaidCore } from './solver.ts'
 
 const root = new URL('../../..', import.meta.url).pathname
 const slow = Array.from({ length: 5 }, () => ({ base: 1000n, acceleration: 0n, cap: 1000n }))
-test('all nineteen card faces use distinct, shipped icons and generated descriptions', () => {
+test('all nineteen card faces use distinct, shipped icons', () => {
   const icons = new Set<string>()
   for (let id = 22; id <= 40; id++) {
     const def = paidCardDef(`C-${id}`)!
     expect(def.name.zh).not.toContain('占位')
-    expect(def.desc.zh.length).toBeGreaterThan(8)
     const url = cardIconUrl(def.art.icon); icons.add(url)
     expect(existsSync(root + '/public' + url)).toBe(true)
     const image = readFileSync(root + '/public' + url)

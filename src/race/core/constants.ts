@@ -4,9 +4,6 @@
  */
 import { FP, fx, type Fixed } from './fixed.ts'
 
-/** 规则版本：模块清单与阶段顺序的组合指纹，进行中的比赛绑定入场时的版本 */
-export const RULES_VERSION = 'demo-1'
-
 export const SIM_HZ = 50
 export const TICK_MS = 1000 / SIM_HZ // 20
 
@@ -68,7 +65,7 @@ export const DEATH_RECOVER_ACCEL: Fixed = Math.trunc(A_MAX / 2)
 /** 马匹数 */
 export const HORSE_COUNT = 5
 
-/** 下注档位（单位 MON）：0 为免费试玩，其余四档与有奖规则 v3 一致（权威值为 chain/paidStakes.ts 的 wei） */
+/** 下注档位（单位 MON）：0 为免费试玩，其余四档与有奖规则 v0.1 一致（权威值为 chain/paidStakes.ts 的 wei） */
 export const STAKE_PRESETS = [0, 0.3, 1, 5, 10] as const
 
 /** 赔付表：名次 -> 返还倍率（定点） */

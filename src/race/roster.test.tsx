@@ -1,9 +1,8 @@
 import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { existsSync } from 'node:fs'
-import { encodeResult, decodeResult } from '../chain/codec.ts'
 import { posterContent } from '../export/poster.ts'
-import { HorseAvatar, Hud } from '../ui/Hud.tsx'
+import { HorseAvatar, Hud } from '../ui/race/Hud.tsx'
 import { PONY_CATALOG } from '../game/ponyCatalog.ts'
 import { RaceDriver } from './driver.ts'
 import { derivePaidCoreInput, solvePaidRace } from './paid/race.ts'
@@ -51,16 +50,6 @@ test('HUD and poster use the role at the participant slot instead of treating sl
   expect(posterContent(driver.buildResult('roster-poster'), undefined, 'zh')).toMatchObject({ ponyId: 4, name: 'Thunder' })
 })
 
-test('offline result encoding preserves the roster and still decodes old v1 records', () => {
-  const driver = new RaceDriver({ seed: FIXTURE_SEED, playerHorseId: 0, stakeTier: 0, roster })
-  const result = driver.buildResult('roster-codec')
-  expect(decodeResult(encodeResult(result))).toEqual(result)
-  expect(encodeResult(result)).toStartWith('v2|')
-  const old = decodeResult('v1|old|0x12|3|2|123|||f')
-  expect(old.horseId).toBe(3)
-  expect(old.roster ?? [0, 1, 2, 3, 4]).toEqual([0, 1, 2, 3, 4])
-})
-
 test('all initial-five lane permutations run a complete practice race and preserve the chosen role through sharing', () => {
   function permutations(ids: number[]): number[][] {
     return ids.length ? ids.flatMap((id, i) => permutations(ids.filter((_, j) => j !== i)).map(rest => [id, ...rest])) : [[]]
@@ -76,6 +65,5 @@ test('all initial-five lane permutations run a complete practice race and preser
     const result = driver.buildResult('permutation')
     expect(result.roster).toEqual(roster)
     expect(posterContent(result, undefined, 'zh').ponyId).toBe(roster[0])
-    expect(decodeResult(encodeResult(result)).roster).toEqual(roster)
   }
 })

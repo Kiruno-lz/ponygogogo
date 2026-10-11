@@ -52,7 +52,7 @@ describe('paid result mapping', () => {
     const openAnchor = keccak256(toHex('facts-anchor'))
     const base: PaidSessionFacts = {
       sessionId: '0x02', player: '0x0000000000000000000000000000000000000002', state: 1, horseId: 0, stakeTier: 3, stake: 0n,
-      seed, openedAt: 0, openedBlock: 1n, openAnchor, choices: [null, null, null],
+      seed, openedAt: 0, openedBlock: 1n, openAnchor, choices: [null, null, null], roster: [0,1,2,3,4],
     }
     const plain = solveFromFacts(base)
     const rec = plain.checkpoints[0]!

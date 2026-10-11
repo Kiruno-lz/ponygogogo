@@ -1,6 +1,6 @@
 import { encodeAbiParameters, keccak256, parseAbiParameters, toBytes, type Address, type Hex } from 'viem'
 
-const DOMAIN = keccak256(toBytes('ponygogogo/session-seed/v1'))
+const DOMAIN = keccak256(toBytes('ponygogogo/session-seed/v0.1'))
 const FIELDS = parseAbiParameters('bytes32 domain, uint256 chainId, address game, address player, uint256 nonce')
 
 /** Public seed fixed by Game/account/nonce before the opening block hash exists. */

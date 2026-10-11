@@ -29,7 +29,7 @@ function key(k: string, repeat = false) {
 }
 
 describe('Card as a button', () => {
-  test('with onClick the root is a focusable button named after the card, described by its effect', () => {
+  test('with onClick the root is a focusable button named after the card, described by its meme and effect', () => {
     const html = renderToStaticMarkup(<Card def={DEF} lang="zh" onClick={() => undefined} />)
     const root = openTag(html, 'class="card-root"')
     expect(root).toContain(`data-card="${DEF.cardId}"`)
@@ -39,7 +39,7 @@ describe('Card as a button', () => {
     expect(root).toContain(`aria-label="${DEF.name.zh}"`)
     const describedBy = /aria-describedby="([^"]+)"/.exec(root)?.[1]
     expect(describedBy).toBeDefined()
-    expect(openTag(html, `id="${describedBy}"`)).toStartWith('<p')
+    expect(openTag(html, `id="${describedBy}"`)).toStartWith('<div')
     expect(html).toContain(DEF.desc.zh)
   })
 
@@ -159,4 +159,18 @@ describe('onControl', () => {
     expect(onControl(null)).toBe(false)
     expect(onControl({} as EventTarget)).toBe(false)
   })
+})
+
+test('expanded card copy renders meme and skill text without a divider and preserves authored line breaks', () => {
+  const def = { ...DEF, meme: { zh: '第一行\n第二行', en: 'First line\nSecond line' }, desc: { zh: '技能一\n技能二', en: 'Skill one\nSkill two' } }
+  for (const lang of ['zh', 'en'] as const) {
+    const html = renderToStaticMarkup(<Card def={def} lang={lang} size="gallery" />)
+    expect(html).toContain('class="card-meme"')
+    expect(html).not.toContain('<hr')
+    expect(html).toContain('class="card-effect"')
+    expect(html.indexOf(def.meme[lang])).toBeLessThan(html.indexOf(def.desc[lang]))
+    expect(html).toContain('white-space:pre-line')
+    expect(html).toContain('transform:translateY(11px)')
+  }
+  expect(renderToStaticMarkup(<Card def={def} lang="zh" size="choice" />)).not.toContain('transform:translateY(11px)')
 })

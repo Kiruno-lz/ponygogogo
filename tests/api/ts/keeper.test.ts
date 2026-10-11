@@ -1,5 +1,5 @@
 /**
- * L2 契约测试：保管人回收脚本 × PonyGame（会话协议 v2，不设退款）。
+ * L2 契约测试：保管人回收脚本 × PonyGame（会话协议 v0.1，不设退款）。
  * 起一个本地 anvil，部署 MockPaidRaceSolver，再用 scripts/DeployPony.s.sol 真实广播部署 Game/Vault，
  * 然后以真实交易驱动会话，断言 keeper 的判定（从不代玩家结算或封锚；锚过窗后判负原因 1；T0 后 1 天求时器
  * 回退时 owner 判负原因 2；dry-run 只模拟）与链上状态一致。keeper 的人写 ABI 与编译产物逐项比对签名。
@@ -8,6 +8,9 @@
  * 安全：Bun 与 forge 都会自动加载仓库 .env（含 Monad RPC 与真实部署密钥路径），本测试一律显式传入配置与
  * 环境，子进程用 `bun --no-env-file`，部署密钥用 anvil 公开的开发私钥写入 keys/ 下的临时文件并在结束时删除。
  */
+import { Database } from 'bun:sqlite'
+import { runScheduledKeeper } from '../../../scripts/Wrangler/worker/keeper.ts'
+import { createKeeper as createKeeperCore } from '../../../src/chain/keeper.ts'
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -324,6 +327,46 @@ describe('keeper × PonyGame on anvil', () => {
     expect(report.actions).toMatchObject([{ kind: 'forfeit', sessionId, reason: 2, dryRun: false }])
     expect((await session(sessionId)).state).toBe(3)
     await send('owner', solver, solverAbi(), 'setSolveReverts', [false])
+  })
+
+  test('bounded scans resume from their checkpoint after process restart without losing an open session', async () => {
+    const t0 = (await lastTimestamp()) + 10n
+    const id = await openSession(0, t0)
+    await clients().testc.mine({ blocks: 3 })
+    const first = await createKeeperCore(keeperConfig({}), { maxScanBlocks: 1n })
+    await first.runOnce()
+    expect(first.checkpoint().cursor).toBe('1')
+    const cursor = (await clients().pub.getBlockNumber()) + 1n
+    const resumed = await createKeeperCore(keeperConfig({ fromBlock: cursor + 100n }), { checkpoint: { cursor: cursor.toString(), sessions: [id] } })
+    expect((await resumed.runOnce()).actions).toMatchObject([{ kind: 'wait', sessionId: id }])
+    await mineAt(t0 + 100n)
+    await send('player', game, gameAbi(), 'settleSession', [id])
+    await resumed.runOnce()
+    expect(resumed.checkpoint().sessions).toEqual([])
+  })
+
+  test('scheduled worker persists its lease in real SQL, skips concurrent runs and refuses another chain without sending', async () => {
+    const db = new Database(':memory:')
+    db.exec(readFileSync(resolve(ROOT, 'scripts/Wrangler/migrations/0004_keeper_state.sql'), 'utf8'))
+    const env = {
+      KEEPER_RPC_URL: rpcUrl, KEEPER_GAME_ADDRESS: game, KEEPER_FROM_BLOCK: '0', KEEPER_PRIVATE_KEY: OWNER_KEY,
+      COLLECTION_DB: { prepare(sql: string) {
+        let args: (string | number)[] = []
+        return { bind(...values: (string | number)[]) { args = values; return this },
+          async first<T>() { return db.prepare(sql).get(...args) as T | null },
+          async run() { return { meta: { changes: db.prepare(sql).run(...args).changes } } },
+        }
+      } },
+    }
+    const nonce = await clients().pub.getTransactionCount({ address: owner.address })
+    await expect(runScheduledKeeper(env)).rejects.toThrow('KEEPER_WRONG_CHAIN')
+    expect(db.query('SELECT leased_until FROM keeper_state').get()).toEqual({ leased_until: 0 })
+    const lease = Date.now() + 60_000
+    db.query('UPDATE keeper_state SET leased_until = ?').run(lease)
+    await runScheduledKeeper({ ...env, KEEPER_RPC_URL: 'http://127.0.0.1:1' })
+    expect(db.query('SELECT leased_until FROM keeper_state').get()).toEqual({ leased_until: lease })
+    expect(await clients().pub.getTransactionCount({ address: owner.address })).toBe(nonce)
+    db.close()
   })
 
   test('CLI：默认 dry-run 输出 JSON 行且不读密钥；--send 缺密钥路径直接失败', async () => {

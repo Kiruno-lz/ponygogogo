@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createElement } from 'react'
 import { advancePonyAnimation, ponyAnimationFps } from './ponyAnimation.ts'
-import { PonyPortrait } from '../ui/PonyPortrait.tsx'
+import { PonyPortrait } from '../ui/select/PonyPortrait.tsx'
 
 test('idle holds every frame for 250ms and loops after exactly two seconds', () => {
   expect(ponyAnimationFps(true, 0)).toBe(4)

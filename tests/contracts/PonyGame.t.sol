@@ -11,7 +11,7 @@ import {RandomAnchor} from "../../contracts/libraries/RandomAnchor.sol";
 import {MockPaidRaceSolver} from "./MockPaidRaceSolver.sol";
 import {Eip2935, PonyGameBase, VmLog} from "./PonyGameBase.sol";
 
-/// @notice 会话协议 v2 with a mock solver: cheap chooseCard records, anchor sealing, settlement, forfeits (no refunds).
+/// @notice 会话协议 v0.1 with a mock solver: cheap chooseCard records, anchor sealing, settlement, forfeits (no refunds).
 contract PonyGameTest is PonyGameBase {
     receive() external payable {}
 
@@ -143,7 +143,7 @@ contract PonyGameTest is PonyGameBase {
         require(game.owner() == address(this), "owner dropped");
     }
 
-    /// @notice 会话协议 v2 has no refund entry point anywhere: Game and Vault reject the v1 selectors outright.
+    /// @notice 会话协议 v0.1 has no refund entry point anywhere: Game and Vault reject refund selectors.
     function testNoRefundPathExists() public {
         bytes32 sessionId = _open(ALICE, 0, TIER1);
         _warpToForfeitDelay(sessionId);
@@ -209,7 +209,7 @@ contract PonyGameTest is PonyGameBase {
     }
 
     function testOpenRejectsInvalidHorseOrStake() public {
-        // The v1 tiers (0.05 / 0.1 / 0.5 MON) are gone; stakes compare by exact wei.
+        // Stake tiers compare by exact wei.
         uint256[7] memory badStakes = [uint256(0), 0.05 ether, 0.1 ether, 0.5 ether, TIER1 + 1, TIER4 - 1, 2 ether];
         for (uint256 i; i < badStakes.length; ++i) {
             require(game.stakeTier(badStakes[i]) == 0, "not a tier");

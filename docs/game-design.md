@@ -185,7 +185,7 @@ v_i(τ) = max(0, b_i(τ)·max(0, 1 + P_i(τ)) + K_i(τ) − E_i(τ))
 
 五匹马各最多三次卡牌挂载，但 C-09 可多次交换、风火轮最多三个额外速度档位，其他状态也产生事件；链上成本取决于**可达事件数、重力井积分步数与排序成本**，不等于 15 次操作。规则已冻结 `MAX_TAU = 600000`、`MAX_EVENTS = 4096`、`MAX_INSTANCES = 96`、`MAX_BOMBS = 20` 与 250 ms 的积分步长（`src/race/paid/constants.ts`）；在 Foundry 中验证最坏合法输入能在单笔 gas 上限内完成。同一整数毫秒冲线的马按 `horseId` 裁定；越界输入抛错，不得用浏览器名次、逐 tick 合约循环兜底。
 
-同刻事件优先级、定点根取整、量化时间精度与重力井积分算法已冻结，记录在[链上服务交付](plan/onchain-services.md)，由 `tests/vectors/paid-race-v4.json` 在 TS 与 Solidity 间逐字段对照。
+同刻事件优先级、定点根取整、量化时间精度与重力井积分算法已冻结，记录在[链上服务交付](plan/onchain-services.md)，由 `tests/vectors/paid-race-v0.1.json` 在 TS 与 Solidity 间逐字段对照。
 
 //TODO - 用离线高精度参考测定重力井中点积分与连续解的误差并记入[链上服务交付](plan/onchain-services.md)；最坏合法场次 gas 的验收按[项目决策](decision.md)延后，定稿牌库与数值后再构造最坏输入。
 

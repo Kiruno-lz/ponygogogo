@@ -13,7 +13,7 @@ contract PonyAbilityVectorsTest is PaidRaceVectorAssertions {
     event log_named_uint(string key, uint256 val);
     event log_named_string(string key, string val);
 
-    string private constant FILE = "tests/vectors/pony-race-v5.json";
+    string private constant FILE = "tests/vectors/pony-race-v0.1.json";
 
     function runVector(string calldata json) external pure returns (PaidRaceEngine.Result memory) {
         return PaidRaceEngine.solve(_input(json), PaidRaceEngine.Options(0, false, 0, true));
@@ -21,7 +21,7 @@ contract PonyAbilityVectorsTest is PaidRaceVectorAssertions {
 
     function testRosterVectorHeader() public view {
         string memory file = vm.readFile(FILE);
-        require(vm.parseJsonBytes32(file, ".meta.rulesetHash") == PaidCardRules.RULESET_HASH, "v5 ruleset");
+        require(vm.parseJsonBytes32(file, ".meta.rulesetHash") == PaidCardRules.RULESET_HASH, "v0.1 ruleset");
         require(vm.parseJsonUint(file, ".meta.count") == 288, "288 directed and derived cases");
     }
 
@@ -76,7 +76,7 @@ contract PonyAbilityVectorsTest is PaidRaceVectorAssertions {
     }
 
     /// @notice Settlement gas with the roster path on (plan §4.3 item 2, "复测 gas"), through the deployed Solver
-    /// on the 45 derived production cases. Holds the same 23.5M settlement budget the legacy corpus is pinned to
+    /// on the 45 derived production cases. Holds the same 23.5M settlement budget the production corpus uses
     /// and logs the worst case so the budget stays backed by data.
     function testRosterSolveGasUnderSettlementCap() public {
         PaidRaceSolver solver = new PaidRaceSolver();
@@ -172,7 +172,7 @@ contract PonyAbilityVectorsTest is PaidRaceVectorAssertions {
 
     /// @notice Guards the parity claim itself. The chunk tests only prove the inlined `_ponyAcquisition` matches
     /// the TS reference if the corpus actually fires it, and only cover a pony's passives if that pony appears in
-    /// some roster. Fails loudly if a regenerated `pony-race-v5.json` stops exercising a role.
+    /// some roster. Fails loudly if a regenerated `pony-race-v0.1.json` stops exercising a role.
     /// @dev `EV_PONY` is emitted only by the acquisition path, so the expected set is exactly the abilities
     /// `_ponyAcquisition` can grant on (rare specialist, diverse, repeat) or report (forfeit, food) — derived
     /// from the rule table rather than hard-coded, so adding a granting pony fails here until it is covered.
@@ -196,8 +196,8 @@ contract PonyAbilityVectorsTest is PaidRaceVectorAssertions {
             acquired |= caseAcquired;
             total += caseTotal;
         }
-        require(rostered == PonyRules.ENABLED_MASK, "pony-race-v5.json leaves a pony out of every roster");
-        require(acquired == granting, "pony-race-v5.json does not fire every granting pony's acquisition");
+        require(rostered == PonyRules.ENABLED_MASK, "pony-race-v0.1.json leaves a pony out of every roster");
+        require(acquired == granting, "pony-race-v0.1.json does not fire every granting pony's acquisition");
         require(total >= 243, "too few pony acquisitions to prove _ponyAcquisition parity");
     }
 
