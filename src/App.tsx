@@ -38,7 +38,8 @@ import { CollectionScreen } from './ui/collection/CollectionScreen.tsx'
 import { CollectionSyncNotice } from './ui/collection/CollectionSyncNotice.tsx'
 import { useCollectionProgress } from './ui/collection/useCollectionProgress.ts'
 import { HomeScreen } from './ui/home/HomeScreen.tsx'
-import { t } from './ui/i18n.ts'
+import { localized,t } from './ui/i18n.ts'
+import { TransientNotice } from './ui/shared/TransientNotice.tsx'
 import { LoadingScreen } from './ui/loading/LoadingScreen.tsx'
 import { TierGate } from './ui/loading/TierGate.tsx'
 import { PaidResumeModal } from './ui/race/PaidResumeModal.tsx'
@@ -86,7 +87,7 @@ export default function App() {
   /** 有奖合约的链上确认：进选马页时读，读到结论后不再读；读失败保持 checking，下次进选马页再读 */
   const [paidDeployment, setPaidDeployment] = useState<PaidDeployment>('checking')
   const [result, setResult] = useState<RaceResult | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [notice, setNotice] = useState<ReturnType<typeof localized> | null>(null)
   /**
    * 已就绪资源的 url 表。每完成一级就整体替换一次：RaceScreen 只在挂载时读一次它，
    * 而它进race 页之前已经等过 race 级，所以拿到的一定是全的。
@@ -109,7 +110,7 @@ export default function App() {
   const funds = useGameFunds()
   const { reset: resetFunds, refresh: refreshFunds } = funds
   const paid = usePaidRace(lang, refreshFunds)
-  const { account, gameAccount, gameError, walletBusy, walletError, walletOpen, registerOpen, walletSeq,
+  const { account, gameAccount, gameError, walletBusy, walletError, walletErrorKey, walletOpen, registerOpen, walletSeq,
     setWalletOpen, setRegisterOpen, register, login, logout, refreshWallet, setWalletError } = useWalletSession(lang, {
     resetFunds, refreshFunds, setNotice, checkResume: paid.checkResume,
     resetCollection: () => collection.reset(),
@@ -314,12 +315,11 @@ export default function App() {
       backHome()
       return
     }
-    setNotice(t(lang, 'race.hidden'))
+    setNotice(localized('race.hidden'))
     setDriver(null)
     setPage('home')
     audio?.setSlowmo(false)
-    setTimeout(() => setNotice(null), 4200)
-  }, [audio, lang, paidDriver, backHome])
+  }, [audio, paidDriver, backHome])
 
   const paidView: PaidResultView | undefined = useMemo(() => {
     if (!paidMeta || !paid.settle) return undefined
@@ -386,6 +386,8 @@ export default function App() {
             balance={walletBalance}
             busy={walletBusy}
             error={walletError}
+            errorKey={walletErrorKey}
+            onDismissError={() => setWalletError(null)}
             onStart={() => go('select')}
             onCollection={() => go('collection')}
             onSettings={() => setSettingsOpen(true)}
@@ -396,7 +398,6 @@ export default function App() {
             onLogin={() => void login()}
             onOpenWallet={() => setWalletOpen(true)}
             onLogout={logout}
-            onToggleLang={() => setSettings((s) => ({ ...s, lang: s.lang === 'zh' ? 'en' : 'zh' }))}
             onOpenEffects={import.meta.env.DEV ? () => go('effectShowcase') : undefined}
           />
         )}
@@ -530,27 +531,14 @@ export default function App() {
         {!notice && page !== 'collection' && collection.error && <CollectionSyncNotice
           error={collection.error} loading={collection.loading} onRetry={collection.unlock} lang={lang}/>}
         {(notice || (!collection.error && page === 'home' && paid.resumeError)) && (
-          <div
-            data-testid="notice"
-            role={collection.error || paid.resumeError ? 'alert' : 'status'}
-            className="panel"
-            style={{
-              position: 'absolute',
-              left: 460,
-              top: 40,
-              width: 680,
-              padding: '4px 24px',
-              textAlign: 'center',
-              fontSize: 20,
-              fontWeight: 700,
-              zIndex: 200,
-            }}
-          >
-            {notice ?? t(lang, 'resume.readFailed', { reason: paid.resumeError ?? '' })}
+          <TransientNotice noticeKey={notice ?? paid.resumeError}
+            onDismiss={notice ? () => setNotice(null) : paid.dismissResumeError}
+            role={paid.resumeError ? 'alert' : 'status'}>
+            {notice?.[lang] ?? t(lang, 'resume.readFailed', { reason: paid.resumeError ?? '' })}
             {!notice && !collection.error && paid.resumeError && <button type="button" className="chip" onClick={() => void checkResume()}>
               {t(lang, 'resume.retry')}
             </button>}
-          </div>
+          </TransientNotice>
         )}
       </div>
 

@@ -260,6 +260,7 @@ export function usePaidRace(lang: Lang, refreshFunds: () => Promise<void>) {
   const checkResume = useCallback(async () => {
     const player = wallet.getGameAccount()?.address
     if (!player) return
+    setResumeError(null)
     const g = gen.current
     const current = () => gen.current === g && wallet.getGameAccount()?.address.toLowerCase() === player.toLowerCase()
     const games = [...(PONY_GAME_ADDRESS ? [PONY_GAME_ADDRESS] : [])]
@@ -285,6 +286,7 @@ export function usePaidRace(lang: Lang, refreshFunds: () => Promise<void>) {
   return {
     settle, resume, resumeError, start, resumeRace, finish, retry, retryGrant, checkResume, reset,
     dismissResume: useCallback(() => setResume(null), []),
+    dismissResumeError: useCallback(() => setResumeError(null), []),
     get driver() { return driverRef.current },
   }
 }

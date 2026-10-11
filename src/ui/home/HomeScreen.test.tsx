@@ -16,7 +16,7 @@ const baseProps = {
   onLogin: () => {},
   onOpenWallet: () => {},
   onLogout: () => {},
-  onToggleLang: () => {},
+  onDismissError: () => {},
 }
 
 describe('首页开发验收入口', () => {

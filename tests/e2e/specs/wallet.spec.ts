@@ -66,7 +66,7 @@ test('钱包动线：取名注册 → 游戏账户领币 → 账户与余额 →
   await expect(page.getByTestId('wallet-modal')).toBeHidden()
 
   // 木牌上的摘要就是游戏账户，不是签名账户
-  await expect(page.getByTestId('wallet-label')).toHaveText(`${game.slice(0, 10)}…${game.slice(-4)}`)
+  await expect(page.getByTestId('wallet-label')).toHaveText(`${game.slice(0, 6)}…${game.slice(-4)}`)
 
   // --- 导出助记词：二次验证通行密钥后给出 24 个词 ---
   await page.getByTestId('wallet-open').click()
