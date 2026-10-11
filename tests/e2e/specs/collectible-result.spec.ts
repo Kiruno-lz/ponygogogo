@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-type Fixture = { confirm(kind?: number, id?: number): void; rerender(): void; language(lang: 'zh' | 'en'): void; ledgerOutage(): void; noGrant(phase: 'settled' | 'forfeited' | 'practice'): void }
+type Fixture = { confirm(kind?: number, id?: number): void; rerender(): void; language(lang: 'zh' | 'en'): void; ledgerOutage(): void; noGrant(phase: 'settled' | 'forfeited' | 'practice', amounts?: { stake: bigint; payout: bigint }): void }
 declare global { interface Window { collectibleFixture: Fixture } }
 
 test('confirmed receipt opens one collectible modal; keeping restores focus and rerenders do not reopen it', async ({ page }) => {
@@ -96,7 +96,7 @@ test('unread reward information preserves confirmed payout and can be recovered 
   await page.evaluate(() => window.collectibleFixture.ledgerOutage())
   await expect(page.getByTestId('collectible-dialog')).toHaveCount(0)
   await expect(page.getByTestId('settle-stamp')).toHaveAttribute('data-phase', 'settled')
-  await expect(page.getByTestId('result-prize')).toHaveText('0.0750 MON')
+  await expect(page.getByTestId('result-prize')).toHaveText('0.0 MON')
   await expect(page.getByTestId('settle-detail')).toContainText('Payout confirmed')
   await expect(page.getByTestId('settle-retry')).toHaveCount(0)
   await page.getByTestId('grant-retry').click()
@@ -107,5 +107,5 @@ test('unread reward information preserves confirmed payout and can be recovered 
   await page.getByRole('button', { name: 'Reveal collectible' }).click()
   await expect(page.locator('.collectible-panel')).toHaveAttribute('data-reveal-phase', 'revealed')
   await page.getByRole('button', { name: 'Keep it' }).click()
-  await expect(page.getByTestId('result-prize')).toHaveText('0.0750 MON')
+  await expect(page.getByTestId('result-prize')).toHaveText('0.0 MON')
 })

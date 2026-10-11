@@ -12,7 +12,7 @@ import { ENVIO_GRAPHQL_URL } from '../../chain/history.ts'
 import { CHAIN,CURRENCY } from '../../chain/network.ts'
 import type { GameAccount } from '../../chain/wallet.ts'
 import { t,type Lang } from '../i18n.ts'
-import { Chip,WoodButton } from '../shared/Button.tsx'
+import { Chip } from '../shared/Button.tsx'
 import { StageDialog } from '../shared/StageDialog.tsx'
 import { RecentRaces } from './RecentRaces.tsx'
 import { walletErrorText } from './walletError.ts'
@@ -83,7 +83,7 @@ export function WalletModal({
 
   return (
     <StageDialog label={t(lang, 'wallet.title')} testId="wallet-modal" onDismiss={onClose}>
-      <div className="panel wallet-modal">
+      <div className="panel stage-modal-panel wallet-modal">
         <h2 className="h-title">{t(lang, 'wallet.title')}</h2>
 
         <dl className="wallet-facts">
@@ -130,9 +130,7 @@ export function WalletModal({
             onClick={exportMnemonic} disabled={pending !== null} />
         </div>
 
-        <WoodButton zh={t(lang, 'wallet.close')} onClick={onClose} style={{ minWidth: 260 }} />
       </div>
     </StageDialog>
   )
 }
-

@@ -53,7 +53,7 @@ import { RegisterModal } from './ui/wallet/RegisterModal.tsx'
 import { WalletModal } from './ui/wallet/WalletModal.tsx'
 import { useGameFunds } from './ui/wallet/useGameFunds.ts'
 
-type Page = 'loading' | 'home' | 'select' | 'race' | 'result' | 'collection' | 'settings' | 'effectShowcase'
+type Page = 'loading' | 'home' | 'select' | 'race' | 'result' | 'collection' | 'effectShowcase'
 
 
 /** 每个页面进去之前必须就绪的那一级 */
@@ -61,7 +61,6 @@ const PAGE_TIER: Partial<Record<Page, AssetTier>> = {
   select: 'race',
   effectShowcase: 'race',
   collection: 'race',
-  settings: 'race',
   result: 'result',
 }
 
@@ -70,6 +69,7 @@ export default function App() {
   // 惰性初始化：不能先渲染默认值再用 effect 覆盖，否则挂载时的保存会把已存设置冲掉
   const [settings, setSettings] = useState<GameSettings>(loadSettings)
   const [page, setPage] = useState<Page>('loading')
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const { progress, ready, urls, loaderRef, audioRef, runBlockingLoad, syncUrls } = useAssets(page === 'home')
   // 首页与结算页各自对齐自己那张原画的画布，不跟赛道共用一个尺寸
   const canvasWidth = page === 'home' ? 1611 : page === 'result' ? 1620 : DESIGN_W
@@ -388,7 +388,7 @@ export default function App() {
             error={walletError}
             onStart={() => go('select')}
             onCollection={() => go('collection')}
-            onSettings={() => go('settings')}
+            onSettings={() => setSettingsOpen(true)}
             onRegister={() => {
               setWalletError(null)
               setRegisterOpen(true)
@@ -467,12 +467,12 @@ export default function App() {
           error={collection.error}
           onUnlock={() => { void collection.unlock() }}
         />}
-        {page === 'settings' && (
+        {settingsOpen && (
           <SettingsScreen
             lang={lang}
             settings={settings}
             onChange={setSettings}
-            onBack={() => setPage('home')}
+            onBack={() => setSettingsOpen(false)}
           />
         )}
 

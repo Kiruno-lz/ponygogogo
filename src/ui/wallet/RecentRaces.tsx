@@ -4,12 +4,11 @@
  * （WalletModal 按 ENVIO_GRAPHQL_URL 决定是否挂载，未配置时不会闪一下「读取中」）。
  */
 import { useEffect, useState } from 'react'
-import { formatMon, formatMonTrim } from '../../chain/amount.ts'
-import { fetchRecentSessions, type HistoryResult, type HistorySession } from '../../chain/history.ts'
+import { formatMonTrim } from '../../chain/amount.ts'
+import { explorerTxUrl } from '../../chain/network.ts'
+import { fetchSessionHistory, type HistoryResult, type HistorySession } from '../../chain/history.ts'
 import { ponyIdAt } from '../../game/ponyCatalog.ts'
 import { t, ponyName, type Lang } from '../i18n.ts'
-
-const ROWS = 5
 
 function when(sec: number): string {
   const d = new Date(sec * 1000)
@@ -23,9 +22,9 @@ function outcome(lang: Lang, s: HistorySession): string {
   return t(lang, 'wallet.historyRank', { rank: s.settlementRank ?? '—' })
 }
 
-function net(s: HistorySession): string {
-  if (s.net === null) return '—'
-  return `${s.net > 0n ? '+' : ''}${formatMon(s.net, 2)}`
+function finishTime(s: HistorySession): string {
+  const ms = s.finishTime?.[s.horseId]
+  return ms === undefined ? '—' : `${(ms / 1000).toFixed(2)} s`
 }
 
 /** 纯展示：loading 为 null；未配置时不渲染任何东西。 */
@@ -33,7 +32,12 @@ export function RecentRacesView({ lang, result }: { lang: Lang; result: HistoryR
   if (result?.status === 'not-configured') return null
   return (
     <section className="wallet-history" data-testid="wallet-history" aria-label={t(lang, 'wallet.history')}>
-      <h3>{t(lang, 'wallet.history')}</h3>
+      <div className="wallet-history-heading">
+        <h3>{t(lang, 'wallet.history')}</h3>
+        {result?.status === 'ok' && <span className="wallet-history-payout" data-testid="wallet-history-payout">
+          {t(lang, 'wallet.historyPayout')} <span className="mono">{formatMonTrim(result.sessions.reduce((sum, s) => sum + (s.payout ?? 0n), 0n))} MON</span>
+        </span>}
+      </div>
       {result === null ? (
         <p className="wallet-muted">{t(lang, 'wallet.historyLoading')}</p>
       ) : result.status === 'error' ? (
@@ -41,14 +45,17 @@ export function RecentRacesView({ lang, result }: { lang: Lang; result: HistoryR
       ) : result.sessions.length === 0 ? (
         <p className="wallet-muted">{t(lang, 'wallet.historyEmpty')}</p>
       ) : (
-        <ol>
-          {result.sessions.slice(0, ROWS).map((s) => (
+        <ol tabIndex={0}>
+          {result.sessions.map((s) => (
             <li key={s.sessionId} data-testid="wallet-history-row" data-state={s.state}>
               <span className="mono">{when(s.openedAt)}</span>
               <span>{ponyName(ponyIdAt(s.roster, s.horseId), lang)}</span>
+              <span className="mono">{s.closeTx ? <a href={explorerTxUrl(s.closeTx) ?? undefined} target="_blank" rel="noreferrer" title={s.closeTx}>
+                {s.closeTx.slice(0, 6)}...{s.closeTx.slice(-4)}
+              </a> : '—'}</span>
               <span className="mono">{formatMonTrim(s.stake)} MON</span>
               <span>{outcome(lang, s)}</span>
-              <span className="mono">{net(s)}</span>
+              <span className="mono">{finishTime(s)}</span>
             </li>
           ))}
         </ol>
@@ -63,11 +70,13 @@ export function RecentRaces({ lang, player }: { lang: Lang; player: string }) {
   const [state, setState] = useState<{ player: string; result: HistoryResult } | null>(null)
   useEffect(() => {
     let live = true
-    void fetchRecentSessions(player, { limit: ROWS }).then((result) => {
+    const controller = new AbortController()
+    void fetchSessionHistory(player, { signal: controller.signal }).then((result) => {
       if (live) setState({ player, result })
     })
     return () => {
       live = false
+      controller.abort()
     }
   }, [player])
   return <RecentRacesView lang={lang} result={state?.player === player ? state.result : null} />

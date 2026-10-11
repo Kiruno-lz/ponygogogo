@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import type { Hex } from 'viem'
-import { HISTORY_QUERY, fetchRecentSessions, parseGraphqlUrl, parseHistoryResponse } from './history.ts'
+import { HISTORY_QUERY, fetchRecentSessions, fetchSessionHistory, parseGraphqlUrl, parseHistoryResponse } from './history.ts'
 import { CHAIN } from './network.ts'
 
 const URL_OK = 'https://indexer.dev.hyperindex.xyz/abc123/v1/graphql'
@@ -26,6 +26,7 @@ function settledRow() {
     openTx: TX(1),
     playerSettlementRank: 1,
     playerRawRank: 2,
+    finishTime: [54156, 57473, 60923, 51058, 59953],
     payout: '900000000000000000',
     net: '600000000000000000',
     forfeitReason: null,
@@ -44,6 +45,7 @@ function forfeitedRow() {
     ...settledRow(),
     id: SESSION_FORFEITED,
     state: 'FORFEITED',
+    finishTime: null,
     playerSettlementRank: null,
     playerRawRank: null,
     payout: '0',
@@ -58,6 +60,7 @@ function openRow() {
     ...settledRow(),
     id: SESSION_OPEN,
     state: 'OPEN',
+    finishTime: null,
     playerSettlementRank: null,
     playerRawRank: null,
     payout: null,
@@ -104,6 +107,41 @@ test('history requires the current roster schema without an old-response fallbac
 const json = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } })
 
+test('complete history includes sessions beyond the first fifty in stable pages', async () => {
+  const rows = Array.from({ length: 63 }, (_, i) => ({ ...settledRow(), id: TX(100 - i) }))
+  const { calls, impl } = recordingFetch(async init => {
+    const { before, limit } = JSON.parse(String(init.body)).variables
+    const eligible = before._or ? rows.filter(r => r.id < before._or[1].id._lt) : rows
+    return json(body(eligible.slice(0, limit)))
+  })
+  const result = await fetchSessionHistory(PLAYER, { url: URL_OK, fetchImpl: impl })
+  expect(result.status === 'ok' && result.sessions.map(s => s.sessionId)).toEqual(rows.map(s => s.id))
+  expect(calls.map(c => JSON.parse(String(c.init.body)).variables.before)).toEqual([
+    {}, { _or: [{ openedBlock: { _lt: '66319820' } }, { openedBlock: { _eq: '66319820' }, id: { _lt: TX(51) } }] },
+  ])
+})
+
+test('complete history rejects a failed later page rather than presenting a truncated history', async () => {
+  const { impl } = recordingFetch(async init => {
+    const { before } = JSON.parse(String(init.body)).variables
+    return !before._or ? json(body(Array.from({ length: 50 }, (_, i) => ({ ...settledRow(), id: TX(100 - i) })))) : json({ errors: [{ message: 'unavailable' }] })
+  })
+  expect(await fetchSessionHistory(PLAYER, { url: URL_OK, fetchImpl: impl })).toMatchObject({ status: 'error', code: 'graphql' })
+})
+
+test('closing the wallet cancels history paging before another request is sent', async () => {
+  const controller = new AbortController()
+  let first = true
+  const { calls, impl } = recordingFetch(async () => {
+    if (!first) return json(body([]))
+    first = false
+    controller.abort()
+    return json(body(Array.from({ length: 50 }, (_, i) => ({ ...settledRow(), id: TX(100 - i) }))))
+  })
+  expect(await fetchSessionHistory(PLAYER, { url: URL_OK, fetchImpl: impl, signal: controller.signal })).toMatchObject({ status: 'error', code: 'network' })
+  expect(calls).toHaveLength(1)
+})
+
 describe('端点配置', () => {
   test('https 地址原样接受，http 只放行本机', () => {
     expect(parseGraphqlUrl(`  ${URL_OK} `)).toBe(URL_OK)
@@ -133,7 +171,7 @@ describe('请求', () => {
     expect(calls).toHaveLength(2)
     expect(calls[0]!.url).toBe(URL_OK)
     expect(calls[0]!.init.method).toBe('POST')
-    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ query: HISTORY_QUERY, variables: { player: PLAYER, limit: 50 } })
+    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ query: HISTORY_QUERY, variables: { player: PLAYER, limit: 50, before: {} } })
     expect(JSON.parse(String(calls[1]!.init.body)).variables.limit).toBe(1)
   })
 
@@ -172,6 +210,7 @@ describe('响应解析', () => {
       ],
       settlementRank: 1,
       rawRank: 2,
+      finishTime: [54156, 57473, 60923, 51058, 59953],
       payout: 900_000_000_000_000_000n,
       net: 600_000_000_000_000_000n,
       forfeitReason: null,
@@ -210,6 +249,7 @@ describe('响应解析', () => {
       ['stake', { ...settledRow(), stake: '1.5' }],
       ['stake', { ...settledRow(), stake: 5e17 }],
       ['openTx', { ...settledRow(), openTx: null }],
+      ...[null, undefined, [1000], [1000, 2000, 3000, -1, 5000], [1000, 2000, 3000, 4000.5, 5000]].map(v => ['finishTime', { ...settledRow(), finishTime: v }] as [string, unknown]),
       ['payout', { ...settledRow(), payout: 'lots' }],
       ['settled session without settlement fields', { ...settledRow(), payout: null }],
       ['forfeited session without payout 0', { ...forfeitedRow(), payout: '1' }],

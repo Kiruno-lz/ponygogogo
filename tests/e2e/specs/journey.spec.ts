@@ -131,9 +131,9 @@ test('图鉴与设置可进可出', async ({ page }) => {
   await expect(page.getByTestId('screen-settings')).toBeVisible()
   await page.getByTestId('vol-master').fill('40')
   await page.getByRole('button', { name: 'English' }).click()
-  await expect(page.getByRole('button', { name: /^Back$/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Back$/ })).toHaveCount(0)
   await page.screenshot({ path: `${SHOT}/10-settings.png` })
-  await page.getByRole('button', { name: /^Back$/ }).click()
+  await page.keyboard.press('Escape')
   await expect(page.getByTestId('screen-home')).toBeVisible()
   // 语言切换持久化
   await page.reload()

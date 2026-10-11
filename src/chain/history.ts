@@ -59,6 +59,8 @@ export type HistorySession = {
   choices: HistoryChoice[]
   settlementRank: number | null
   rawRank: number | null
+  /** 五马规范完赛用时，按参赛槽位排列，单位毫秒；未结算或判负为 null。 */
+  finishTime: readonly number[] | null
   /** 总返还（含本金），判负为 0，未完结为 null */
   payout: bigint | null
   /** payout − stake；未完结为 null */
@@ -90,14 +92,18 @@ export type HistoryDeps = {
   fetchImpl?: typeof fetch
   /** 条数，1..50，默认 20 */
   limit?: number
+  /** 分页游标：只取排序上早于该条记录的会话。 */
+  before?: Pick<HistorySession, 'openedBlock' | 'sessionId'>
+  /** 面板卸载或账户改变时停止请求及后续分页。 */
+  signal?: AbortSignal
   /** 超时，毫秒，默认 10000 */
   timeoutMs?: number
 }
 
-export const HISTORY_QUERY = `query RecentSessions($player: String!, $limit: Int!) {
-  Session(where: { player_id: { _eq: $player } }, order_by: { openedBlock: desc }, limit: $limit) {
+export const HISTORY_QUERY = `query RecentSessions($player: String!, $limit: Int!, $before: Session_bool_exp!) {
+  Session(where: { _and: [{ player_id: { _eq: $player } }, $before] }, order_by: [{ openedBlock: desc }, { id: desc }], limit: $limit) {
     id horseId roster stake state openedAt openedBlock openTx
-    playerSettlementRank playerRawRank payout net forfeitReason closedAt closeTx
+    playerSettlementRank playerRawRank finishTime payout net forfeitReason closedAt closeTx
     choices { checkpoint cardId effective }
   }
   _meta { chainId progressBlock isReady }
@@ -110,20 +116,27 @@ const MAX_LIMIT = 50
 export async function fetchRecentSessions(player: string, deps: HistoryDeps = {}): Promise<HistoryResult> {
   const url = deps.url === undefined ? ENVIO_GRAPHQL_URL : parseGraphqlUrl(deps.url)
   if (!url) return { status: 'not-configured' }
+  if (deps.signal?.aborted) return { status: 'error', code: 'network', detail: 'History request aborted' }
   if (!isAddress(player, { strict: false })) return { status: 'error', code: 'invalid-player', detail: player }
   // 索引器按 EIP-55 校验和形式存地址（Envio 默认 address_format: checksum）。
   const account: Address = getAddress(player)
   const limit = Math.min(MAX_LIMIT, Math.max(1, Math.floor(deps.limit ?? DEFAULT_LIMIT)))
+  const before = deps.before ? { _or: [
+    { openedBlock: { _lt: deps.before.openedBlock.toString() } },
+    { openedBlock: { _eq: deps.before.openedBlock.toString() }, id: { _lt: deps.before.sessionId } },
+  ] } : {}
 
   const doFetch = deps.fetchImpl ?? globalThis.fetch
   const controller = new AbortController()
+  const abort = () => controller.abort()
+  deps.signal?.addEventListener('abort', abort, { once: true })
   const timer = setTimeout(() => controller.abort(), deps.timeoutMs ?? 10_000)
   let body: unknown
   try {
 
       const res = await doFetch(url, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: HISTORY_QUERY, variables: { player: account, limit } }), signal: controller.signal,
+        body: JSON.stringify({ query: HISTORY_QUERY, variables: { player: account, limit, before } }), signal: controller.signal,
       })
       if (!res.ok) {
         const detail = (await res.text().catch(() => '')).slice(0, 200)
@@ -134,8 +147,23 @@ export async function fetchRecentSessions(player: string, deps: HistoryDeps = {}
     return { status: 'error', code: 'network', detail: err instanceof Error ? err.message : String(err) }
   } finally {
     clearTimeout(timer)
+    deps.signal?.removeEventListener('abort', abort)
   }
+  if (deps.signal?.aborted) return { status: 'error', code: 'network', detail: 'History request aborted' }
   return parseHistoryResponse(body, CHAIN.id)
+}
+
+/** 分批读完账户历史；按开场块与会话 ID 分页，新增记录不会挤动后续页。任何一页失败都不展示残缺历史。 */
+export async function fetchSessionHistory(player: string, deps: Omit<HistoryDeps, 'limit' | 'before'> = {}): Promise<HistoryResult> {
+  const sessions: HistorySession[] = []
+  let before: HistoryDeps['before']
+  while (true) {
+    const page = await fetchRecentSessions(player, { ...deps, limit: MAX_LIMIT, before })
+    if (page.status !== 'ok') return page
+    sessions.push(...page.sessions)
+    if (page.sessions.length < MAX_LIMIT) return { ...page, sessions }
+    before = page.sessions.at(-1)!
+  }
 }
 
 /** 纯函数：把 GraphQL 响应体解析成 HistoryResult。导出以便单测直接喂各种畸形输入。 */
@@ -196,6 +224,12 @@ function parseSession(row: unknown): HistorySession | string {
   if (settlementRank === undefined) return 'playerSettlementRank'
   const rawRank = optional(row.playerRawRank, toInt)
   if (rawRank === undefined) return 'playerRawRank'
+  const finishTime = optional(row.finishTime, (v) => {
+    if (!Array.isArray(v) || v.length !== 5) return null
+    const times = v.map(toInt)
+    return times.every((time): time is number => time !== null && time >= 0) ? times : null
+  })
+  if (finishTime === undefined || (state === 'settled' && finishTime === null)) return 'finishTime'
   const payout = optional(row.payout, toBigInt)
   if (payout === undefined) return 'payout'
   const net = optional(row.net, toBigInt)
@@ -237,6 +271,7 @@ function parseSession(row: unknown): HistorySession | string {
     choices,
     settlementRank,
     rawRank,
+    finishTime,
     payout,
     net,
     forfeitReason: reasonCode === null ? null : (REASONS[reasonCode] ?? 'unknown'),

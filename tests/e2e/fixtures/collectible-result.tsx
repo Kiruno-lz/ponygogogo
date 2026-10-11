@@ -47,8 +47,10 @@ Object.assign(window, { collectibleFixture: {
       grantError: 'ledger unavailable', onRetryGrant: () => window.collectibleFixture.confirm() }
     render()
   },
-  noGrant(phase: 'settled' | 'forfeited' | 'practice') {
-    paid = phase === 'practice' ? undefined : { ...paid!, phase, settlement: phase === 'settled' ? { rank: 1, payout: 75_000_000_000_000_000n } : null, grant: null }
+  noGrant(phase: 'settled' | 'forfeited' | 'practice', amounts?: { stake: bigint; payout: bigint }) {
+    paid = phase === 'practice' ? undefined : { ...paid!, phase,
+      ...(amounts ? { stake: amounts.stake, stakeLabel: String(Number(amounts.stake) / 1e18) } : {}),
+      settlement: phase === 'settled' ? { rank: 1, payout: amounts?.payout ?? 75_000_000_000_000_000n } : null, grant: null }
     render()
   },
   getHomeClicks() { return homeClicks },

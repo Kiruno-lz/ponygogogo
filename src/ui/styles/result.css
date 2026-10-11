@@ -54,6 +54,8 @@
 .result-tx { position: absolute; left: 912px; top: 664px; width: 184px; height: 26px; line-height: 26px;
   font-size: 15px; font-weight: 700; color: #4a2c14; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .result-verify { color: #ffe9a8; }
+.result-confirmed-rank { animation: result-rank-fade .5s ease 1.2s forwards; }
+@keyframes result-rank-fade { to { opacity: 0; visibility: hidden; } }
 .result-settle-detail { position: absolute; left: 140px; top: 910px; width: 1008px; min-height: 52px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 3px 16px;
   border-radius: 14px; background: rgba(40, 24, 14, .72); color: #ffe9c9; font-size: 20px; font-weight: 700; }
@@ -68,7 +70,7 @@
 /* 奖章、名牌与名次条压在 placement 切片被抹空的位置上 */
 /* 名字与金额用仓库里的 Kalam：原画那支圆体比系统无衬线更窄更高，字宽与字高都更接近 */
 .result-name, .result-row-value { font-family: Kalam, 'PingFang SC', sans-serif; }
-.result-name { position: absolute; left: 372px; top: 227px; width: 232px; line-height: 62px;
+.result-name { position: absolute; left: 372px; top: 235px; width: 232px; line-height: 62px;
   text-align: center; font-size: 52px; font-weight: 700; letter-spacing: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .result-rank-line { position: absolute; left: 422px; top: 294px; width: 123px; height: 30px;
