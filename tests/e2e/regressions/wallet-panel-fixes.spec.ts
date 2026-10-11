@@ -9,7 +9,7 @@ test('登录木牌文字更倾斜且横向空间充足，钱包面板移除整�
   await enterHome(page)
   await registerAs(page, '小马仔')
   await expect(page.getByTestId('balance')).toContainText('1.00 MON')
-  await expect(page.getByTestId('wallet-label')).toHaveText(/^0x[0-9a-fA-F]{8}…[0-9a-fA-F]{4}$/)
+  await expect(page.getByTestId('wallet-label')).toHaveText(/^0x[0-9a-fA-F]{4}…[0-9a-fA-F]{4}$/)
   await page.screenshot({ path: info.outputPath('wallet-before-open.png') })
   const layout = await page.getByTestId('wallet-open').evaluate(el => {
     const style = getComputedStyle(el), m = new DOMMatrix(style.transform)
