@@ -1,3 +1,4 @@
+import { runScheduledKeeper, type KeeperEnv } from './keeper.ts'
 type D1Result = { meta: { changes: number } }
 type D1Statement = {
   bind(...values: (string | number)[]): D1Statement
@@ -5,7 +6,7 @@ type D1Statement = {
   run(): Promise<D1Result>
 }
 type D1 = { prepare(sql: string): D1Statement }
-type Env = { COLLECTION_DB: D1; ASSETS: { fetch(request: Request): Promise<Response> } }
+type Env = KeeperEnv & { COLLECTION_DB: D1; ASSETS: { fetch(request: Request): Promise<Response> } }
 
 const encoder = new TextEncoder()
 const MAX_BODY = 8192
@@ -144,6 +145,9 @@ async function writeDocument(db: D1, userId: string, publicKey: string, payload:
 }
 
 export default {
+  async scheduled(_controller: unknown, env: Env): Promise<void> {
+    await runScheduledKeeper(env)
+  },
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
     if (!url.pathname.startsWith('/api/collection')) return env.ASSETS.fetch(request)
