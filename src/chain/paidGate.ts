@@ -12,7 +12,7 @@ import { PONY_GAME_ADDRESS, PONY_VAULT_ADDRESS } from './network.ts'
 import { PAID_RULESET_HASH } from '../race/paid/cardRules.ts'
 import { ponyGameAbi } from './paidCalls.ts'
 
-/** 自 2026-09-29 起在 Monad 测试网开放（会话协议 v2 / 有奖规则 v3 合约已部署并跑通）；地址与代码两道条件照旧 */
+/** 在 v0.1 基线在 Monad 测试网开放（当前 Game/Vault 地址由构建配置提供）；地址与代码两道条件照旧 */
 export const PAID_RACE_FEATURE: boolean = true
 
 /**

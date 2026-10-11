@@ -198,7 +198,7 @@ describe('paid session on anvil (stand-in solver aligned to the TS solver)', () 
     await alignMockSolver(rig.pub, rig.owner, rig.info.solver, facts)
   })
 
-  test('a choice after the window is recorded by the Game and judged not to take effect (有奖规则 v3)', async () => {
+  test('a choice after the window is recorded by the Game and judged not to take effect (有奖规则 v0.1)', async () => {
     const plan = solveFromFacts(facts).checkpoints[1]!
     expect(plan.mode).toBe('manual')
     await atSecond(rig, facts.openedAt + Number(plan.openSec) + 20)

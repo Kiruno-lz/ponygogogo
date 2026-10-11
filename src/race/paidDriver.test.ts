@@ -28,7 +28,7 @@ function facts(anchor: Hex, choices: PaidSessionFacts['choices'] = [null, null, 
   return {
     sessionId: keccak256(toHex(`session:${anchor}`)), player: '0x00000000000000000000000000000000000000a1', state: 1,
     horseId, stakeTier: tier, stake: 10n ** 17n, seed: keccak256(toHex('p7-driver-seed')), openedAt: T0,
-    openedBlock: 100n, openAnchor: anchor, choices,
+    openedBlock: 100n, openAnchor: anchor, choices, roster: [0,2,3,4,5],
   }
 }
 

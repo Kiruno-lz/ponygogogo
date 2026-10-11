@@ -21,8 +21,6 @@
  * KEEPER_SEND=1、DEPLOYER_PRIVATE_KEY_PATH。
  */
 import { readFileSync } from 'node:fs'
-import { legacyPonyGameAbi } from '../src/chain/paidCalls.ts'
-import { LEGACY_PAID_RULESET_HASH } from '../src/race/paid/cardRules.ts'
 import {
   BaseError,
   ContractFunctionRevertedError,
@@ -49,7 +47,6 @@ export const SOLVER_FAULT_GAS = 29_700_000n
 const SESSION_OPENED =
   'event SessionOpened(bytes32 indexed sessionId, address indexed player, uint8 horseId, uint256 stake, bytes32 seed, uint64 openedAt, uint64 openedBlock, bytes32 rulesetHash, uint8[5] roster)'
 export const sessionOpenedEvent = parseAbiItem(SESSION_OPENED)
-export const legacySessionOpenedEvent = parseAbiItem('event SessionOpened(bytes32 indexed sessionId, address indexed player, uint8 horseId, uint256 stake, bytes32 seed, uint64 openedAt, uint64 openedBlock, bytes32 rulesetHash)')
 
 export const keeperGameAbi = parseAbi([
   'struct ChoiceView { bool present; uint32 txSec; uint64 blockNumber; uint8 cardId; uint8[] refreshSlots; bytes32 anchor; }',
@@ -206,7 +203,7 @@ export async function createKeeper(config: KeeperConfig) {
       const to = from + config.logChunk - 1n < latestBlock ? from + config.logChunk - 1n : latestBlock
       const logs = await publicClient.getLogs({
         address: game,
-        events: [sessionOpenedEvent, legacySessionOpenedEvent],
+        events: [sessionOpenedEvent],
         fromBlock: from,
         toBlock: to,
       })
@@ -259,8 +256,7 @@ export async function createKeeper(config: KeeperConfig) {
     const actions: KeeperAction[] = []
     for (const sessionId of [...watched]) {
       const session = await publicClient.readContract({
-        address: game, abi: (await publicClient.readContract({ address: game, abi: keeperGameAbi, functionName: 'rulesetHash' })).toLowerCase() === LEGACY_PAID_RULESET_HASH.toLowerCase()
-          ? legacyPonyGameAbi : keeperGameAbi, functionName: 'getSession', args: [sessionId],
+        address: game, abi: keeperGameAbi, functionName: 'getSession', args: [sessionId],
       })
       if (session.state !== STATE_OPEN) {
         watched.delete(sessionId)

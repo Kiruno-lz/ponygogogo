@@ -8,12 +8,10 @@ import {PaidDeck} from "../../contracts/libraries/PaidDeck.sol";
 import {PaidProfiles} from "../../contracts/libraries/PaidProfiles.sol";
 import {PaidRaceEngine} from "../../contracts/libraries/PaidRaceEngine.sol";
 import {PaidRaceSolver} from "../../contracts/PaidRaceSolver.sol";
-import {LegacyCoreSolverProbe} from "./LegacyCoreSolverProbe.sol";
-import {LegacyPaidProfiles} from "./legacy/LegacyPaidProfiles.sol";
 import {FieldStretchProbe} from "./PaidRaceMotion.t.sol";
 import {PaidRaceVectorAssertions} from "./PaidRaceVectorAssertions.sol";
 
-/// @notice P3 parity: every case of tests/vectors/paid-race-v4.json through the Solidity engine, field by field and
+/// @notice P3 parity: every case of tests/vectors/paid-race-v0.1.json through the Solidity engine, field by field and
 /// digest by digest (including each checkpoint's CHOICE_INVALID reason); derived cases through the deployed solver;
 /// panel stops probed with a choice at the opening second. Logs `gas <case> <engine gas>` for the gas table. A digest
 /// mismatch reports the first diverging event.
@@ -75,7 +73,7 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
         _runChunk(5);
     }
 
-    /// @notice Archived derived cases through the legacy core adapter: opening-anchor derivation and solve.
+    /// @notice Current derived cases through the production solver: opening-anchor derivation and solve.
     function testDerivedCasesThroughSolverEven() public {
         _runDerived(0);
     }
@@ -85,8 +83,8 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
     }
 
     function _runDerived(uint256 parity) internal {
-        LegacyCoreSolverProbe solver = new LegacyCoreSolverProbe();
-        require(solver.rulesetHash() == PaidCardRules.LEGACY_RULESET_HASH, "rulesetHash");
+        PaidRaceSolver solver = new PaidRaceSolver();
+        require(solver.rulesetHash() == PaidCardRules.RULESET_HASH, "rulesetHash");
         string[] memory cases = _cases();
         uint256 checked;
         uint256 maxOverhead;
@@ -102,7 +100,7 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
         emit log_named_uint("max solve() overhead over the engine (derivation, ABI, call)", maxOverhead);
     }
 
-    function checkDerived(LegacyCoreSolverProbe solver, string calldata json, string calldata name)
+    function checkDerived(PaidRaceSolver solver, string calldata json, string calldata name)
         external
         view
         returns (uint256 overhead)
@@ -142,7 +140,7 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
         require(field > 0, "field work was not measured");
     }
 
-    /// @notice 有奖规则 v4: whatever PonyGame.chooseCard stores (any second, card 0..40, 0–3 slots 0..2 with repeats,
+    /// @notice 有奖规则 v0.1: whatever PonyGame.chooseCard stores (any second, card 0..40, 0–3 slots 0..2 with repeats,
     /// any checkpoint subset) never makes the deployed solver revert, and the result stays payable.
     /// forge-config: default.fuzz.runs = 24
     function testFuzzStoredChoicesNeverRevert(
@@ -348,7 +346,7 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
         PaidRaceEngine.CoreInput memory core,
         IPaidRaceSolver.RaceInput memory input
     ) internal pure {
-        PaidProfiles.Profile[5] memory profiles = LegacyPaidProfiles.derive(
+        PaidProfiles.Profile[5] memory profiles = PaidProfiles.derive(
             input.seed, input.openAnchor, input.stakeTier, input.playerHorseId
         );
         uint8[14] memory deck = PaidDeck.derive(input.seed, input.openAnchor);
@@ -369,7 +367,7 @@ contract PaidRaceSolverVectorsTest is PaidRaceVectorAssertions {
 
     /// @dev solve() gas beyond the engine on the first derived full race: derivation, ABI coding and the call.
     function _solveOverhead(string[] memory cases) internal returns (uint256) {
-        LegacyCoreSolverProbe solver = new LegacyCoreSolverProbe();
+        PaidRaceSolver solver = new PaidRaceSolver();
         for (uint256 i; i < cases.length; ++i) {
             string memory name = vm.parseJsonString(cases[i], ".name");
             if (!_isDerived(name)) continue;

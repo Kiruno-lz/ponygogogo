@@ -1,6 +1,6 @@
 /**
  * Cross-language vectors for the current card rules (the filename is retained) (docs/plan/onchain-services.md).
- * The Solidity solver must reproduce every field of tests/vectors/paid-race-v4.json bit for bit.
+ * The Solidity solver must reproduce every field of tests/vectors/paid-race-v0.1.json bit for bit.
  *
  *   bun scripts/gen-paid-vectors.ts          # (re)write the file
  *   bun scripts/gen-paid-vectors.ts --check  # fail when the file differs from a fresh solve
@@ -23,8 +23,8 @@ import {
 } from '../src/race/paid/testkit.ts'
 import { solveVectorCase, type PaidVectorCase } from '../src/race/paid/vectorCodec.ts'
 
-const OUT = new URL('../tests/vectors/paid-race-v4.json', import.meta.url)
-const GENERATOR_LABEL = 'ponygogogo/paid-vectors/v3'
+const OUT = new URL('../tests/vectors/paid-race-v0.1.json', import.meta.url)
+const GENERATOR_LABEL = 'ponygogogo/paid-vectors/v0.1'
 
 function rng(label: string) {
   let counter = 0
@@ -61,7 +61,7 @@ function randomChoices(input: PaidCoreInput, label: string): PaidCoreInput {
 }
 
 /**
- * 有奖规则 v3 fuzz: arbitrary stored choices as PonyGame.chooseCard accepts them (any txSec, cardId 0..40, 0–3 refresh
+ * 有奖规则 v0.1 fuzz: arbitrary stored choices as PonyGame.chooseCard accepts them (any txSec, cardId 0..40, 0–3 refresh
  * slots 0..2 with repeats, any checkpoint subset). Seconds: 5/8 inside [open − 2, open + 22], 1/8 on the window edges
  * (open − 1, open + 19, open + 20), 1/8 in [0, 200), 1/8 anywhere in uint32; half without refreshes; two thirds of the
  * cards from the current offer. `open` is the panel's canonical openSec given the earlier stored choices.
@@ -219,7 +219,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
   }), 1, 6), 2, 10))
   // Adversarial gas cases (P3). Field time: every horse holds C-10 and C-13 (steals refresh a well for a full 20 s),
   // bombs and a death spread the horses so the wells rarely overlap; tier-3 personalities, CPU-eligible CPU decks.
-  // Found by a seeded search maximising stepCount; the fixed 100s field-work benchmark is 400 steps at 250ms (not a v4 worst-case proof).
+  // Found by a seeded search maximising stepCount; the fixed 100s field-work benchmark is 400 steps at 250ms (not a worst-case proof).
   const tier3 = (base: bigint, acceleration: bigint, cap: bigint): PaidCoreProfile => ({ base, acceleration, cap })
   add('worst-field-time-wells-steals', pickAt(pickAt(pickAt(fixtureInput({
     playerHorseId: 4,
@@ -245,7 +245,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
   }), 1, 9, { delaySec: 18n, anchor: fixtureAnchor(0x91) }), 2, 2, { delaySec: 15n, anchor: fixtureAnchor(0x92) }),
   3, 6, { delaySec: 12n, anchor: fixtureAnchor(0x93) }))
 
-  // Adversarial maximum gas (有奖规则 v3 gas gate): a seeded hill climb from worst-field-time-wells-steals over legal
+  // Adversarial maximum gas (有奖规则 v0.1 gas gate): a seeded hill climb from worst-field-time-wells-steals over legal
   // inputs (tier-3 personality ranges, CPU-eligible CPU decks, valid choices), scored by a gas model fitted to engine
   // measurements. Event-split well steps are part of the one solve Foundry measures; the heaviest vector by gas.
   add('worst-gas-adversarial-climb', {
@@ -294,7 +294,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
   add('panel-stop-cut-cp3', pickAt(fixtureInput({ playerDeck: deckFront([3]) }), 1, 3), 3)
   add('panel-stop-refresh-credit-cp2', treasure, 2)
 
-  // 有奖规则 v3: every CHOICE_INVALID reason. The stored choice counts as no transaction at that checkpoint.
+  // 有奖规则 v0.1: every CHOICE_INVALID reason. The stored choice counts as no transaction at that checkpoint.
   const quiet = fixtureInput()
   const stalled = fixtureInput({ profiles: profilesWith({ 1: { base: 0n, acceleration: 0n, cap: 0n } }) })
   addInvalid('invalid-not-opened-unreached', at(at(stalled, 1, 20n), 3, 90n, 7), 1, INVALID_NOT_OPENED)
@@ -334,7 +334,7 @@ function build(stats: FuzzStats): PaidVectorCase[] {
   }
   add('bombs-cap-five-placers', bombCap)
 
-  // Fuzz families (有奖规则 v3): derived races and C-05/C-04/C-03 decks with arbitrary stored choices.
+  // Fuzz families (有奖规则 v0.1): derived races and C-05/C-04/C-03 decks with arbitrary stored choices.
   const fuzz: [string, PaidCoreInput][] = []
   for (let i = 0; i < 64; i++) {
     const r = rng(`fuzz/derived/${i}`)
@@ -389,10 +389,10 @@ if (stats.notEquivalent.length > 0) console.log(`ignored but not identical to an
 if (process.argv.includes('--check')) {
   const onDisk = readFileSync(OUT, 'utf8')
   if (onDisk !== text) {
-    console.error('paid-race-v4.json is stale: run bun scripts/gen-paid-vectors.ts')
+    console.error('paid-race-v0.1.json is stale: run bun scripts/gen-paid-vectors.ts')
     process.exit(1)
   }
-  console.log('paid-race-v4.json matches the reference solver')
+  console.log('paid-race-v0.1.json matches the reference solver')
 } else {
   writeFileSync(OUT, text)
   console.log(`wrote ${OUT.pathname} (${text.length} bytes)`)

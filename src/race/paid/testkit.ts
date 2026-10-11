@@ -1,5 +1,4 @@
 import type { Hex } from 'viem'
-import { derivePaidProfiles } from '../core/paidProfiles.ts'
 import { EV_CHOICE_INVALID } from './events.ts'
 import {
   solvePaidCore, type PaidChoiceSlot, type PaidChoiceSlots, type PaidCoreInput, type PaidCoreProfile,
@@ -19,7 +18,9 @@ export const QUIET_DECK: readonly number[] = [17, 18, 21, 14, 19, 15, 20, 1, 2, 
 export const QUIET_CPU_DECK: readonly number[] = [19, 20, 5]
 
 export function fixtureProfiles(playerHorseId = 1): PaidCoreProfile[] {
-  return derivePaidProfiles(FIXTURE_SEED, FIXTURE_ANCHOR, 2, playerHorseId, true).map((p) => ({
+  const profiles = [{ base: 1212, acceleration: 14, cap: 1913 }, { base: 1245, acceleration: 12, cap: 1853 }, { base: 1237, acceleration: 11, cap: 1802 }, { base: 1254, acceleration: 14, cap: 1786 }]
+  profiles.splice(playerHorseId, 0, { base: 1200, acceleration: 12, cap: 1800 })
+  return profiles.map((p) => ({
     base: BigInt(p.base), acceleration: BigInt(p.acceleration), cap: BigInt(p.cap),
   }))
 }
@@ -80,7 +81,7 @@ function outcomeKey(r: PaidSolveResult, clearCheckpoint: number): string {
 }
 
 /**
- * 有奖规则 v3 oracle: null when choice k takes effect; else its CHOICE_INVALID reason and whether the solve equals
+ * 有奖规则 v0.1 oracle: null when choice k takes effect; else its CHOICE_INVALID reason and whether the solve equals
  * the solve without that choice except for the one CHOICE_INVALID event (and the record's invalidReason).
  */
 export function ignoredChoice(input: PaidCoreInput, k: 1 | 2 | 3): IgnoredChoice | null {

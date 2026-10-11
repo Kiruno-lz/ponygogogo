@@ -12,7 +12,7 @@ const busy = pickAt(pickAt(fixtureInput({
 const full = solvePaidCore(busy)
 const trace = full.trace as PaidTrace
 
-test('the busy trace applies only its intended legacy effects and coats', () => {
+test('the busy trace applies only its intended core effects and coats', () => {
   expect(full.events.filter((e) => e.code === EV_CARD).map((e) => Number(e.arg))
     .some((id) => id >= 22 && id <= 26)).toBe(false)
 })

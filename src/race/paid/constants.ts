@@ -1,7 +1,7 @@
 import { keccak256, toBytes } from 'viem'
 import { PAID_CARD_GLOBALS, PAID_RULESET_HASH, paidCardRule } from './cardRules.ts'
 
-/** Paid ruleset v4. Units: τ/wall ms, pos/dist µu, b mu/s. */
+/** Paid ruleset v0.1. Units: τ/wall ms, pos/dist µu, b mu/s. */
 export { PAID_RULESET_HASH }
 
 export const HORSE_COUNT = 5

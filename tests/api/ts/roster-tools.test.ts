@@ -13,8 +13,8 @@ test('session tooling carries a supplied roster and rejects duplicate roles befo
   }
 })
 
-test('heavy probes use a reachable v5 vector, including its exact tier and roster', () => {
-  const vectors = JSON.parse(readFileSync(new URL('../../vectors/pony-race-v5.json', import.meta.url), 'utf8'))
+test('heavy probes use a reachable current vector, including its exact tier and roster', () => {
+  const vectors = JSON.parse(readFileSync(new URL('../../vectors/pony-race-v0.1.json', import.meta.url), 'utf8'))
   const { vector, input } = heavySolverInput(vectors)
   expect([...input.roster]).toEqual(vector.input.roster!)
   expect(Number(input.stakeTier)).toBe(vector.stakeTier!)
@@ -22,6 +22,6 @@ test('heavy probes use a reachable v5 vector, including its exact tier and roste
   const result = solvePaidRace({ ...input, choices }, { trace: false })
   expect(result.digest).toBe(vector.expected.digest)
   expect(result.stepCount).toBe(vector.expected.stepCount)
-  expect(() => heavySolverInput({ ...vectors, meta: { rulesetHash: 'legacy' } })).toThrow('STALE_HEAVY_VECTOR_RULESET')
+  expect(() => heavySolverInput({ ...vectors, meta: { rulesetHash: 'unknown' } })).toThrow('STALE_HEAVY_VECTOR_RULESET')
   expect(vectors.meta.rulesetHash).toBe(PAID_RULESET_HASH)
 })

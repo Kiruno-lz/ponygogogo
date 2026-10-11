@@ -18,6 +18,7 @@ function settledRow() {
   return {
     id: SESSION_SETTLED,
     horseId: 2,
+    roster: [0,1,2,3,4],
     stake: '300000000000000000', // 0.3 MON, tier 1
     state: 'SETTLED',
     openedAt: '1790571226',
@@ -93,13 +94,11 @@ test('history preserves roster identity and rejects an invalid roster rather tha
   }
 })
 
-test('an older indexer without the roster field remains readable through one explicit legacy query', async () => {
-  const recorder = recordingFetch(async init => {
-    const query = JSON.parse(String(init.body)).query as string
-    return query.includes('roster') ? json({ errors: [{ message: 'Cannot query field "roster" on type "Session".' }] }) : json(body([settledRow()]))
-  })
-  expect(await fetchRecentSessions(PLAYER, { url: URL_OK, fetchImpl: recorder.impl })).toMatchObject({ status: 'ok' })
-  expect(recorder.calls).toHaveLength(2)
+
+test('history requires the current roster schema without an old-response fallback', () => {
+  for (const roster of [undefined, null]) {
+    expect(parseHistoryResponse(body([{ ...settledRow(), roster }]), CHAIN.id)).toMatchObject({ status: 'error', code: 'malformed' })
+  }
 })
 
 const json = (value: unknown, status = 200) =>
@@ -160,6 +159,7 @@ describe('响应解析', () => {
     expect(r.sessions[0]).toEqual({
       sessionId: SESSION_SETTLED,
       horseId: 2,
+    roster: [0,1,2,3,4],
       stake: 300_000_000_000_000_000n,
       state: 'settled',
       openedAt: 1790571226,

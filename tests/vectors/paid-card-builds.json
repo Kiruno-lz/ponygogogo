@@ -1,22 +1,22 @@
 {
-  "rulesetHash": "0x6378623098ec1be1026bb5a663baf5890d3fe02da549708afa1de3facfa371b6",
+  "rulesetHash": "0x879f0d8d0cd93a3dc8bd9ceb80d2a692c239613042b55a43c0b6473a0c950f69",
   "samples": 80,
   "policy": "Full pool, actual checkpoint windows; aim for both pieces, take C-05 if missing, refresh slot 0 once when needed, then choose a situational third card. AcquiredBoth counts cards received; triggered additionally checks actual overlap or a corresponding solver trigger. A forfeit is a consumed choice, not a card. This policy is not an optimal strategy or a payout guarantee.",
   "random": {
     "races": 80,
     "rawRanks": [
-      0,
-      4,
-      6,
-      20,
-      50
+      3,
+      3,
+      7,
+      15,
+      52
     ],
     "settlementRanks": [
-      0,
-      4,
-      6,
-      20,
-      50
+      3,
+      3,
+      7,
+      15,
+      52
     ],
     "versionAnswer": 0
   },
@@ -27,17 +27,17 @@
         25
       ],
       "races": 80,
-      "acquiredBoth": 2,
-      "triggered": 0,
+      "acquiredBoth": 1,
+      "triggered": 1,
       "threeCheckpointsReached": 80,
-      "thirdCard": 2,
-      "refreshes": 28,
+      "thirdCard": 1,
+      "refreshes": 33,
       "ranks": [
-        0,
-        6,
+        2,
+        3,
         4,
-        19,
-        51
+        15,
+        56
       ]
     },
     {
@@ -46,17 +46,17 @@
         26
       ],
       "races": 80,
-      "acquiredBoth": 2,
-      "triggered": 1,
+      "acquiredBoth": 3,
+      "triggered": 3,
       "threeCheckpointsReached": 80,
-      "thirdCard": 2,
-      "refreshes": 30,
+      "thirdCard": 3,
+      "refreshes": 32,
       "ranks": [
-        0,
+        2,
+        2,
         5,
-        3,
-        21,
-        51
+        18,
+        53
       ]
     },
     {
@@ -65,17 +65,17 @@
         27
       ],
       "races": 80,
-      "acquiredBoth": 4,
-      "triggered": 1,
+      "acquiredBoth": 0,
+      "triggered": 0,
       "threeCheckpointsReached": 80,
-      "thirdCard": 4,
-      "refreshes": 30,
+      "thirdCard": 0,
+      "refreshes": 33,
       "ranks": [
-        0,
-        4,
-        4,
-        17,
-        55
+        2,
+        3,
+        5,
+        14,
+        56
       ]
     },
     {
@@ -85,16 +85,16 @@
       ],
       "races": 80,
       "acquiredBoth": 2,
-      "triggered": 1,
+      "triggered": 2,
       "threeCheckpointsReached": 80,
       "thirdCard": 2,
-      "refreshes": 29,
+      "refreshes": 34,
       "ranks": [
-        0,
-        4,
+        3,
+        2,
         5,
-        19,
-        52
+        11,
+        59
       ]
     },
     {
@@ -103,17 +103,17 @@
         29
       ],
       "races": 80,
-      "acquiredBoth": 4,
-      "triggered": 4,
-      "threeCheckpointsReached": 80,
-      "thirdCard": 4,
-      "refreshes": 25,
+      "acquiredBoth": 6,
+      "triggered": 6,
+      "threeCheckpointsReached": 79,
+      "thirdCard": 6,
+      "refreshes": 32,
       "ranks": [
-        0,
-        4,
-        4,
-        17,
-        55
+        2,
+        2,
+        3,
+        13,
+        60
       ]
     },
     {
@@ -122,17 +122,17 @@
         7
       ],
       "races": 80,
-      "acquiredBoth": 3,
-      "triggered": 2,
+      "acquiredBoth": 1,
+      "triggered": 1,
       "threeCheckpointsReached": 80,
-      "thirdCard": 3,
-      "refreshes": 30,
+      "thirdCard": 1,
+      "refreshes": 32,
       "ranks": [
-        0,
-        5,
+        2,
         3,
-        18,
-        54
+        4,
+        16,
+        55
       ]
     },
     {
@@ -142,16 +142,16 @@
       ],
       "races": 80,
       "acquiredBoth": 1,
-      "triggered": 0,
+      "triggered": 1,
       "threeCheckpointsReached": 80,
       "thirdCard": 1,
-      "refreshes": 30,
+      "refreshes": 29,
       "ranks": [
-        1,
-        5,
+        3,
+        4,
         7,
-        18,
-        49
+        14,
+        52
       ]
     },
     {
@@ -161,16 +161,16 @@
       ],
       "races": 80,
       "acquiredBoth": 4,
-      "triggered": 0,
+      "triggered": 1,
       "threeCheckpointsReached": 80,
       "thirdCard": 4,
-      "refreshes": 27,
+      "refreshes": 34,
       "ranks": [
-        1,
-        4,
-        4,
-        18,
-        53
+        2,
+        3,
+        7,
+        14,
+        54
       ]
     },
     {
@@ -179,17 +179,17 @@
         38
       ],
       "races": 80,
-      "acquiredBoth": 4,
+      "acquiredBoth": 2,
       "triggered": 1,
       "threeCheckpointsReached": 80,
-      "thirdCard": 4,
-      "refreshes": 27,
+      "thirdCard": 2,
+      "refreshes": 33,
       "ranks": [
-        1,
-        5,
-        3,
-        22,
-        49
+        2,
+        4,
+        6,
+        16,
+        52
       ]
     },
     {
@@ -198,16 +198,16 @@
         0
       ],
       "races": 80,
-      "acquiredBoth": 12,
-      "triggered": 12,
+      "acquiredBoth": 13,
+      "triggered": 13,
       "threeCheckpointsReached": 80,
       "thirdCard": 0,
-      "refreshes": 30,
+      "refreshes": 33,
       "ranks": [
-        0,
-        4,
-        7,
-        17,
+        1,
+        3,
+        5,
+        19,
         52
       ]
     },
@@ -217,17 +217,17 @@
         14
       ],
       "races": 80,
-      "acquiredBoth": 2,
+      "acquiredBoth": 5,
       "triggered": 1,
       "threeCheckpointsReached": 80,
-      "thirdCard": 2,
-      "refreshes": 29,
+      "thirdCard": 5,
+      "refreshes": 32,
       "ranks": [
-        0,
+        2,
         5,
-        6,
-        19,
-        50
+        5,
+        12,
+        56
       ]
     }
   ]

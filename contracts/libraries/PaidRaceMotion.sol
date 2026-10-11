@@ -6,7 +6,7 @@ import {PonyRules} from "./PonyRules.sol";
 import {PaidProfiles} from "./PaidProfiles.sol";
 import {PlayerBalance} from "./PlayerBalance.sol";
 
-/// @notice Hot path of the paid-race solver (有奖规则 v2 「运动区间」「重力井数值积分」): the per-horse motion state, the
+/// @notice Hot path of the paid-race solver (有奖规则 v0.1 「运动区间」「重力井数值积分」): the per-horse motion state, the
 /// caches that only change at events, and the loop that advances all running horses from one event to the next.
 /// @dev The solver spends almost all of its gas between events, so this library works directly on the memory layout
 /// of `Horse` in inline assembly. Every `Horse` member is one 32-byte word; the `H_*` offsets below must list the
@@ -34,7 +34,7 @@ library PaidRaceMotion {
     uint256 internal constant STAMINA_CAPACITY = 1_000_000_000;
     uint256 internal constant COST_PER_MS = 24_000;
     uint256 internal constant REGEN_PER_MS = 10_000;
-    /// @dev Legacy exhaustion penalty E = 10 units/s, in mu/s.
+    /// @dev Core exhaustion penalty E = 10 units/s, in mu/s.
     uint256 internal constant EXHAUST_PENALTY_MILLI = 10_000;
     uint256 internal constant RK_STEP_MS = PaidCardRules.RK_STEP_MS;
     uint256 internal constant NEVER = 0xffffffff;

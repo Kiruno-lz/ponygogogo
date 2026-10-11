@@ -63,7 +63,7 @@ export function applyPaidChoice(
 
 /**
  * Non-throwing precheck of applyPaidChoice: 0 when it would succeed, else the INVALID_* code of the first rule it
- * breaks, in applyPaidChoice's own order (有奖规则 v3). Cut is judged before auto, like the panel opening.
+ * breaks, in applyPaidChoice's own order (有奖规则 v0.1). Cut is judged before auto, like the panel opening.
  */
 export function classifyPaidDraw(
   deck: readonly number[], state: PaidDrawState, refreshSlots: readonly number[], chosenId: number,

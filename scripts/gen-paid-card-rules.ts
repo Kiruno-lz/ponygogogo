@@ -5,7 +5,7 @@ import { encodeAbiParameters, keccak256 } from 'viem'
 import { PLAYER_BALANCE, PLAYER_BALANCE_HASH } from '../src/race/paid/playerBalance.ts'
 import {
   CARD_EFFECT, CARD_MAIN_FUNCTION, PAID_CARD_GLOBALS, PAID_CARD_RULES, PAID_CARD_RULES_HASH, PAID_CPU_MASK, PAID_RARE_MASK,
-  PAID_RULESET_HASH, LEGACY_PAID_RULESET_HASH, paidCardRuleTuple,
+  PAID_RULESET_HASH, paidCardRuleTuple,
 } from '../src/race/paid/cardRules.ts'
 
 const target = fileURLToPath(new URL('../contracts/libraries/PaidCardRules.sol', import.meta.url))
@@ -130,7 +130,6 @@ library PaidCardRules {
 
     bytes32 internal constant TABLE_HASH = ${PAID_CARD_RULES_HASH};
     bytes32 internal constant RULESET_HASH = ${PAID_RULESET_HASH};
-    bytes32 internal constant LEGACY_RULESET_HASH = ${LEGACY_PAID_RULESET_HASH};
     uint256 internal constant RARE_MASK = 0x${PAID_RARE_MASK.toString(16)};
     uint256 internal constant CPU_MASK = 0x${PAID_CPU_MASK.toString(16)};
     uint32 internal constant PERMANENT_MS = type(uint32).max;

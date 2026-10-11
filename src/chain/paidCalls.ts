@@ -1,6 +1,6 @@
 import { PAID_CARD_COUNT } from '../race/paid/cardRules.ts'
 /**
- * 有奖会话的调用编码与手写 ABI（会话协议 v2，对应 contracts/PonyGame.sol 与 PonyVault.sol）。
+ * 有奖会话的调用编码与手写 ABI（会话协议 v0.1，对应 contracts/PonyGame.sol 与 PonyVault.sol）。
  *
  * 这里只做两件事：把浏览器会用到的每个 PonyGame 条目写成人读 ABI，把一次开场/选牌/结算/判负编码成
  * `ContractCall`。没有退款：永久不可结算的会话只能 `forfeitSession`（返还 0）。不发交易、不读链——流程与回执解析在 paidSession.ts。ABI 与 Foundry 产物逐项比对
@@ -52,13 +52,6 @@ export const ponyGameAbi = parseAbi([
   'error UnknownSession()',
 ])
 
-/** Read-only compatibility for pre-roster games; new entry always uses the required-roster ABI above. */
-export const legacyPonyGameAbi = parseAbi([
-  'struct ChoiceView { bool present; uint32 txSec; uint64 blockNumber; uint8 cardId; uint8[] refreshSlots; bytes32 anchor; }',
-  'struct SessionView { address player; uint8 state; uint8 playerHorseId; uint8 stakeTier; uint256 stake; uint64 openedAt; uint64 openedBlock; bytes32 seed; bytes32 openAnchor; uint8 lastCheckpoint; ChoiceView[3] choices; }',
-  'function getSession(bytes32 sessionId) view returns (SessionView view_)',
-  'event SessionOpened(bytes32 indexed sessionId, address indexed player, uint8 horseId, uint256 stake, bytes32 seed, uint64 openedAt, uint64 openedBlock, bytes32 rulesetHash)',
-])
 
 /** PonyGame 的会话状态码（STATE_*）。 */
 export const SESSION_STATE = { none: 0, open: 1, settled: 2, forfeited: 3 } as const
@@ -91,7 +84,7 @@ export function openSessionCall(
 
 /**
  * 检查点 1..3；cardId 0 是主动放弃；刷新槽位按使用顺序、各 0..2 且不重复。合约只做同样的廉价形状检查就记录，
- * 选择是否生效（时间窗、候选、刷新额度）由结算求时判定（有奖规则 v3），发送前的规则校验在 TS 求时器。
+ * 选择是否生效（时间窗、候选、刷新额度）由结算求时判定（有奖规则 v0.1），发送前的规则校验在 TS 求时器。
  */
 export function chooseCardCall(
   game: Address, sessionId: Hex, checkpoint: number, cardId: number, refreshSlots: readonly number[],

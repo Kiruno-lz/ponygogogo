@@ -7,7 +7,7 @@ import { PONY_RULES, type PonyRule } from '../src/race/paid/ponyRules.ts'
 import { EV_DEATH, EV_EXHAUST_ENTER } from '../src/race/paid/events.ts'
 import { strategyPayoutBps } from './analyze-pony-strategies.ts'
 
-export const H = (s: string): Hex => keccak256(toBytes(`claude-balance/v1/${s}`))
+export const H = (s: string): Hex => keccak256(toBytes(`pony-balance/v0.1/${s}`))
 
 /** Experimental control only: ponies 9..13 have an ability that is a no-op for CPU horses. */
 export const NULL_PONIES = [9, 10, 11, 12, 13]

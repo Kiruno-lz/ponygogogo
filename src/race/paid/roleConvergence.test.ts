@@ -33,7 +33,7 @@ test('CPU fatigue recovers fifteen per second to 135 and resumes with recovery a
  expect(sampleHorse(r.trace!,1,exit.tau).stamina).toBe(135000000n)
  expect(r.trace!.keyframes[1]!.find(f=>f.tau0===exit.tau)!.motion.aEff).toBe(150n)
 })
-test('CPU fatigue caps high base speed at 1200 without the legacy ten-unit penalty',()=>{
+test('CPU fatigue caps high base speed at 1200 with the current fatigue speed cap',()=>{
  const core=modern([26,22,19]);core.profiles=core.profiles.map((p,h)=>h===1?{base:1800n,acceleration:0n,cap:1800n}:p)
  const r=solvePaidCore(core),e=r.events.find(e=>e.horse===1&&e.code===EV_EXHAUST_ENTER)!
  expect(sampleHorse(r.trace!,1,e.tau)).toMatchObject({b:1200000n,exhausted:true})

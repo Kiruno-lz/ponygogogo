@@ -6,7 +6,7 @@ import type { HistorySession } from '../../chain/history.ts'
 import { RecentRacesView } from './RecentRaces.tsx'
 
 const session = (id: number, over: Partial<HistorySession>): HistorySession => ({
-  sessionId: `0x${id.toString(16).padStart(64, '0')}` as Hex, horseId: 2, stake: MON * 3n / 10n, state: 'settled',
+  sessionId: `0x${id.toString(16).padStart(64, '0')}` as Hex, horseId: 2, roster: [0,1,2,3,4], stake: MON * 3n / 10n, state: 'settled',
   openedAt: 1_790_000_000, openedBlock: 1n, openTx: `0x${'11'.repeat(32)}`, choices: [], settlementRank: 1, rawRank: 1,
   payout: MON * 9n / 10n, net: MON * 6n / 10n, forfeitReason: null, closedAt: 1_790_000_100, closeTx: null, ...over,
 })

@@ -13,7 +13,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { isAddressEqual, type Hex, type Address } from 'viem'
 import { ChainClock, startClockSync, type ClockSync } from '../../chain/chainClock.ts'
-import { PONY_GAME_ADDRESS, LEGACY_PONY_GAME_ADDRESSES } from '../../chain/network.ts'
+import { PONY_GAME_ADDRESS } from '../../chain/network.ts'
 import { recoverPaidSessions, sessionChainDeps, type PaidSessionContext } from '../../chain/paidRecovery.ts'
 import { paidRaceAvailable } from '../../chain/paidGate.ts'
 import {
@@ -262,7 +262,7 @@ export function usePaidRace(lang: Lang, refreshFunds: () => Promise<void>) {
     if (!player) return
     const g = gen.current
     const current = () => gen.current === g && wallet.getGameAccount()?.address.toLowerCase() === player.toLowerCase()
-    const games = [...(PONY_GAME_ADDRESS ? [PONY_GAME_ADDRESS] : []), ...LEGACY_PONY_GAME_ADDRESSES]
+    const games = [...(PONY_GAME_ADDRESS ? [PONY_GAME_ADDRESS] : [])]
     try {
       const contexts = await recoverPaidSessions(wallet.publicClient, games, player)
       const info = contexts[0] ? await resumeInfo(contexts[0]) : null
