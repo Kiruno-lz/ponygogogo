@@ -119,3 +119,21 @@ test('挑战请求按来源限速，轮换公钥也不能绕过', async () => {
   }
   expect(limited).toBeGreaterThan(0)
 })
+
+test('missing navigation serves the SPA entry while missing subresources remain 404', async () => {
+  const paths: string[] = []
+  const assetsEnv = { ...env(), ASSETS: { fetch: async (request: Request) => {
+    const path = new URL(request.url).pathname
+    paths.push(path)
+    return path === '/index.html'
+      ? new Response('<html>app</html>', { headers: { 'Content-Type': 'text/html' } })
+      : new Response(null, { status: 404 })
+  } } }
+  expect((await handler.fetch(new Request(origin + '/assets/missing.webp'), assetsEnv)).status).toBe(404)
+  const navigation = await handler.fetch(new Request(origin + '/race', {
+    headers: { 'Sec-Fetch-Mode': 'navigate' },
+  }), assetsEnv)
+  expect(navigation.status).toBe(200)
+  expect(await navigation.text()).toBe('<html>app</html>')
+  expect(paths).toEqual(['/assets/missing.webp', '/race', '/index.html'])
+})

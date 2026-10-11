@@ -150,7 +150,15 @@ export default {
   },
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
-    if (!url.pathname.startsWith('/api/collection')) return env.ASSETS.fetch(request)
+    if (!url.pathname.startsWith('/api/collection')) {
+      const response = await env.ASSETS.fetch(request)
+      // Only page navigation may fall back to the SPA; missing subresources stay 404.
+      if (response.status === 404 && request.headers.get('Sec-Fetch-Mode') === 'navigate') {
+        const entry = new URL('/index.html', url)
+        return env.ASSETS.fetch(new Request(entry, request))
+      }
+      return response
+    }
     if (request.headers.get('origin') && request.headers.get('origin') !== url.origin) return fail('CROSS_ORIGIN', 403)
     if (url.pathname === '/api/collection/challenge' && request.method === 'POST') {
       const body = await readJson(request)
