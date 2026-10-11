@@ -1,6 +1,7 @@
 import type { LoadProgress } from '../../assets/loader.ts'
-import { t, type Lang } from '../i18n.ts'
+import { t,type Lang } from '../i18n.ts'
 import { WoodButton } from '../shared/Button.tsx'
+import { AssetFailures } from './AssetFailures.tsx'
 
 export function LoadingScreen({
   progress,
@@ -66,16 +67,7 @@ export function LoadingScreen({
           data-testid="loading-error"
           style={{ width: 720, maxHeight: 220, padding: '8px 20px' }}
         >
-          <strong style={{ fontSize: 20 }}>
-            {t(lang, 'loading.failed', { n: progress.failures.length })}
-          </strong>
-          <ul className="scrolly" style={{ maxHeight: 110, margin: '8px 0', paddingLeft: 22, fontSize: 15 }}>
-            {progress.failures.slice(0, 12).map((f) => (
-              <li key={f.key}>
-                <code>{f.key}</code> — {f.message}
-              </li>
-            ))}
-          </ul>
+          <AssetFailures lang={lang} failures={progress.failures}/>
           <WoodButton
             zh={t(lang, 'loading.retry')}
             onClick={onRetry}

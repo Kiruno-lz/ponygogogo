@@ -1,41 +1,24 @@
 import { ponyRule } from '../../race/paid/ponyRules.ts'
 import { PAID_CARD_GLOBALS } from '../../race/paid/cardRules.ts'
-import type { Lang } from '../i18n.ts'
+import { t, type Lang } from '../i18n.ts'
 
 /** Copy reads all numeric ability parameters from the same rules used by the solver. */
-export function ponyAbilityText(ponyId: number, lang: Lang): { name: string; description: string; strategy: string } {
-  const rule = ponyRule(ponyId), en = lang === 'en'
+export function ponyAbilityText(ponyId: number, lang: Lang): { name: string; description: string } {
+  const rule = ponyRule(ponyId)
   const speed = `+${(rule.bonusBps ?? 0) / 100}%`, seconds = (rule.durationMs ?? 0) / 1000
   const defaultSeconds = PAID_CARD_GLOBALS.bonusDefaultMs / 1000
   switch (rule.ability) {
-    case 'rareSpecialist': return en
-      ? { name: 'Rare Specialist', description: `Each acquired rare card adds ${speed} speed. Duration follows its card bonus: instant cards last ${defaultSeconds}s; permanent cards stay; theft follows stolen equipment.`, strategy: 'Rare cards and refreshes' }
-      : { name: '稀有专精', description: `每获得稀有卡额外${speed}速度。时长跟随该卡附加效果：瞬时卡${defaultSeconds}秒，永久卡永久，窃取跟随装备。`, strategy: '稀有优先，刷新找稀有' }
-    case 'refresh': return en
-      ? { name: 'Refresh', description: `Start with ${rule.refreshCount} candidate-card refresh. Each refresh replaces one offered card and adds to card-granted credits. CPU horses do not refresh.`, strategy: 'Refresh to find build components' }
-      : { name: '刷新', description: `开局拥有${rule.refreshCount}次候选卡刷新；每次替换一张候选，与卡牌刷新额度累加。电脑马不刷新。`, strategy: '刷新寻找构筑组件' }
+    case 'rareSpecialist': return { name: t(lang, 'pony.ability.rareSpecialist.name', {  }), description: t(lang, 'pony.ability.rareSpecialist.description', { speed: speed, defaultSeconds: defaultSeconds }) }
+    case 'refresh': return { name: t(lang, 'pony.ability.refresh.name', {  }), description: t(lang, 'pony.ability.refresh.description', { refreshCount: rule.refreshCount! }) }
     case 'longEquipment': {
       const bonus = ((rule.equipmentDurationBps ?? 10000) - 10000) / 100
-      return en ? { name: 'Long Attachment', description: `Equipment acquired from a card lasts ${bonus}% longer. Theft and renewal are not extended. Gain ${speed} speed while any equipment is active, once regardless of item count.`, strategy: 'Equipment coverage over the remaining track' }
-        : { name: '长情', description: `选牌获得的装备初始时长+${bonus}%；偷来的装备与续期不延长；装备生效期间额外${speed}速度，多件装备不重复叠加。`, strategy: '装备覆盖更长路程' }
+      return { name: t(lang, 'pony.ability.longEquipment.name', {  }), description: t(lang, 'pony.ability.longEquipment.description', { bonus: bonus, speed: speed }) }
     }
-    case 'diverse': return en
-      ? { name: 'Bloom Together', description: `The first card of each main function adds ${speed} speed for ${seconds}s. Repeating a function does not trigger or renew it.`, strategy: 'Mix different card functions' }
-      : { name: '百花齐放', description: `首次获得每种主功能卡时，速度${speed}，持续${seconds}秒；同类不触发、不续期。`, strategy: '不同主功能混搭' }
-    case 'airborne': return en
-      ? { name: 'Ride the Wind', description: `Gain ${speed} speed while airborne. Multiple airborne sources do not stack this bonus.`, strategy: 'Build around airborne states' }
-      : { name: '乘风', description: `起飞期间速度${speed}；多个起飞来源不重复叠加。`, strategy: '起飞门控' }
-    case 'ox': return en
-      ? { name: 'Ox Strength', description: `Ongoing stamina cost +${(rule.costDeltaBps ?? 0) / 100}%; base speed cap +${rule.capDelta}. Capacity, recovery and one-time payments stay the same.`, strategy: 'Supplies and thrift sustain a higher cap' }
-      : { name: '有牛劲', description: `持续体力消耗+${(rule.costDeltaBps ?? 0) / 100}%，基础速度上限+${rule.capDelta}；容量、恢复与一次性支付不变。`, strategy: '节流、补给支撑高上限' }
-    case 'forfeit': return en
-      ? { name: 'Whatever Works', description: `Actively skipping a checkpoint gives ${speed} speed for ${seconds}s. Timeouts and cut panels do not trigger it.`, strategy: 'Choose whether to take the card or skip' }
-      : { name: '随便跑跑', description: `主动放弃检查点时速度${speed}，持续${seconds}秒；超时、非法选择与断卡不触发。`, strategy: '主动放弃的取舍' }
-    case 'food': return en
-      ? { name: 'Big Appetite', description: `Player starting stamina and capacity +${rule.staminaCapacityDelta}. A supply card that immediately restores stamina also restores ${(rule.staminaMicro ?? 0) / 1000000} extra stamina, allowed above capacity. Periodic recovery does not trigger it.`, strategy: 'Immediate supplies' }
-      : { name: '大吃货', description: `玩家初始体力和容量+${rule.staminaCapacityDelta}；获得补给卡且当刻真实增加体力时，额外恢复${(rule.staminaMicro ?? 0) / 1000000}体力；周期恢复不触发，可超过上限。`, strategy: '即时补给' }
-    case 'repeat': return en
-      ? { name: 'Repeat Rhythm', description: `Acquiring a card with a previously acquired main function gives ${speed} speed for ${seconds}s. Each card triggers at most once.`, strategy: 'Specialize in the same card function' }
-      : { name: '重复节奏', description: `获得与此前卡牌同主功能的卡时，速度${speed}，持续${seconds}秒；每次获得至多触发一次。`, strategy: '同类专精' }
+    case 'diverse': return { name: t(lang, 'pony.ability.diverse.name', {  }), description: t(lang, 'pony.ability.diverse.description', { speed: speed, seconds: seconds }) }
+    case 'airborne': return { name: t(lang, 'pony.ability.airborne.name', {  }), description: t(lang, 'pony.ability.airborne.description', { speed: speed }) }
+    case 'ox': return { name: t(lang, 'pony.ability.ox.name', {  }), description: t(lang, 'pony.ability.ox.description', { costDeltaPercent: (rule.costDeltaBps ?? 0) / 100, capDelta: rule.capDelta! }) }
+    case 'forfeit': return { name: t(lang, 'pony.ability.forfeit.name', {  }), description: t(lang, 'pony.ability.forfeit.description', { speed: speed, seconds: seconds }) }
+    case 'food': return { name: t(lang, 'pony.ability.food.name', {  }), description: t(lang, 'pony.ability.food.description', { staminaCapacityDelta: rule.staminaCapacityDelta!, staminaUnits: (rule.staminaMicro ?? 0) / 1000000 }) }
+    case 'repeat': return { name: t(lang, 'pony.ability.repeat.name', {  }), description: t(lang, 'pony.ability.repeat.description', { speed: speed, seconds: seconds }) }
   }
 }

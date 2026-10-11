@@ -57,7 +57,7 @@ export function SettingsScreen({
         {row('sfx', t(lang, 'settings.sfx'))}
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 24 }}>
           <span style={{ width: 150 }}>{t(lang, 'settings.language')}</span>
-          <Chip label="中文" on={settings.lang === 'zh'} onClick={() => onChange({ ...settings, lang: 'zh' })} />
+          <Chip label={t(lang, 'settings.chinese')} on={settings.lang === 'zh'} onClick={() => onChange({ ...settings, lang: 'zh' })} />
           <Chip label="English" on={settings.lang === 'en'} onClick={() => onChange({ ...settings, lang: 'en' })} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 24 }}>
@@ -68,7 +68,7 @@ export function SettingsScreen({
             onClick={() => onChange({ ...settings, reducedMotion: !settings.reducedMotion })}
           />
           <Chip
-            label={lang === 'zh' ? (settings.muted ? '静音' : '声音') : (settings.muted ? 'MUTED' : 'SOUND')}
+            label={t(lang, settings.muted ? 'settings.muted' : 'settings.sound')}
             on={!settings.muted}
             onClick={() => onChange({ ...settings, muted: !settings.muted })}
           />

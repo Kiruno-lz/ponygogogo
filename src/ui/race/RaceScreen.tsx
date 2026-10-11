@@ -1,56 +1,29 @@
+import type { RaceScreenProps } from './types.ts'
+import { useRaceScene } from './useRaceScene.ts'
 /**
  * 比赛页：Phaser 画布 + DOM 的 HUD 与选牌浮层。
  * 卡牌层绝不暂停 Phaser 场景；选牌浮层出现时赛道继续以 0.1 倍速跑。
  *
  * 同一套画面承接两种驱动器：免费试玩（本地时钟）与有奖（链上时钟），二者使用同一事件求时器。
  * 有奖时额外显示入场/选牌交易状态、断卡提示与「待链上验证」，页面切到后台也不终止比赛——
- * 链上会话不会因为关页而停下，回来时按规范时间继续。入块但按规则不生效的选择（有奖规则 v3）显示一行原因，
+ * 链上会话不会因为关页而停下，回来时按规范时间继续。入块但按规则不生效的选择（有奖规则 v0.1）显示一行原因，
  * 例如「选择晚于截止，按超时处理」；画面本身已按规范求解渲染成超时、自动或断卡。
  */
-import Phaser from 'phaser'
-import { useEffect, useRef, useState } from 'react'
-import type { AudioManager } from '../../assets/audio.ts'
+import { useEffect,useRef,useState } from 'react'
 import { CardChoicePanel } from '../../cards/CardChoicePanel.tsx'
-import { DESIGN_H, DESIGN_W } from '../../game/layout.ts'
-import { RaceScene } from '../../game/RaceScene.ts'
-import { normalizeRoster, ponyById } from '../../game/ponyCatalog.ts'
-import { preparePonyImages } from '../../game/pony.ts'
-import { prepareSceneImages } from '../../game/sceneArt.ts'
-import { paidCardDef } from '../../race/cards/paidCards.ts'
-import type { PaidOverlay } from '../../race/paidDriver.ts'
-import type { RaceScreenDriver } from '../../race/raceView.ts'
 import { explorerTxUrl } from '../../chain/network.ts'
-import { WoodButton, Chip } from '../shared/Button.tsx'
-import { Hud } from './Hud.tsx'
-import { t, type Lang } from '../i18n.ts'
-import { paidChoiceText, paidReasonText } from './paidText.ts'
-import { finishJingle, raceEventSounds } from './raceEventAudio.ts'
+import { DESIGN_H,DESIGN_W } from '../../game/layout.ts'
+import { paidCardDef } from '../../race/cards/paidCards.ts'
+import { t } from '../i18n.ts'
 import { TierGate } from '../loading/TierGate.tsx'
+import { Chip,WoodButton } from '../shared/Button.tsx'
+import { Hud } from './Hud.tsx'
+import { paidChoiceText,paidReasonText } from './paidText.ts'
+import { finishJingle,raceEventSounds } from './raceEventAudio.ts'
 
-/** 有奖比赛的附加信息；免费试玩不传 */
-export interface PaidRaceProps {
-  overlay: () => PaidOverlay
-  /** 离开比赛页：链上会话保持开放，之后可在首页恢复 */
-  onLeave: () => void
-}
-
-export interface RaceScreenProps {
-  driver: RaceScreenDriver
-  paid?: PaidRaceProps
-  lang: Lang
-  reducedMotion: boolean
-  audio: AudioManager
-  urls: Record<string, string>
-  /** 可选的表现层就绪钩子；验收驱动器用它开始确定性时间线 */
-  onSceneReady?: () => void
-  onDone: () => void
-  onQuit: () => void
-}
-
+export type { PaidRaceProps,RaceScreenProps } from './types.ts'
 export function RaceScreen(p: RaceScreenProps) {
-  const hostRef = useRef<HTMLDivElement | null>(null)
-  const gameRef = useRef<Phaser.Game | null>(null)
-  const sceneRef = useRef<RaceScene | null>(null)
+  const { hostRef, sceneRef, sceneError, retryScene } = useRaceScene(p)
   const [, force] = useState(0)
   const [punch, setPunch] = useState(0)
   const [confirmQuit, setConfirmQuit] = useState(false)
@@ -59,58 +32,6 @@ export function RaceScreen(p: RaceScreenProps) {
   const lastCount = useRef(-1)
   const lastHud = useRef(0)
   const startedBgm = useRef(false)
-  const [sceneError, setSceneError] = useState<string | null>(null)
-  const [sceneAttempt, setSceneAttempt] = useState(0)
-
-  // Phaser 生命周期
-  useEffect(() => {
-    if (!hostRef.current || gameRef.current) return
-    let disposed = false
-    let game: Phaser.Game | null = null
-    const profiles = normalizeRoster(p.driver.state.roster).map(ponyById)
-    void Promise.all([preparePonyImages(profiles, p.urls), prepareSceneImages(p.urls)]).then(([ponyImages, sceneImages]) => {
-      if (disposed || !hostRef.current || gameRef.current) return
-      game = new Phaser.Game({
-        type: Phaser.AUTO,
-        parent: hostRef.current,
-        width: DESIGN_W,
-        height: DESIGN_H,
-        backgroundColor: '#6f9efa',
-        transparent: true,
-        scale: { mode: Phaser.Scale.NONE, autoCenter: Phaser.Scale.NO_CENTER },
-        render: { antialias: true, roundPixels: false },
-        audio: { noAudio: true },
-        banner: false,
-        scene: [RaceScene],
-      })
-      gameRef.current = game
-      game.scene.start('race', {
-        driver: p.driver,
-        urls: p.urls,
-        reducedMotion: p.reducedMotion,
-        ponyImages,
-        sceneImages,
-        onReady: (scene: RaceScene) => {
-          sceneRef.current = scene
-          scene.setReducedMotion(p.reducedMotion)
-          p.onSceneReady?.()
-        },
-      })
-    }).catch(error => {
-      if (!disposed) setSceneError(error instanceof Error ? error.message : String(error))
-    })
-    return () => {
-      disposed = true
-      gameRef.current = null
-      sceneRef.current = null
-      game?.destroy(true)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sceneAttempt])
-
-  useEffect(() => {
-    sceneRef.current?.setReducedMotion(p.reducedMotion)
-  }, [p.reducedMotion])
 
   // 主循环
   useEffect(() => {
@@ -340,8 +261,8 @@ export function RaceScreen(p: RaceScreenProps) {
       </div>
 
       {sceneError && <TierGate lang={p.lang} waiting={false}
-        progress={{ total: 1, done: 0, current: null, failures: [{ key: 'race artwork', message: sceneError }] }}
-        onRetry={() => { setSceneError(null); setSceneAttempt(attempt => attempt + 1) }}
+        progress={{ total: 1, done: 0, current: null, failures: [{ key: 'race artwork', ...sceneError }] }}
+        onRetry={() => { retryScene() }}
         onCancel={p.paid ? p.paid.onLeave : p.onQuit} />}
 
       {confirmQuit && (

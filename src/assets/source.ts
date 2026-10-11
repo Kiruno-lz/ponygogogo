@@ -1,3 +1,4 @@
+import { AssetLoadError } from './errors.ts'
 /**
  * 加载抽象。现在读本地，将来读分布式存储，差别必须收敛在这一个接口里。
  * 调用方只认 key，永远不拼路径。
@@ -52,9 +53,7 @@ export interface AssetSource {
 export function assertTiered(manifest: AssetManifest): AssetManifest {
   const bad = Object.keys(manifest).filter((k) => !TIERS.has(manifest[k]!.tier))
   if (bad.length > 0) {
-    throw new Error(
-      `资源清单缺少分级字段（${bad.length} 项，例如 ${bad.slice(0, 3).join('、')}）：请用当前构建脚本重新生成 manifest.json`,
-    )
+    throw new AssetLoadError('assets.error.manifestTier', { count: bad.length, keys: bad.slice(0, 3).join(', ') })
   }
   return manifest
 }
@@ -62,7 +61,7 @@ export function assertTiered(manifest: AssetManifest): AssetManifest {
 /** 拉取资源清单。清单是进入加载流程前的第一份数据，必须可取消 */
 export async function fetchManifest(signal?: AbortSignal): Promise<AssetManifest> {
   const res = await fetch('/assets/manifest.json', { signal })
-  if (!res.ok) throw new Error(`资源清单加载失败：${res.status}`)
+  if (!res.ok) throw new AssetLoadError('assets.error.manifestHttp', { status: res.status })
   return assertTiered((await res.json()) as AssetManifest)
 }
 
@@ -96,7 +95,7 @@ export class LocalAssetSource implements AssetSource {
 
   async load(key: AssetKey): Promise<LoadedAsset> {
     const e = this.manifest[key]
-    if (!e) throw new Error(`资源清单里没有这一项：${key}`)
+    if (!e) throw new AssetLoadError('assets.error.missing', { key })
     let path = e.path
     if (e.kind === 'audio' && e.alt && !canPlay(path)) path = e.alt
     const url = this.base + path
@@ -127,10 +126,10 @@ export class RemoteAssetSource implements AssetSource {
 
   async load(key: AssetKey): Promise<LoadedAsset> {
     const e = this.manifest[key]
-    if (!e) throw new Error(`资源清单里没有这一项：${key}`)
-    if (!e.cid) throw new Error(`资源 ${key} 缺少 cid，无法远程加载`)
+    if (!e) throw new AssetLoadError('assets.error.missing', { key })
+    if (!e.cid) throw new AssetLoadError('assets.error.cid', { key })
     const res = await this.fetchImpl(`${this.gateway}/${e.cid}`)
-    if (!res.ok) throw new Error(`远程加载失败 ${key}: ${res.status}`)
+    if (!res.ok) throw new AssetLoadError('assets.error.remote', { key, status: res.status })
     const blob = await res.blob()
     return { url: URL.createObjectURL(blob), bytes: blob.size }
   }
@@ -142,7 +141,7 @@ function verify(kind: AssetKind, url: string, key: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const img = new Image()
       img.onload = () => resolve()
-      img.onerror = () => reject(new Error(`图片加载失败：${key}`))
+      img.onerror = () => reject(new AssetLoadError('assets.error.image', { key }))
       img.src = url
     })
   }
@@ -160,7 +159,7 @@ function verify(kind: AssetKind, url: string, key: string): Promise<void> {
       a.onerror = () => {
         if (done) return
         done = true
-        reject(new Error(`音频加载失败：${key}`))
+        reject(new AssetLoadError('assets.error.audio', { key }))
       }
       a.preload = 'auto'
       a.src = url
@@ -169,6 +168,6 @@ function verify(kind: AssetKind, url: string, key: string): Promise<void> {
     })
   }
   return fetch(url).then((r) => {
-    if (!r.ok) throw new Error(`资源加载失败：${key}`)
+    if (!r.ok) throw new AssetLoadError('assets.error.fetch', { key })
   })
 }

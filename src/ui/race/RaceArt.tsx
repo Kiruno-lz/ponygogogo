@@ -1,5 +1,5 @@
 /** 共用比赛美术，不读取或更新规则状态。 */
-import { ponyById } from '../../game/ponyCatalog.ts'
+import { ponyName, type Lang } from '../i18n.ts'
 
 // Head/neck crops have different native proportions. Match their face area and
 // focal point to Kiruno without stretching faces or moving the shared frame.
@@ -15,14 +15,14 @@ const PORTRAIT_LAYOUTS = [
   { left: 74, top: 45, width: 117, height: 117 },
 ] as const
 
-export function PlayerPlaque({ horseId }: { horseId: number }) {
+export function PlayerPlaque({ horseId, lang = 'zh' }: { horseId: number; lang?: Lang }) {
   return <div className="player-plaque">
     <img className="plaque-background" src="/assets/art/ui/avatar-reference-blank.webp" alt="" draggable={false}/>
     <div className="plaque-window"><img className="plaque-pony"
       src={`/assets/art/ponies/${horseId}-${horseId === 1 || horseId >= 5 ? 'plaque-portrait' : 'portrait'}.webp`}
       style={PORTRAIT_LAYOUTS[horseId]} alt="" draggable={false}/></div>
     <img className="plaque-frame" src="/assets/art/ui/avatar-reference-blank.webp" alt="" draggable={false}/>
-    <span>{ponyById(horseId).name}</span>
+    <span>{ponyName(horseId, lang)}</span>
   </div>
 }
 

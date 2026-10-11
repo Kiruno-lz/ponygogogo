@@ -1,3 +1,4 @@
+import { t } from '../ui/i18n.ts'
 import { HORSE_PROFILES, makeHorseProfile, type HorseProfile } from './horses.ts'
 export { DEFAULT_ROSTER, normalizeRoster, ponyIdAt, type PonyRoster } from '../race/core/roster.ts'
 type Point = readonly [number, number]
@@ -21,7 +22,7 @@ export interface PonyDefinition extends HorseProfile {
 }
 
 const fourFeet: readonly Point[] = [[-48, -12], [48, -12], [-66, -8], [68, -8]]
-const legacyRenderAnchors = { head: [.73,.34] as Point, belly: [.44,.68] as Point, tail: [.3,.55] as Point, feet: fourFeet }
+const defaultRenderAnchors = { head: [.73,.34] as Point, belly: [.44,.68] as Point, tail: [.3,.55] as Point, feet: fourFeet }
 // Normalized sprite anchors and wheel centers measured from the shipped idle frames.
 const newRenderAnchors: Record<number, { head: Point; belly: Point; tail: Point; feet: readonly Point[] }> = {
   5: { head: [.75,.30], belly: [.52,.68], tail: [.31,.64], feet: [[2,-10],[55,-10],[-34.5,-8],[26,-8]] },
@@ -45,17 +46,17 @@ const posterFootings: readonly { rear: Point; front: Point }[] = [
 function definition(profile: HorseProfile, defaultOpen: boolean, biped = false): PonyDefinition {
   return { ...profile, ponyId: profile.horseId, defaultOpen, locomotion: biped ? 'biped' : 'quadruped',
     renderSpec: { scale: profile.horseId === 0 ? .85 : .75, shadowWidth: biped ? 90 : 136, groundOrigin: 180 / 192,
-      ...(newRenderAnchors[profile.horseId] ?? legacyRenderAnchors),
+      ...(newRenderAnchors[profile.horseId] ?? defaultRenderAnchors),
       resultFooting: resultFootings[profile.horseId]!, posterFootings: posterFootings[profile.horseId]!,
       ...(biped ? { posterScale: .8 } : {}) } }
 }
 
 export const PONY_CATALOG: readonly PonyDefinition[] = [
   ...HORSE_PROFILES.map(p => definition(p, true)),
-  definition(makeHorseProfile(5, '牛来', 'Niulai', 0xf3c33d, 0x615665), false),
-  definition(makeHorseProfile(6, '啥马', 'Shama', 0xd6d1be, 0x292921), false),
-  definition(makeHorseProfile(7, '奶龙', 'Nailong', 0xf9d02f, 0x513b25), false),
-  definition(makeHorseProfile(8, '咕咕嘎嘎', 'Gugu Gaga', 0x424550, 0xe9c638), false, true),
+  definition(makeHorseProfile(5, t('zh', 'pony.5.name'), t('en', 'pony.5.name'), 0xf3c33d, 0x615665), false),
+  definition(makeHorseProfile(6, t('zh', 'pony.6.name'), t('en', 'pony.6.name'), 0xd6d1be, 0x292921), false),
+  definition(makeHorseProfile(7, t('zh', 'pony.7.name'), t('en', 'pony.7.name'), 0xf9d02f, 0x513b25), false),
+  definition(makeHorseProfile(8, t('zh', 'pony.8.name'), t('en', 'pony.8.name'), 0x424550, 0xe9c638), false, true),
 ]
 
 export function ponyById(ponyId: number): PonyDefinition {

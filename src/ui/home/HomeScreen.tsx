@@ -1,16 +1,18 @@
+import { ImageButton } from '../shared/ImageButton.tsx'
+import type { WalletBusy } from '../wallet/types.ts'
 /**
  * 首页。木牌、标志和登录注册牌都是无字的透明原画，摆在 1611×976 画板的原始版位上；
  * 牌面上的文字由这里排版，所以换语言不用换图，也不会有第二套切片要维护。
  */
-import { CURRENCY } from '../../chain/network.ts'
 import { formatMon } from '../../chain/amount.ts'
-import type { GameAccount, WalletAccount } from '../../chain/wallet.ts'
+import { CURRENCY } from '../../chain/network.ts'
+import type { GameAccount,WalletAccount } from '../../chain/wallet.ts'
 import { PAID_CARD_POOL } from '../../race/cards/paidCards.ts'
-import { Chip, usePress } from '../shared/Button.tsx'
-import { t, type Lang } from '../i18n.ts'
+import { t,type Lang } from '../i18n.ts'
+import { Chip } from '../shared/Button.tsx'
 
 /** 注册与登录是两条不同的通行密钥流程，按钮各自独立，忙碌时只禁用自己那一条 */
-export type WalletBusy = 'register' | 'login' | null
+export type { WalletBusy } from '../wallet/types.ts'
 
 export function HomeScreen({ lang, account, gameAccount, balance, busy, error, onStart, onCollection, onSettings,
   onRegister, onLogin, onOpenWallet, onLogout, onToggleLang, onOpenEffects }: {
@@ -49,7 +51,7 @@ export function HomeScreen({ lang, account, gameAccount, balance, busy, error, o
       {error && <p className="home-wallet-error" data-testid="wallet-error" role="alert">{error}</p>}
       {onOpenEffects && <Chip label={t(lang, 'home.effectShowcase')} onClick={onOpenEffects}
         style={{ position: 'absolute', left: 38, bottom: 30, fontSize: 15, padding: '5px 12px' }} />}
-      <Chip label={lang === 'en' ? '中文' : 'EN'} onClick={onToggleLang} style={{ position: 'absolute', right: 38, bottom: 30, fontSize: 15, padding: '5px 12px' }}/>
+      <Chip label={t(lang, 'home.toggleLang')} onClick={onToggleLang} style={{ position: 'absolute', right: 38, bottom: 30, fontSize: 15, padding: '5px 12px' }}/>
     </div>
   </div>
 }
@@ -57,13 +59,11 @@ export function HomeScreen({ lang, account, gameAccount, balance, busy, error, o
 function ArtButton({ art, label, sub, onClick, disabled }: {
   art: string; label: string; sub?: string; onClick: () => void; disabled?: boolean
 }) {
-  const { pressed, handlers } = usePress(onClick, disabled)
-  return <button type="button" className={`btn home-${art}${pressed ? ' pressed' : ''}`}
-    aria-label={sub ? `${label} ${sub}` : label} disabled={disabled} {...handlers}>
-    <img src={`/assets/art/home/${art}.webp`} alt="" draggable={false}/>
+  return <ImageButton src={`/assets/art/home/${art}.webp`} className={`home-${art}`}
+    label={sub ? `${label} ${sub}` : label} disabled={disabled} onClick={onClick}>
     <span className="lbl">
       <span className="zh">{label}</span>
       {sub ? <span className="en">{sub}</span> : null}
     </span>
-  </button>
+  </ImageButton>
 }

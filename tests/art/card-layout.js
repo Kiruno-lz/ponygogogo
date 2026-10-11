@@ -5,7 +5,7 @@ export function assertCardCopyFits() {
   const cards = slots.filter(card => card.classList.contains('card-root'))
   for (const card of cards) {
     const art = card.querySelector(':scope > div')
-    const paragraph = art?.querySelector('p')
+    const paragraph = art?.querySelector('.card-copy')
     if (!paragraph) continue
     const region = art.getBoundingClientRect()
     const copy = paragraph.getBoundingClientRect()

@@ -1,6 +1,6 @@
 /**
  * 选马/下注的侧视布局按最新 race_start.png 注册。
- * 五档：0 是免费本地试玩，不碰任何余额；0.3 / 1 / 5 / 10 MON 是有奖档（有奖规则 v3），入口关闭或未登录
+ * 五档：0 是免费本地试玩，不碰任何余额；0.3 / 1 / 5 / 10 MON 是有奖档（有奖规则 v0.1），入口关闭或未登录
  * （`paidOpen = false`）时灰掉不可选。赢奖条写第一名的总返还（3 倍，含本金）。
  */
 import { useEffect, useReducer, useRef, useState } from 'react'
@@ -79,7 +79,7 @@ export function SelectScreen(p: SelectScreenProps) {
   return <div className="screen select-screen" data-testid="screen-select">
     <img className="select-track" src="/assets/art/track/scene.webp" alt="" draggable={false}/>
     <div className="select-start-line"/>
-    <PlayerPlaque horseId={horseId ?? 0}/>
+    <PlayerPlaque horseId={horseId ?? 0} lang={p.lang}/>
     <StaminaArt fraction={1}/>
     {horseId !== null && <div className="select-pony-ability" aria-live="polite">
       <strong>{ponyAbilityText(horseId, p.lang).name}</strong>
@@ -88,13 +88,13 @@ export function SelectScreen(p: SelectScreenProps) {
     {[0, 1, 2, 3, 4].map(lane => <img key={lane} className="lane-pennant select-lane-flag"
       src={`/assets/art/ui/flag-${lane}.webp`} alt={`${lane + 1}`} style={{ top: laneGroundY(lane) - 77 }} draggable={false}/>)}
     <button type="button" data-pony-queue data-testid="pony-queue-up" className="pony-queue-arrow queue-up"
-      aria-label={p.lang === 'zh' ? '查看上方小马' : 'Previous ponies'} disabled={selection.windowStart === 0}
+      aria-label={t(p.lang, 'select.queueUp')} disabled={selection.windowStart === 0}
       onClick={() => send({ kind: 'scroll', direction: -1 })}><img src="/assets/art/ui/queue-arrow-up.webp" alt="" draggable={false}/></button>
     <button type="button" data-pony-queue data-testid="pony-queue-down" className="pony-queue-arrow queue-down"
-      aria-label={p.lang === 'zh' ? '查看下方小马' : 'Next ponies'} disabled={selection.windowStart >= selection.orderedPonyIds.length - 5}
+      aria-label={t(p.lang, 'select.queueDown')} disabled={selection.windowStart >= selection.orderedPonyIds.length - 5}
       onClick={() => send({ kind: 'scroll', direction: 1 })}><img src="/assets/art/ui/queue-arrow-up.webp" alt="" draggable={false}/></button>
     <div ref={column} className="pony-selection-column" data-testid="pony-selection-column" data-motion={input.motion}
-      role="group" aria-label={p.lang === 'zh' ? '选择小马' : 'Choose a pony'}>
+      role="group" aria-label={t(p.lang, 'select.ponies')}>
       {horseId !== null && <img className="selection-ground-ring" data-testid="selection-ring"
         src="/assets/art/ui/gold-ring-trimmed.webp" alt="" draggable={false}
         style={{ transform: `translate(${portraitX(selectedLane(selection)) - 8}px, ${groundY(selectedLane(selection)) - 322}px)`,
@@ -112,7 +112,7 @@ export function SelectScreen(p: SelectScreenProps) {
             // Keep adjacent sprites mounted for continuous frames, but never paint them at rest.
             opacity: visible ? 1 : 0, visibility: visible || movingQueue ? 'visible' : 'hidden',
             transition: movingQueue ? 'transform 250ms ease-out, opacity 250ms ease-out' : 'none' }}>
-          <PonyPortrait horseId={id} width={178} action="idle" style={{ left: 0 }}/>
+          <PonyPortrait lang={p.lang} horseId={id} width={178} action="idle" style={{ left: 0 }}/>
         </button>
       })}
     </div>

@@ -7,7 +7,7 @@
  * (block.timestamp − T0)·1000 ≥ finishWall 放行，早发只会得到 RaceNotFinished；只有这一种失败自动再试两次，
  * 赞助额度用完等被拒的结算绝不自动重发，交给「重试结算」。
  *
- * 会话协议 v2 没有退款：所需锚过窗后会话被判负、返还 0（结算页印章「已判负」）。冲线后结算页与恢复窗口
+ * 会话协议 v0.1 没有退款：所需锚过窗后会话被判负、返还 0（结算页印章「已判负」）。冲线后结算页与恢复窗口
  * 显示结算期限（chain/settleDeadline.ts），逾期视为放弃。
  */
 import { useCallback, useRef, useState } from 'react'
@@ -25,7 +25,7 @@ import { wallet } from '../../chain/wallet.ts'
 import { PaidRaceDriver } from '../../race/paidDriver.ts'
 import { compareSettlement, solveFromFacts } from '../../race/paidResult.ts'
 import { ALCHEMY_TIMING, DEV_EOA_TIMING, settleReadyWall } from '../../race/paidWindow.ts'
-import type { PaidSettlePhase } from '../../result/ResultScreen.tsx'
+import type { PaidSettlePhase } from '../../result/types.ts'
 import { t, type Lang } from '../i18n.ts'
 import { deadlineView, paidErrorText, paidReasonText, type DeadlineView } from './paidText.ts'
 

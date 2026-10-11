@@ -135,7 +135,7 @@ describe('tier 切分', () => {
 
   test('缺 tier 的清单直接报错，不按最早的级兜底', () => {
     const stale = { 'x.1': { kind: 'image', path: 'x.webp', bytes: 1, sha256: 'x' } } as unknown as AssetManifest
-    expect(() => assertTiered(stale)).toThrow(/分级字段/)
+    expect(() => assertTiered(stale)).toThrow(/assets.error.manifestTier/)
     expect(() => assertTiered(MANIFEST)).not.toThrow()
   })
 })

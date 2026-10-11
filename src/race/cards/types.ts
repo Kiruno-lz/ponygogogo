@@ -16,15 +16,15 @@ export interface CardView {
   quality: 'common' | 'rare'
   name: { zh: string; en: string }
   desc: { zh: string; en: string }
-  /** 梗源，用于卡面美术方向与图鉴 */
-  meme: string
+  /** Localized flavor copy; displayed above the skill description. */
+  meme: { zh: string; en: string }
   art: { icon: string; tint?: number }
   /** 电脑马私有牌堆是否允许取到；所有卡必须显式声明 */
   cpuUsable: boolean
 }
 
 /** Identity and artwork only; gameplay fields are derived from the canonical rule table. */
-export type CardMetadata = Pick<CardView, 'cardId' | 'name' | 'meme' | 'art'>
+export type CardMetadata = Pick<CardView, 'cardId' | 'name' | 'art'>
 
 /** Declarative effect state per card; the event solver never reads it. */
 export interface CardDef extends CardView {

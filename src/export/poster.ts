@@ -2,8 +2,8 @@
 import { formatMon } from '../chain/amount.ts'
 import { PONY_CATALOG, ponyById, ponyIdAt } from '../game/ponyCatalog.ts'
 import type { RaceResult } from '../race/core/types.ts'
-import type { PaidResultView } from '../result/ResultScreen.tsx'
-import { t, type Lang } from '../ui/i18n.ts'
+import type { PaidResultView } from '../result/types.ts'
+import { t, ponyName, type Lang } from '../ui/i18n.ts'
 import { collectibleView } from '../result/collectibleView.ts'
 
 export function posterContent(result: RaceResult, paid: PaidResultView | undefined, lang: Lang) {
@@ -14,7 +14,7 @@ export function posterContent(result: RaceResult, paid: PaidResultView | undefin
   const amount = !paid ? t(lang, 'result.practice') : net === null ? t(lang, 'result.pendingValue')
     : `${net > 0n ? '+' : ''}${formatMon(net, 4).replace(/\.?0+$/, '')} MON`
   const status = !paid ? t(lang, 'result.practiceValue') : `${t(lang, `result.stamp.${paid.phase}`)} · ${paid.settlement ? t(lang, 'result.chainRank', { rank }) : t(lang, 'result.previewRank', { rank })}`
-  return { horseId: result.horseId, ponyId, rank, amount, status, name: ponyById(ponyId).name,
+  return { horseId: result.horseId, ponyId, rank, amount, status, name: ponyName(ponyId, lang),
     grant: paid?.phase === 'settled' && paid.settlement && paid.grant ? collectibleView(paid.grant, lang) : null,
     headline: rank === 1 && (!paid || (net !== null && net > 0n)) ? 'WIN' : 'FINISH' }
 }

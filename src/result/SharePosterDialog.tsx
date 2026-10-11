@@ -3,7 +3,7 @@ import { copyPoster, downloadBlob, drawPoster, platformUrl, posterContent } from
 import type { RaceResult } from '../race/core/types.ts'
 import { StageDialog } from '../ui/shared/StageDialog.tsx'
 import { t, type Lang } from '../ui/i18n.ts'
-import type { PaidResultView } from './ResultScreen.tsx'
+import type { PaidResultView } from './types.ts'
 
 type IconName = 'copy' | 'save' | 'x' | 'instagram' | 'xiaohongshu' | 'close'
 export function SharePosterDialog({ lang, result, paid, onClose }: {

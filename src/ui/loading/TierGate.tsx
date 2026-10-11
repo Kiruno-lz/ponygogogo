@@ -1,3 +1,4 @@
+import { AssetFailures } from './AssetFailures.tsx'
 /**
  * 分级就绪的兜底遮罩。后台预取正常跑完的话玩家永远看不到它：
  * 只有「点得比预取快」或者「预取失败了」才会出现。
@@ -7,9 +8,9 @@
  * 底下那一页保持原样渲染，所以不会白屏。
  */
 import type { LoadProgress } from '../../assets/loader.ts'
+import { t,type Lang } from '../i18n.ts'
 import { WoodButton } from '../shared/Button.tsx'
 import { StageDialog } from '../shared/StageDialog.tsx'
-import { t, type Lang } from '../i18n.ts'
 
 export function TierGate({
   lang,
@@ -44,16 +45,7 @@ export function TierGate({
           </>
         ) : (
           <div data-testid="tier-gate-error">
-            <strong style={{ fontSize: 20 }}>
-              {t(lang, 'loading.failed', { n: progress.failures.length })}
-            </strong>
-            <ul className="scrolly" style={{ maxHeight: 110, margin: '8px 0', paddingLeft: 22, fontSize: 15, textAlign: 'left' }}>
-              {progress.failures.slice(0, 12).map((f) => (
-                <li key={f.key}>
-                  <code>{f.key}</code> — {f.message}
-                </li>
-              ))}
-            </ul>
+            <AssetFailures lang={lang} failures={progress.failures}/>
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
               <WoodButton
                 zh={t(lang, 'loading.retry')}

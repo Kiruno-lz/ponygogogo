@@ -1,3 +1,4 @@
+import { AssetLoadError, assetFailure } from './errors.ts'
 /**
  * 分级加载器。进首页只等 boot+home，race/result 在首页渲染之后后台预取，
  * 玩家真的走到那个页面时再用 ensureTier 兜一次底。
@@ -12,6 +13,7 @@ import type { AssetKey, AssetSource, AssetTier, LoadedAsset } from './source.ts'
 export interface LoadFailure {
   key: AssetKey
   message: string
+  issue?: { code: string; values: Record<string, string | number> }
 }
 
 export interface LoadProgress {
@@ -176,7 +178,7 @@ export class AssetLoader {
             // done 只数真的进了缓存的项。失败项不计入，所以 100% 永远等于「这一组可用了」
             s.done++
           } catch (err) {
-            s.failures.push({ key, message: err instanceof Error ? err.message : String(err) })
+            s.failures.push({ key, ...assetFailure(err) })
           }
           s.current = key
           this.emit()
@@ -221,10 +223,10 @@ export class FailingAssetSource implements AssetSource {
     if (this.failKeys(key, this.inner.entry(key))) {
       if (this.mode === 'timeout') {
         await new Promise((r) => setTimeout(r, 50))
-        throw new Error(`网关超时：${key}`)
+        throw new AssetLoadError('assets.error.timeout', { key })
       }
-      if (this.mode === 'offline') throw new Error(`网络不可用：${key}`)
-      throw new Error(`资源不存在 (404)：${key}`)
+      if (this.mode === 'offline') throw new AssetLoadError('assets.error.offline', { key })
+      throw new AssetLoadError('assets.error.notFound', { key })
     }
     return this.inner.load(key)
   }

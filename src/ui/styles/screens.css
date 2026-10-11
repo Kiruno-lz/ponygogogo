@@ -303,3 +303,7 @@
 /* 可点的卡面用选中时的同一圈金光表示键盘焦点：filter 按卡框的 alpha 描边，outline 会画成矩形 */
 .card-root[role='button']:focus-visible { outline: none; filter: drop-shadow(0 0 22px rgba(249, 199, 79, .95)); }
 
+
+.card-copy p { margin: 0; overflow-wrap: anywhere; }
+.card-meme { font-style: italic; font-weight: 500; }
+.card-copy .card-effect { margin-top: .7em; }

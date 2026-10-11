@@ -6,7 +6,7 @@ import { CollectionWriteError, syncCollectionProgress } from '../../chain/collec
 import { emptyCollection, mergeCollections, type CollectionProgress } from '../../chain/collectionProgress.ts'
 import { collectionFromGrant, readOwnedCollection, type CollectibleGrant } from '../../chain/rewards.ts'
 import { DEFAULT_ROSTER } from '../../race/core/roster.ts'
-import type { Lang } from '../i18n.ts'
+import { t, type Lang } from '../i18n.ts'
 
 /** Chain ownership and the encrypted personal copy share one in-memory progress set. */
 export function useCollectionProgress(lang: Lang, owner: Address | null) {
@@ -63,7 +63,7 @@ export function useCollectionProgress(lang: Lang, owner: Address | null) {
     } catch (err) {
       if (live()) {
         if (err instanceof CollectionWriteError) commit(mergeCollections(local.current ?? emptyCollection(), err.progress))
-        setError(lang === 'zh' ? '图鉴尚未同步成功；已保留读取的进度，请重试。' : 'Collection sync has not completed. Loaded progress is preserved; please retry.')
+        setError('collection.syncFailed')
       }
     } finally {
       key?.fill(0)
@@ -77,5 +77,5 @@ export function useCollectionProgress(lang: Lang, owner: Address | null) {
     void unlock()
   }, [currentOwner, owner, commit, unlock])
   const availablePonyIds = useMemo(() => [...DEFAULT_ROSTER, ...(progress?.unlockedPonyIds ?? [])], [progress])
-  return { progress, ownedRareIds: progress?.rareCardIds ?? null, availablePonyIds, loading, error, unlock, acceptGrant, reset }
+  return { progress, ownedRareIds: progress?.rareCardIds ?? null, availablePonyIds, loading, error: error ? t(lang, error) : null, unlock, acceptGrant, reset }
 }

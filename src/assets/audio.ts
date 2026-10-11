@@ -1,3 +1,4 @@
+import { AssetLoadError } from './errors.ts'
 /**
  * 音频。抽卡慢放不做单独的音乐素材：给 BGM 挂一个低通滤波并降低 playbackRate，
  * 出来就是「时间被拉慢」的听感，恢复时反向过渡。
@@ -71,7 +72,7 @@ export class AudioManager {
     if (!url) return null
     try {
       const res = await fetch(url)
-      if (!res.ok) throw new Error(`音频加载失败：${res.status}`)
+      if (!res.ok) throw new AssetLoadError('assets.error.audio', { key: res.status })
       const arr = await res.arrayBuffer()
       const buf = await this.ctx.decodeAudioData(arr)
       this.buffers.set(key, buf)

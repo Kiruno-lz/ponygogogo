@@ -1,3 +1,4 @@
+import { t } from '../ui/i18n.ts'
 /** 五匹马的外观。颜色取自 art-src/renders/race_start.png 的闸门排布，horseId 与颜色绑定，不随赛道变 */
 export interface HorseProfile {
   horseId: number
@@ -37,11 +38,11 @@ export function makeHorseProfile(
 }
 
 export const HORSE_PROFILES: HorseProfile[] = [
-  makeHorseProfile(0, 'Kiruno', 'Kiruno', 0xf5ede0, 0x6b3f22),
-  makeHorseProfile(1, 'Shadow', 'Shadow', 0x343842, 0x4a79c4),
-  makeHorseProfile(2, 'Berry', 'Berry', 0xf6c2d0, 0xe8799f),
-  makeHorseProfile(3, 'Cloud', 'Cloud', 0xf2f5f8, 0x9bc7e8),
-  makeHorseProfile(4, 'Thunder', 'Thunder', 0x2e2a24, 0xe8b93c),
+  makeHorseProfile(0, t('zh', 'pony.0.name'), t('en', 'pony.0.name'), 0xf5ede0, 0x6b3f22),
+  makeHorseProfile(1, t('zh', 'pony.1.name'), t('en', 'pony.1.name'), 0x343842, 0x4a79c4),
+  makeHorseProfile(2, t('zh', 'pony.2.name'), t('en', 'pony.2.name'), 0xf6c2d0, 0xe8799f),
+  makeHorseProfile(3, t('zh', 'pony.3.name'), t('en', 'pony.3.name'), 0xf2f5f8, 0x9bc7e8),
+  makeHorseProfile(4, t('zh', 'pony.4.name'), t('en', 'pony.4.name'), 0x2e2a24, 0xe8b93c),
 ]
 
 export function hexCss(c: number): string {

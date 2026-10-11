@@ -1,3 +1,5 @@
+import type { DriverPhase } from './raceView.ts'
+export type { DriverPhase } from './raceView.ts'
 /** Local practice uses the paid solver; only its clock and random anchors are local. */
 import { keccak256, padHex, toBytes, type Hex } from 'viem'
 import type { RaceEvent, RaceInput, RaceResult, RaceState } from './core/types.ts'
@@ -11,7 +13,6 @@ import type { RaceScreenDriver } from './raceView.ts'
 
 export interface DriverOptions { countdownMs: number; tailSpeed: number }
 export const DEFAULT_DRIVER: DriverOptions = { countdownMs: 3000, tailSpeed: 6 }
-export type DriverPhase = 'countdown' | 'racing' | 'tail' | 'done'
 export interface PracticeConfig { seed: string; playerHorseId: number; stakeTier: number; roster?: readonly number[] }
 
 function urlRaceSpeed(): number {

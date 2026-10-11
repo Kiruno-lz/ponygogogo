@@ -174,7 +174,7 @@ export function Hud(p: HudProps) {
 
   return (
     <div className="screen race-hud" style={{ pointerEvents: 'none', zIndex: 50 }}>
-      <PlayerPlaque horseId={ponyIdAt(st.roster, player.horseId)} />
+      <PlayerPlaque lang={p.lang} horseId={ponyIdAt(st.roster, player.horseId)} />
       <StaminaArt fraction={staminaPct} exhausted={exhausted} over={over}>
         {exhausted && <span className="stamina-exhausted" data-testid="exhausted">{t(p.lang, 'race.exhausted')}</span>}
       </StaminaArt>

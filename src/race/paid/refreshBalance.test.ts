@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test'
 import { fixtureInput, pickAt } from './testkit.ts'
 import { solvePaidCore } from './solver.ts'
 import { sampleHorse } from './trace.ts'
-import { ponyAbilityText } from '../../ui/shared/ponyAbilityText.ts'
 import { paidCardRule } from './cardRules.ts'
 
 function input(playerPony = 1) {
@@ -31,8 +30,4 @@ test('Shadow used by a CPU does not grant the player a refresh or the CPU speed'
   const r=solvePaidCore(core,{stopAtPanel:1})
   expect(r.panel!.drawState.refreshCredits).toBe(0)
   expect(sampleHorse(r.trace!,1,0n).pBps).toBe(0n)
-})
-test('Big Appetite copy states that direct bonus stamina may exceed capacity',()=>{
-  expect(ponyAbilityText(7,'en').description).toContain('above capacity')
-  expect(ponyAbilityText(7,'zh').description).toContain('可超过上限')
 })

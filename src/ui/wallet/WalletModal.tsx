@@ -4,26 +4,24 @@
  * （只读、只作展示，未配置索引器时不出现）。
  * 助记词只活在这个组件的局部 state 里：面板一卸载就随组件消失，不写任何持久存储。
  */
-import { useCallback, useState } from 'react'
+import { useCallback,useState } from 'react'
 import { formatMon } from '../../chain/amount.ts'
 import type { FaucetResult } from '../../chain/faucet.ts'
 import type { FundsSnapshot } from '../../chain/funds.ts'
 import { ENVIO_GRAPHQL_URL } from '../../chain/history.ts'
-import { shouldOfferMigration } from '../../chain/migration.ts'
-import { CHAIN, CURRENCY, explorerTxUrl } from '../../chain/network.ts'
-import { isTxBusy, type TxState } from '../../chain/txStatus.ts'
-import type { GameAccount, MigrationOutcome } from '../../chain/wallet.ts'
-import { Chip, WoodButton } from '../shared/Button.tsx'
-import { t, type Lang } from '../i18n.ts'
-import { RecentRaces } from './RecentRaces.tsx'
+import { CHAIN,CURRENCY } from '../../chain/network.ts'
+import type { GameAccount } from '../../chain/wallet.ts'
+import { t,type Lang } from '../i18n.ts'
+import { Chip,WoodButton } from '../shared/Button.tsx'
 import { StageDialog } from '../shared/StageDialog.tsx'
+import { RecentRaces } from './RecentRaces.tsx'
 import { walletErrorText } from './walletError.ts'
 
 type Pending = 'refresh' | 'faucet' | 'export' | null
 
 export function WalletModal({
-  lang, gameAccount, gameError, funds, rootBalance, tx,
-  onRefresh, onFaucet, onExport, onMigrate, onClose,
+  lang, gameAccount, gameError, funds,
+  onRefresh, onFaucet, onExport, onClose,
 }: {
   lang: Lang
   /** sma-b；null = 还在解析或解析失败 */
@@ -31,12 +29,9 @@ export function WalletModal({
   gameError: string | null
   /** null = 还没读到，显示占位符而不是 0 */
   funds: FundsSnapshot | null
-  rootBalance: bigint | null
-  tx: TxState
   onRefresh: () => Promise<void>
   onFaucet: () => Promise<FaucetResult>
   onExport: () => Promise<string>
-  onMigrate: () => Promise<MigrationOutcome | null>
   onClose: () => void
 }) {
   const [pending, setPending] = useState<Pending>(null)
@@ -84,15 +79,6 @@ export function WalletModal({
       .finally(() => setPending(null))
   }, [onExport, lang])
 
-  const busy = isTxBusy(tx)
-
-  const migrate = useCallback(() => {
-    setMessage(null)
-    void onMigrate().then((outcome) => {
-      if (outcome?.state === 'skipped') setMessage(t(lang, 'wallet.migrateSkipped'))
-    })
-  }, [onMigrate, lang])
-
   const money = (v: bigint | null | undefined) => (v === null || v === undefined ? '—' : `${formatMon(v, 4)} ${CURRENCY}`)
 
   return (
@@ -120,17 +106,6 @@ export function WalletModal({
           </dd>
 
         </dl>
-
-        <TxLine lang={lang} tx={tx} />
-
-        {shouldOfferMigration(rootBalance) && gameAccount && (
-          <div className="wallet-migrate" data-testid="wallet-migrate">
-            <strong>{t(lang, 'wallet.migrateTitle', { amount: formatMon(rootBalance ?? 0n, 4) })}</strong>
-            <p>{t(lang, 'wallet.migrateHint')}</p>
-            <Chip label={t(lang, busy && tx.phase !== 'idle' && tx.kind === 'migrate' ? 'wallet.migrating' : 'wallet.migrate')}
-              onClick={migrate} disabled={busy} />
-          </div>
-        )}
 
         {message && <p className="wallet-message" data-testid="wallet-message">{message}</p>}
 
@@ -161,21 +136,3 @@ export function WalletModal({
   )
 }
 
-/** 一行交易进度：已提交 → 已入块 / 失败 / 未确认，有哈希就给浏览器链接。 */
-function TxLine({ lang, tx }: { lang: Lang; tx: TxState }) {
-  if (tx.phase === 'idle') return null
-  const kind = t(lang, `wallet.tx.${tx.kind}`)
-  const text = tx.phase === 'failed'
-    ? t(lang, 'wallet.tx.failed', { kind, reason: tx.reason === 'reverted' ? t(lang, 'wallet.tx.reverted') : tx.reason })
-    : t(lang, `wallet.tx.${tx.phase}`, { kind })
-  const hash = tx.phase === 'signing' ? null : tx.hash
-  const href = hash ? explorerTxUrl(hash) : null
-  return (
-    <p className={`wallet-tx${tx.phase === 'failed' ? ' failed' : ''}`} data-testid="wallet-tx" data-phase={tx.phase} role="status">
-      <span>{text}</span>
-      {href && <a data-testid="wallet-tx-link" href={href} target="_blank" rel="noreferrer noopener">
-        {t(lang, 'wallet.tx.view')} <span className="mono">{hash!.slice(0, 10)}…</span>
-      </a>}
-    </p>
-  )
-}
