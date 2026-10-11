@@ -10,11 +10,12 @@ import type { GameAccount,WalletAccount } from '../../chain/wallet.ts'
 import { PAID_CARD_POOL } from '../../race/cards/paidCards.ts'
 import { t,type Lang } from '../i18n.ts'
 import { Chip } from '../shared/Button.tsx'
+import { TransientNotice } from '../shared/TransientNotice.tsx'
 
 /** 注册与登录是两条不同的通行密钥流程，按钮各自独立，忙碌时只禁用自己那一条 */
 export type { WalletBusy } from '../wallet/types.ts'
 
-export function HomeScreen({ lang, account, gameAccount, balance, busy, error, onStart, onCollection, onSettings,
+export function HomeScreen({ lang, account, gameAccount, balance, busy, error, errorKey, onDismissError, onStart, onCollection, onSettings,
   onRegister, onLogin, onOpenWallet, onLogout, onToggleLang, onOpenEffects }: {
   /** 根 EOA 只决定「是否已登录」；木牌上展示的是游戏账户（sma-b）的地址与余额 */
   lang: Lang; account: WalletAccount | null; gameAccount: GameAccount | null
@@ -23,6 +24,8 @@ export function HomeScreen({ lang, account, gameAccount, balance, busy, error, o
   onStart: () => void; onCollection: () => void; onSettings: () => void
   onRegister: () => void; onLogin: () => void; onOpenWallet: () => void; onLogout: () => void
   onToggleLang: () => void
+  errorKey?: unknown
+  onDismissError: () => void
   /** 仅由 Vite 开发构建传入；生产首页不显示验收入口 */
   onOpenEffects?: () => void
 }) {
@@ -48,7 +51,7 @@ export function HomeScreen({ lang, account, gameAccount, balance, busy, error, o
         <ArtButton art="login" label={busy === 'login' ? t(lang, 'home.loggingIn') : t(lang, 'home.login')} onClick={onLogin} disabled={busy !== null}/>
         <ArtButton art="register" label={busy === 'register' ? t(lang, 'home.registering') : t(lang, 'home.register')} onClick={onRegister} disabled={busy !== null}/>
       </>}
-      {error && <p className="home-wallet-error" data-testid="wallet-error" role="alert">{error}</p>}
+      {error && <TransientNotice className="home-wallet-error" testId="wallet-error" role="alert" noticeKey={errorKey ?? error} onDismiss={onDismissError}>{error}</TransientNotice>}
       {onOpenEffects && <Chip label={t(lang, 'home.effectShowcase')} onClick={onOpenEffects}
         style={{ position: 'absolute', left: 38, bottom: 30, fontSize: 15, padding: '5px 12px' }} />}
       <Chip label={t(lang, 'home.toggleLang')} onClick={onToggleLang} style={{ position: 'absolute', right: 38, bottom: 30, fontSize: 15, padding: '5px 12px' }}/>

@@ -70,6 +70,7 @@
 .wallet-logout { position: absolute; right: 34px; top: 349px; width: 63px; height: 32px; font-size: 13px; font-weight: 800; background: #e8c495; transform: rotate(-7deg); }
 .wallet-content { text-align: left; cursor: pointer; }
 .home-wallet-error { position: absolute; left: 86px; bottom: 116px; width: 640px; margin: 0; padding: 10px 16px; background: rgba(48, 20, 12, .88); color: #ffe9c9; font-size: 18px; font-weight: 700; line-height: 1.45; border-radius: 12px; }
+.transient-notice { position: absolute; left: 460px; top: 40px; width: 680px; padding: 4px 24px; text-align: center; font-size: 20px; font-weight: 700; z-index: 200; }
 
 /* 分级资源没就绪时的兜底遮罩。底下那一页照常渲染，所以不会白屏。 */
 .tier-gate { position: absolute; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; background: rgba(20, 10, 4, .58); }

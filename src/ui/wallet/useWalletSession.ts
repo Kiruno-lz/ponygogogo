@@ -1,18 +1,18 @@
 import { useCallback, useRef, useState } from 'react'
 import { wallet, type GameAccount, type WalletAccount } from '../../chain/wallet.ts'
-import { t, type Lang } from '../i18n.ts'
-import { walletErrorText } from './walletError.ts'
+import { localized, type Lang } from '../i18n.ts'
+import { walletErrorMessages } from './walletError.ts'
 import type { WalletBusy } from './types.ts'
 
 export function useWalletSession(lang: Lang, { resetFunds, refreshFunds, resetCollection, checkResume, onLogout, setNotice }: {
   resetFunds: () => void; refreshFunds: () => Promise<void>; resetCollection: () => void
-  checkResume: () => Promise<void>; onLogout: () => void; setNotice: (notice: string | null) => void
+  checkResume: () => Promise<void>; onLogout: () => void; setNotice: (notice: ReturnType<typeof localized> | null) => void
 }) {
   const [account, setAccount] = useState<WalletAccount | null>(null)
   const [gameAccount, setGameAccount] = useState<GameAccount | null>(null)
-  const [gameError, setGameError] = useState<string | null>(null)
+  const [gameError, setGameError] = useState<ReturnType<typeof localized> | null>(null)
   const [walletBusy, setWalletBusy] = useState<WalletBusy>(null)
-  const [walletError, setWalletError] = useState<string | null>(null)
+  const [walletError, setWalletError] = useState<ReturnType<typeof localized> | null>(null)
   const [walletOpen, setWalletOpen] = useState(false)
   const [registerOpen, setRegisterOpen] = useState(false)
   const walletSeq = useRef(0)
@@ -23,6 +23,7 @@ export function useWalletSession(lang: Lang, { resetFunds, refreshFunds, resetCo
     resetCollection()
     setWalletBusy('register')
     setWalletError(null)
+    setNotice(null)
     setGameAccount(null)
     setGameError(null)
     resetFunds()
@@ -44,7 +45,7 @@ export function useWalletSession(lang: Lang, { resetFunds, refreshFunds, resetCo
       if (!current()) return
       if (!game) {
         // 通行密钥已经建好，只是游戏账户暂时连不上：不领水（测试币只发给 sma-b），提示稍后刷新
-        const text = walletErrorText(lang, resolveError)
+        const text = walletErrorMessages(resolveError)
         setGameError(text)
         setNotice(text)
       } else {
@@ -53,21 +54,20 @@ export function useWalletSession(lang: Lang, { resetFunds, refreshFunds, resetCo
         // 受理不等于到账：只有余额真涨了才说「已到账」
         setNotice(
           !faucet?.ok
-            ? t(lang, 'wallet.faucetFailed', { detail: faucet?.detail ?? '' })
-            : t(lang, funded ? 'wallet.faucetOk' : 'wallet.faucetSlow'),
+            ? localized('wallet.faucetFailed', { detail: faucet?.detail ?? '' })
+            : localized(funded ? 'wallet.faucetOk' : 'wallet.faucetSlow'),
         )
       }
-      setTimeout(() => setNotice(null), 5200)
     } catch (err) {
       if (!current()) return
-      setWalletError(walletErrorText(lang, err))
+      setWalletError(walletErrorMessages(err))
     } finally {
       if (current()) {
         setWalletBusy(null)
         setRegisterOpen(false)
       }
     }
-  }, [lang, resetFunds, refreshFunds, resetCollection, setNotice])
+  }, [resetFunds, refreshFunds, resetCollection, setNotice])
 
   /** 解析 sma-b 并读一次资金；失败只记在钱包里，不影响登录本身 */
   const connectGame = useCallback(async (current: () => boolean) => {
@@ -80,9 +80,9 @@ export function useWalletSession(lang: Lang, { resetFunds, refreshFunds, resetCo
       // 链上还有未完结的有奖会话：首页弹出恢复
       if (current()) await checkResume()
     } catch (err) {
-      if (current()) setGameError(walletErrorText(lang, err))
+      if (current()) setGameError(walletErrorMessages(err))
     }
-  }, [refreshFunds, lang, checkResume])
+  }, [refreshFunds, checkResume])
 
   /** 登录：唤起通行密钥，由系统自己列出该域名下的全部，派生出同一个地址 */
   const login = useCallback(async () => {
@@ -91,6 +91,7 @@ export function useWalletSession(lang: Lang, { resetFunds, refreshFunds, resetCo
     resetCollection()
     setWalletBusy('login')
     setWalletError(null)
+    setNotice(null)
     setGameAccount(null)
     setGameError(null)
     resetFunds()
@@ -103,17 +104,19 @@ export function useWalletSession(lang: Lang, { resetFunds, refreshFunds, resetCo
       await connectGame(current)
     } catch (err) {
       if (!current()) return
-      setWalletError(walletErrorText(lang, err))
+      setWalletError(walletErrorMessages(err))
     } finally {
       if (current()) setWalletBusy(null)
     }
-  }, [lang, resetFunds, connectGame, resetCollection])
+  }, [resetFunds, connectGame, resetCollection, setNotice])
 
   const logout = useCallback(() => {
     // 退出即作废所有在途的钱包操作：注册的领水轮询不能在退出之后再把余额写回来
     walletSeq.current++
     onLogout()
     setWalletBusy(null)
+    setWalletError(null)
+    setNotice(null)
     wallet.logout()
     setAccount(null)
     setGameAccount(null)
@@ -121,7 +124,7 @@ export function useWalletSession(lang: Lang, { resetFunds, refreshFunds, resetCo
     resetFunds()
     resetCollection()
     setWalletOpen(false)
-  }, [resetFunds, resetCollection, onLogout])
+  }, [resetFunds, resetCollection, onLogout, setNotice])
 
   /** 钱包面板的「刷新」：sma-b 之前没连上的话顺带重试一次解析 */
   const refreshWallet = useCallback(async () => {
@@ -134,5 +137,6 @@ export function useWalletSession(lang: Lang, { resetFunds, refreshFunds, resetCo
   }, [refreshFunds])
 
 
-  return { account, gameAccount, gameError, walletBusy, walletError, walletOpen, registerOpen, walletSeq, setWalletOpen, setRegisterOpen, register, login, logout, refreshWallet, setWalletError }
+  return { account, gameAccount, gameError: gameError?.[lang] ?? null, walletBusy, walletError: walletError?.[lang] ?? null,
+    walletErrorKey: walletError, walletOpen, registerOpen, walletSeq, setWalletOpen, setRegisterOpen, register, login, logout, refreshWallet, setWalletError }
 }
