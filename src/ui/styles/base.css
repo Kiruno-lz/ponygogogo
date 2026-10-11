@@ -1,0 +1,54 @@
+:root {
+  --wood: #b28168;
+  --wood-dark: #a17865;
+  --parchment: #f1cdb0;
+  --parchment-lite: #f7e3cf;
+  --gold: #f4a22a;
+  --gold-lite: #f9c74f;
+  --ink: #57250c;
+  --ink-soft: #8a5a3a;
+  --dirt: #b77249;
+  --sky: #6f9efa;
+  --stage-w: 1619px;
+  --stage-h: 971px;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #2b211c;
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei',
+    system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.stage-host {
+  position: fixed;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  background: #241c18;
+}
+
+.stage {
+  position: absolute;
+  width: var(--stage-w);
+  height: var(--stage-h);
+  transform-origin: top left;
+  overflow: hidden;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+}
+

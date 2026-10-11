@@ -1,0 +1,177 @@
+/* ---------------- 结算页：1620×971 画板，素材等比布局 ---------------- */
+
+.result-screen { background: #8a6a4a; }
+.result-artboard { position: absolute; left: 0; top: 0; width: 1620px; height: 971px; color: #4a2c14; }
+.result-artboard > img { position: absolute; display: block; }
+.result-bg { left: 0; top: 0; width: 1620px; height: 971px; }
+.result-hero { position: absolute; }
+.result-stats-board { left: 803px; top: 168px; width: 804px; height: 592px; }
+.result-nameplate { left: 330px; top: 204px; width: 326px; height: auto; }
+.result-medal-art { left: 145px; top: 153px; width: 220px; height: auto; }
+/* 标题与奖章收紧，给角色和信息板留出净空；所有素材保持原始宽高比 */
+.result-heading { position: absolute; left: 50%; top: 20px; width: 700px; height: 234px;
+  transform: translateX(-50%) scale(.9); transform-origin: center top; }
+.result-header { position: absolute; display: block; left: 0; top: 0; width: 700px; height: auto; }
+.result-title { position: absolute; left: 185px; top: 74px; width: 330px; text-align: center;
+  font-size: 64px; font-weight: 800; letter-spacing: 4px; text-indent: 4px; line-height: 1;
+  color: #4a2c14; white-space: nowrap; }
+.result-title-en { position: absolute; left: 230px; top: 140px; width: 240px; text-align: center;
+  font-size: 24px; font-weight: 700; letter-spacing: 1px; text-indent: 1px; line-height: 1;
+  color: #6b4a29; white-space: nowrap; }
+
+/* 木纸上的三行数据：抹空区左端 928、右端 1437，行距 44 */
+.result-row { position: absolute; left: 928px; width: 509px; height: 32px; display: flex;
+  align-items: baseline; justify-content: space-between; }
+.result-row-label { font-size: 25px; font-weight: 700; }
+.result-row-value { font-size: 28px; font-weight: 700; }
+
+/* 原净盈亏的位置：试玩不计奖金，标签与说明分列金币两侧，不写任何金额 */
+.result-practice { position: absolute; inset: 0; pointer-events: none; }
+.result-practice-label { position: absolute; left: 928px; top: 407px; font-size: 31px; font-weight: 800; white-space: nowrap; }
+.result-practice-value { position: absolute; left: 1222px; top: 402px; font-size: 40px; font-weight: 800; white-space: nowrap; }
+
+.result-picks-title { position: absolute; left: 912px; top: 488px; font-size: 22px; font-weight: 800; }
+.result-pick { position: absolute; top: 530px; width: 160px; height: 110px; }
+.result-pick-no { position: absolute; left: 0; top: 2px; width: 28px; text-align: center;
+  font-size: 25px; font-weight: 800; opacity: .8; }
+.result-pick-icon { position: absolute; left: calc(var(--pick-center) - 32px); top: 2px;
+  width: 64px; height: 64px; object-fit: contain; }
+.result-pick-empty { border-radius: 10px; background: rgba(120, 84, 52, .16); }
+.result-pick-name { position: absolute; left: calc(var(--pick-center) - 78px); width: 156px; top: 72px;
+  text-align: center; font-size: 18px; font-weight: 700; line-height: 1.15; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+
+/* 印章框是木纸上原有的空心矩形，试玩的「本地试玩」写在框里 */
+.result-settle-stamp { position: absolute; left: 1103px; top: 654px; width: 165px; height: 44px;
+  display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800;
+  letter-spacing: 2px; white-space: nowrap; }
+
+/* 有奖结算：印章按状态着色；结算 tx 写在印章下方；失败说明与重试另起一行放在按钮行下方 */
+.result-settle-stamp.stamp-waiting, .result-settle-stamp.stamp-pending { color: #8a5a1c; }
+.result-settle-stamp.stamp-settled { color: #2f6b2a; }
+.result-settle-stamp.stamp-failed, .result-settle-stamp.stamp-forfeited { color: #a3321f; }
+/* tx 与印章同一行、在它左侧，落在木纸内部 */
+.result-tx { position: absolute; left: 912px; top: 664px; width: 184px; height: 26px; line-height: 26px;
+  font-size: 15px; font-weight: 700; color: #4a2c14; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-verify { color: #ffe9a8; }
+.result-settle-detail { position: absolute; left: 140px; top: 910px; width: 1008px; min-height: 52px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 3px 16px;
+  border-radius: 14px; background: rgba(40, 24, 14, .72); color: #ffe9c9; font-size: 20px; font-weight: 700; }
+/* 第一行：名次说明 · 进度或失败原因 · 重试；第二行（有期限时）：结算期限。框顶固定在按钮行下方，
+   两行合计须落在 971 画板内（tests/e2e/regressions/REPRO.md 五），所以重试用紧凑的筹码 */
+.result-settle-line { display: flex; align-items: center; justify-content: center; gap: 16px; max-width: 100%; min-width: 0; }
+.result-settle-detail .chip { flex: 0 0 auto; padding: 3px 16px; font-size: 18px; line-height: 26px; }
+.result-settle-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-settle-deadline { max-width: 100%; font-size: 16px; line-height: 22px; color: #ffd28a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-settle-verify { flex: 0 0 auto; color: #ffe9a8; white-space: nowrap; }
+
+/* 奖章、名牌与名次条压在 placement 切片被抹空的位置上 */
+/* 名字与金额用仓库里的 Kalam：原画那支圆体比系统无衬线更窄更高，字宽与字高都更接近 */
+.result-name, .result-row-value { font-family: Kalam, 'PingFang SC', sans-serif; }
+.result-name { position: absolute; left: 372px; top: 227px; width: 232px; line-height: 62px;
+  text-align: center; font-size: 52px; font-weight: 700; letter-spacing: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-rank-line { position: absolute; left: 422px; top: 294px; width: 123px; height: 30px;
+  display: flex; align-items: center; justify-content: space-between; color: #f3ead9;
+  font-size: 25px; font-weight: 700; }
+.result-rank-total { font-weight: 800; }
+.result-combo { position: absolute; left: 140px; top: 914px; width: 542px; text-align: center;
+  font-size: 24px; font-weight: 900; color: #ffe9a8; text-shadow: 0 2px 5px rgba(50, 22, 8, .85); }
+
+/* 三个按钮都是整块透明原画；文字压在原画抹空的牌面上 */
+.result-artboard > .btn { position: absolute; padding: 0; }
+.result-artboard > .btn > img { display: block; width: 100%; height: 100%; pointer-events: none; }
+/* 文字框以原画那行字的中心为轴居中排版，宽度卡在牌面上图标右侧的净空里；
+   英文更长，单独给一档小一号的字号，免得压到木牌左端那枚图标。 */
+.result-artboard > .btn > .lbl { position: absolute; font-weight: 800; white-space: nowrap;
+  text-align: center; overflow: hidden; text-overflow: ellipsis; pointer-events: none; color: #4a2c14; }
+.result-btn-home { left: 405px; top: 782px; width: 356px; height: 124px; }
+.result-btn-home > .lbl { left: 121px; top: 41px; width: 182px; font-size: 31px; letter-spacing: 1.5px; }
+.result-btn-share { left: 771px; top: 783px; width: 377px; height: 123px; }
+.result-btn-share > .lbl { left: 128px; top: 43px; width: 186px; font-size: 31px; letter-spacing: 1.5px; }
+.result-btn-again { left: 1195px; top: 747px; width: 374px; height: 198px; }
+.result-btn-again > .lbl { left: 152px; top: 73px; width: 144px; font-size: 34px; letter-spacing: 0; }
+.result-artboard.en .result-title { top: 92px; font-size: 50px; letter-spacing: 0; text-indent: 0; }
+.result-artboard.en .result-btn-home > .lbl { font-size: 30px; letter-spacing: 0; }
+.result-artboard.en .result-btn-share > .lbl { font-size: 26px; letter-spacing: 0; }
+.result-artboard.en .result-btn-again > .lbl { font-size: 27px; top: 73px; }
+
+/* Share controls stay at viewport size, outside the exported poster. */
+.stage-dialog.collectible-dialog {
+  inset: 0; width: 100vw; height: 100dvh; transform: none; overflow: hidden;
+  background: rgba(13, 18, 17, .84); backdrop-filter: blur(8px);
+}
+.stage-dialog.collectible-dialog[open] { display: flex; flex-direction: column; gap: 18px; }
+.collectible-panel {
+  --collectible-width: min(400px, calc(100vw - 32px), calc((100dvh - 64px) * 2 / 3));
+  --collectible-unit: calc(var(--collectible-width) / 100);
+  position: relative; z-index: 1; flex: none;
+  width: var(--collectible-width); aspect-ratio: 2 / 3;
+  color: #593314; text-align: center; perspective: 1600px;
+}
+.collectible-lift, .collectible-rotation { position: absolute; inset: 0; transform-style: preserve-3d; }
+.collectible-panel:focus { outline: none; }
+.collectible-rotation { transform-origin: 50% 50%; }
+.collectible-face { position: absolute; inset: 0; overflow: hidden; border-radius: calc(var(--collectible-unit) * 4.5); backface-visibility: hidden;
+  -webkit-backface-visibility: hidden; background-color: transparent; background-size: 100% 100%; box-shadow: 0 20px 70px #0007; }
+.collectible-back { transform: rotateY(180deg) translateZ(1px); border: 0; padding: 0;
+  background-image: url('/assets/art/collectibles/back.webp'); cursor: pointer; font-family: inherit; }
+.collectible-back:disabled { cursor: default; }
+.collectible-front { transform: rotateY(0deg) translateZ(1px); box-shadow: none; font-family: 'Songti SC', 'Noto Serif SC', 'STSong', Georgia, serif; }
+.collectible-front-pony { background-image: url('/assets/art/collectibles/front-pony-titled.webp'); }
+.collectible-front-card { background-image: url('/assets/art/collectibles/front-card-titled.webp'); }
+.collectible-title-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.collectible-art { position: absolute; top: 24%; left: 2%; width: 96%; height: 46%; display: flex; align-items: center; justify-content: center; }
+.collectible-art > img { width: 100%; height: 100%; object-fit: contain; transform: scale(1.1); }
+.collectible-panel[data-asset-kind="rareCard"] .collectible-art { top: 23%; left: 19%; width: 62%; height: 54.5%; }
+.collectible-caption { position: absolute; inset: 0; pointer-events: none; }
+.collectible-panel h3 { position: absolute; left: 27%; right: 27%; top: 71.4%; margin: 0; font-size: calc(var(--collectible-unit) * 7); line-height: 1.1; font-weight: 900;
+  color: #b9781c; -webkit-text-stroke: calc(var(--collectible-unit) * .1) #7a430e; text-shadow: 0 calc(var(--collectible-unit) * .22) 0 #6a3609, 0 calc(var(--collectible-unit) * -.1) 0 #fff1b9; }
+.collectible-caption p { position: absolute; left: 36%; right: 36%; top: 81%; margin: 0; color: #65330b; font-size: calc(var(--collectible-unit) * 3.3); line-height: 1.2; font-weight: 900; }
+.collectible-panel[data-asset-kind="rareCard"] .collectible-caption p { left: 38%; right: 38%; top: 79.7%; }
+.collectible-front:lang(en) .collectible-caption p { left: 30%; right: 30%; }
+.collectible-keep { position: absolute; top: 85.3%; height: 8.7%; left: 28.5%; width: 43%; padding: 0; border: 0;
+  border-radius: 999px; background: transparent; color: #512800; cursor: pointer; font-family: inherit; font-size: calc(var(--collectible-unit) * 4.8); font-weight: 900; }
+.collectible-keep img { display: block; width: 100%; height: 100%; object-fit: fill; pointer-events: none; }
+.collectible-keep span { position: absolute; inset: 0; display: grid; place-items: center; padding-bottom: 1%; -webkit-text-stroke: calc(var(--collectible-unit) * .05) #512800; }
+.card-collectible .collectible-card-icon { position: absolute; top: 14%; left: 7%; width: 86%; height: 57%; object-fit: contain; }
+.card-collectible .collectible-card-name { position: absolute; top: 69.97%; left: 20.05%; width: 59.9%; height: 11%; display: flex; align-items: center; justify-content: center; white-space: nowrap;
+  font-family: 'Songti SC', 'Noto Serif SC', 'STSong', Georgia, serif; font-size: calc(var(--collectible-unit, 4px) * 6.1); line-height: 1.05; font-weight: 900;
+  color: #542801; -webkit-text-stroke: calc(var(--collectible-unit) * .035) #542801; }
+.collectible-card-name > span { flex: none; }
+.collectible-back:focus-visible { outline: none; }
+.collectible-keep:focus-visible { outline: 3px solid #efc565; outline-offset: 4px; }
+.collectible-confetti { display: contents; pointer-events: none; }
+.collectible-confetti canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.collectible-confetti-behind { z-index: 0; }
+.collectible-confetti-top { z-index: 3; }
+.collectible-sync { position: absolute; z-index: 4; bottom: 12px; max-width: calc(100vw - 24px); max-height: 90px;
+  overflow: auto; color: #ffedc8; text-align: center; font: 14px/1.4 'PingFang SC', sans-serif; }
+.collectible-sync p { margin: 0 0 5px; }
+.collectible-sync-error { color: #ffc4a8; }
+.stage-dialog.share-dialog {
+  inset: 0; width: 100vw; height: 100dvh; transform: none;
+  background: rgba(13, 9, 7, .86); overflow: auto;
+}
+.stage-dialog.share-dialog::backdrop { background: rgba(13, 9, 7, .86); }
+.share-poster-panel {
+  position: relative; flex: none;
+  width: min(calc(100vw - 148px), calc((100dvh - 48px) * 1620 / 971));
+  aspect-ratio: 1620 / 971; margin-right: 64px;
+}
+.share-poster-image { display: block; width: 100%; height: 100%; border-radius: 8px; box-shadow: 0 12px 50px #0009; }
+.share-placeholder { height: 100%; display: grid; place-items: center; color: #fff0d3; background: #2e211b; border-radius: 8px; }
+.share-close { position: absolute; top: 0; right: -64px; }
+.share-actions { position: absolute; right: -64px; bottom: 0; display: flex; flex-direction: column; gap: 12px; }
+.share-icon-button {
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%;
+  border: 1px solid #ead5ab80; background: transparent; color: #fff0d3; cursor: pointer;
+}
+.share-icon-button:hover { border-color: #ffcf6e; color: #ffcf6e; }
+.share-icon-button:focus-visible { outline: 2px solid #ffcf6e; outline-offset: 3px; }
+.share-icon-button:disabled { opacity: .4; cursor: wait; }
+.share-feedback { position: absolute; right: 0; bottom: -25px; font-size: 13px; color: #fff0d3; }
+@media (max-height: 360px) {
+  .share-icon-button { width: 36px; height: 36px; }
+  .share-actions { gap: 7px; }
+}
