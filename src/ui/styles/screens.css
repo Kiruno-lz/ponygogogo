@@ -63,6 +63,15 @@
 .home-register { left: 1335px; top: 151px; width: 269px; height: 219px; }
 .home-register > .lbl { left: 50px; top: 33px; width: 160px; transform: rotate(-5.6deg); }
 .home-register .zh { font-size: 44px; letter-spacing: 5px; text-indent: 5px; }
+/* 英文单行文字按牌面单独调整，中文主副标题沿用原版位。 */
+.home-artboard.en .home-start > .lbl { top: 60px; }
+.home-artboard.en .home-start .zh { font-size: 64px; letter-spacing: 4px; text-indent: 4px; }
+.home-artboard.en .home-collection > .lbl { top: 61px; }
+.home-artboard.en .home-collection .zh { font-size: 35px; letter-spacing: 0; text-indent: 0; }
+.home-artboard.en .home-settings > .lbl { top: 56px; }
+.home-artboard.en .home-settings .zh { letter-spacing: 1px; text-indent: 1px; }
+.home-artboard.en .home-login .zh, .home-artboard.en .home-register .zh { font-size: 24px; letter-spacing: 1px; text-indent: 1px; }
+.home-artboard.en .home-register > .lbl { top: 45px; transform: rotate(-9.2deg); }
 .home-wallet { position: absolute; right: 0; top: 0; width: 386px; height: 448px; background: url('/assets/art/ui/wallet-trimmed.webp') center / 100% 100% no-repeat; }
 .wallet-content { position: absolute; left: 82px; top: 76px; width: 250px; height: 175px; transform: rotate(-5deg); padding: 4px 0; }
 .wallet-row { display: flex; align-items: center; gap: 14px; height: 55px; font-size: 22px; color: #281c14; font-weight: 750; }

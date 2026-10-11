@@ -32,7 +32,7 @@ export function HomeScreen({ lang, account, gameAccount, balance, busy, error, e
   const sub = (key: 'home.startEn' | 'home.collectionEn' | 'home.settingsEn') =>
     lang === 'zh' ? t(lang, key) : undefined
   return <div className="screen home-screen" data-testid="screen-home">
-    <div className="home-artboard">
+    <div className={`home-artboard${lang === 'en' ? ' en' : ''}`}>
       <img className="home-bg" src="/assets/art/ui/bg-title.webp" alt="" draggable={false} />
       <img className="home-logo" src="/assets/art/home/logo.webp" alt={t(lang, 'app.title')} draggable={false} />
       <ArtButton art="start" label={t(lang, 'home.start')} sub={sub('home.startEn')} onClick={onStart} />
