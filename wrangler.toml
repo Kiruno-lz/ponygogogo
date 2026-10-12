@@ -3,6 +3,21 @@ name = "ponygo"
 compatibility_date = "2026-09-19"
 main = "./scripts/Wrangler/worker/collection.ts"
 
+[observability]
+enabled = false
+
+[observability.logs]
+enabled = false
+invocation_logs = false
+persist = false
+
+[observability.traces]
+enabled = false
+persist = false
+
+[observability.issues]
+enabled = false
+
 [vars]
 KEEPER_RPC_URL = "https://testnet-rpc.monad.xyz"
 KEEPER_GAME_ADDRESS = "0x84a319aa7dAdE1fBD49FE135bb70feeD937eCe82"
