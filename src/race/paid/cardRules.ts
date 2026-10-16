@@ -16,7 +16,7 @@ export type PaidCardEffect = keyof typeof CARD_EFFECT
 export type PaidCardBonusMode = 'follow' | 'permanent' | 'default' | 'loot'
 export const CARD_MAIN_FUNCTION = { power: 0, supply: 1, equipment: 2, interference: 3, draw: 4, appearance: 5 } as const
 export type CardMainFunction = keyof typeof CARD_MAIN_FUNCTION
-export const PAID_CARD_GLOBALS = { bonusDefaultMs: 20_000, minCostFactorBps: 500, rkStepMs: 250 } as const
+export const PAID_CARD_GLOBALS = { bonusDefaultMs: 20_000, minCostFactorBps: 0, rkStepMs: 250 } as const
 export type PaidCardRule = {
   id: number
   mainFunction: CardMainFunction
@@ -44,7 +44,6 @@ export type PaidCardRule = {
   triggerDurationMs?: number
   thresholdMicro?: number
   triggerFixedSpeed?: number
-  flameLayers?: readonly number[]
   baseStages?: readonly number[]
 }
 
@@ -59,7 +58,7 @@ export const PAID_CARD_RULES: readonly PaidCardRule[] = [
   { id: 8, mainFunction: 'equipment', effect: 'rainbow', rare: false, cpu: true, durationMs: 60_000, bonusMode: 'follow', pBps: 1_000, slot: 1 },
   { id: 9, mainFunction: 'interference', effect: 'swap', rare: true, cpu: false, durationMs: 30_000, bonusMode: 'follow', periodMs: 2_000, count: 15 },
   { id: 10, mainFunction: 'equipment', effect: 'gravity', rare: true, cpu: true, durationMs: 20_000, bonusMode: 'follow', slot: 0, radiusMicro: 8_000_000_000, strengthBps: 3_000, overlapBps: 3_000 },
-  { id: 11, mainFunction: 'equipment', effect: 'wheel', rare: false, cpu: false, durationMs: 30_000, bonusMode: 'follow', slot: 2, periodMs: 1_000, count: 3, fixedSpeed: 100, flameLayers: [1, 11, 21] },
+  { id: 11, mainFunction: 'equipment', effect: 'wheel', rare: false, cpu: false, durationMs: 30_000, bonusMode: 'follow', slot: 2, periodMs: 1_000, count: 10, fixedSpeed: 100 },
   { id: 12, mainFunction: 'interference', effect: 'wind', rare: false, cpu: true, durationMs: null, bonusMode: 'permanent', strengthBps: 2_500 },
   { id: 13, mainFunction: 'interference', effect: 'steal', rare: false, cpu: true, durationMs: 0, bonusMode: 'loot' },
   { id: 14, mainFunction: 'supply', effect: 'regen', rare: false, cpu: true, durationMs: 15_000, bonusMode: 'follow', regenBonusBps: 10_000 },
@@ -120,6 +119,6 @@ export function paidCardRuleTuple(card: PaidCardRule): number[] {
 }
 
 export const PAID_CARD_RULES_HASH = keccak256(toBytes(JSON.stringify({ globals: PAID_CARD_GLOBALS,
-  cards: PAID_CARD_RULES.map(paidCardRuleTuple), flameLayers: PAID_CARD_RULES.map(c => c.flameLayers ?? []), baseStages: PAID_CARD_RULES.map(c => c.baseStages ?? []), mainFunctions: PAID_CARD_RULES.map(c => CARD_MAIN_FUNCTION[c.mainFunction]) })))
+  cards: PAID_CARD_RULES.map(paidCardRuleTuple), baseStages: PAID_CARD_RULES.map(c => c.baseStages ?? []), mainFunctions: PAID_CARD_RULES.map(c => CARD_MAIN_FUNCTION[c.mainFunction]) })))
 /** New rules are immutable per solver/Game deployment; the hash changes with any card or shared numeric-rule edit. */
 export const PAID_RULESET_HASH = keccak256(toBytes(`ponygogogo/paid-rules/v0.1/${PAID_CARD_RULES_HASH}/${PONY_RULES_HASH}/${PLAYER_BALANCE_HASH}`))

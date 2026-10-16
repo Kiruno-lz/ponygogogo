@@ -121,9 +121,9 @@ test('C38 never rewards death or an exhaustion after its thirty-second window', 
   expect(r.events.filter(e => e.code === EV_TRIGGER && e.horse === H && e.arg / 256n === 38n)).toHaveLength(0)
 })
 
-test('C11 starts with layer one, reaches layers eleven and twenty-one, and removes its extra speed at expiry', () => {
+test('C11 starts with layer one, reaches each ten-layer threshold, and removes its extra speed at expiry', () => {
   const r = run([11]), t = at(r,11)
-  for (const [dt,k] of [[0n,100n],[9999n,100n],[10000n,200n],[20000n,300n],[30000n,0n]])
+  for (const [dt,k] of [[0n,100n],[8999n,100n],[9000n,200n],[19000n,300n],[29000n,400n],[30000n,0n]])
     expect(frame(r,t+dt!).motion.fixed).toBe(k!)
 })
 
@@ -171,7 +171,7 @@ test('death preserves wheel extra speed, its original phase and the remaining eq
   expect(d.tau).toBeLessThan(gear.endTau!)
   const f=r.trace!.keyframes[0]!.find(f=>f.tau0===d.tau)!
   expect(f.motion.fixed).toBe(200n)
-  expect(r.events.filter(e=>e.horse===0&&e.code===EV_WHEEL_BURST).map(e=>[e.tau-gear.startTau,e.arg])).toEqual([[0n,1n],[10000n,11n],[20000n,21n]])
+  expect(r.events.filter(e=>e.horse===0&&e.code===EV_WHEEL_BURST).map(e=>[e.tau-gear.startTau,e.arg])).toEqual([[0n,1n],[9000n,10n],[19000n,20n],[29000n,30n]])
 })
 
 test('recycling refreshed equipment keeps C32 independent speed alive', () => {
@@ -182,4 +182,31 @@ test('recycling refreshed equipment keeps C32 independent speed alive', () => {
   expect(gear.endTau).toBe(t)
   expect(buff.endTau!).toBeGreaterThan(t)
   expect(sampleHorse(r.trace!,H,t).pBps).toBe(3500n)
+})
+
+test('C21 excludes its holder from other horses gravity, theft and feast, but preserves self effects', () => {
+  const ps = profiles(1800n)
+  const r = solvePaidCore(playNewCards([21, 8, 36], {
+    profiles: ps, cpu: { 0: [10, 36, 13], 2: [19, 20, 5], 3: [19, 20, 5], 4: [19, 20, 5] },
+  }))
+  const t = at(r, 21), feast = at(r, 36)
+  expect(sampleHorse(r.trace!, H, t + 1000n).pBps).toBe(0n)
+  expect(r.events.filter(e => e.code === EV_RESOURCE && e.horse === H && e.tau < feast)).toHaveLength(0)
+  expect(r.trace!.instances.find(i => i.horse === H && i.cardId === 8)!.endReason).not.toBe('stolen')
+  expect(r.events.find(e => e.code === EV_RESOURCE && e.horse === H && e.tau === feast)?.arg).toBe(100000000n)
+})
+
+test('stacked cost reductions reach zero and remain safe above stamina capacity', () => {
+  const r = run([7, 25, 15], 3000n), t = at(r, 25)
+  expect(frame(r, t).stamina.cost).toBe(0n)
+  expect(sampleHorse(r.trace!, H, t + 1n).stamina).toBeGreaterThanOrEqual(sampleHorse(r.trace!, H, t).stamina)
+})
+
+test('renewed wheel derives unbounded K from every ten layers including the layer-ten boundary', () => {
+  const r = run([11, 32], 1000n), t = at(r, 11)
+  for (const [dt, k] of [[8999n,100n],[9000n,200n],[18999n,200n],[19000n,300n],[29000n,400n],[39000n,500n]]) {
+    const gear = r.trace!.instances.find(i => i.horse === H && i.cardId === 11)!
+    expect(t + dt!).toBeLessThan(gear.endTau!)
+    expect(frame(r, t + dt!).motion.fixed).toBe(k!)
+  }
 })

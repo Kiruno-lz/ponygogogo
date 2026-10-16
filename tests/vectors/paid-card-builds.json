@@ -1,5 +1,5 @@
 {
-  "rulesetHash": "0x879f0d8d0cd93a3dc8bd9ceb80d2a692c239613042b55a43c0b6473a0c950f69",
+  "rulesetHash": "0x91b155cd22edcb49f0c7994fe602f5103e768fe9331bbcdc56cdc96423213679",
   "samples": 80,
   "policy": "Full pool, actual checkpoint windows; aim for both pieces, take C-05 if missing, refresh slot 0 once when needed, then choose a situational third card. AcquiredBoth counts cards received; triggered additionally checks actual overlap or a corresponding solver trigger. A forfeit is a consumed choice, not a card. This policy is not an optimal strategy or a payout guarantee.",
   "random": {
@@ -7,15 +7,15 @@
     "rawRanks": [
       3,
       3,
-      7,
-      15,
+      6,
+      16,
       52
     ],
     "settlementRanks": [
       3,
       3,
-      7,
-      15,
+      6,
+      16,
       52
     ],
     "versionAnswer": 0
@@ -36,8 +36,8 @@
         2,
         3,
         4,
-        15,
-        56
+        14,
+        57
       ]
     },
     {
@@ -55,8 +55,8 @@
         2,
         2,
         5,
-        18,
-        53
+        17,
+        54
       ]
     },
     {
@@ -74,8 +74,8 @@
         2,
         3,
         5,
-        14,
-        56
+        13,
+        57
       ]
     },
     {
@@ -93,8 +93,8 @@
         3,
         2,
         5,
-        11,
-        59
+        10,
+        60
       ]
     },
     {
@@ -112,8 +112,8 @@
         2,
         2,
         3,
-        13,
-        60
+        12,
+        61
       ]
     },
     {
@@ -131,8 +131,8 @@
         2,
         3,
         4,
-        16,
-        55
+        15,
+        56
       ]
     },
     {
@@ -149,9 +149,9 @@
       "ranks": [
         3,
         4,
-        7,
+        8,
         14,
-        52
+        51
       ]
     },
     {
@@ -169,8 +169,8 @@
         2,
         3,
         7,
-        14,
-        54
+        13,
+        55
       ]
     },
     {
@@ -188,8 +188,8 @@
         2,
         4,
         6,
-        16,
-        52
+        15,
+        53
       ]
     },
     {
@@ -207,8 +207,8 @@
         1,
         3,
         5,
-        19,
-        52
+        18,
+        53
       ]
     },
     {
@@ -226,8 +226,8 @@
         2,
         5,
         5,
-        12,
-        56
+        11,
+        57
       ]
     }
   ]

@@ -64,7 +64,7 @@ test('ox consumption changes a rage follow-up from direct acceleration to regene
 test('Berry gains early equipment coverage and retains its speed gate when a late window is finish-truncated', () => {
   const early=(pony:number)=>solvePaidCore(pickAt(scenario(pony,[11,19,20]),1,11))
   const berry=early(2),neutral=early(1)
-  expect(ponyAbilityMetrics(berry,0,2).coverageTauMs).toBe(8531n)
+  expect(ponyAbilityMetrics(berry,0,2).coverageTauMs).toBe(7860n)
   expect(berry.finishTime[0]).toBeLessThan(neutral.finishTime[0])
   const late=(pony:number)=>solvePaidCore(pickAt(pickAt(pickAt(
     scenario(pony,[17,19,20,18,21,22,11,23,24]),1,17),2,18),3,11))

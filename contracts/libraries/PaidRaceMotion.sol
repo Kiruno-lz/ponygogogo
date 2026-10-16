@@ -403,7 +403,10 @@ library PaidRaceMotion {
                     case 1 {
                         dt := 0
                         let capacity := mload(add(h, H_STAMINA_CAPACITY))
-                        if gt(s, capacity) { dt := ceilDiv(sub(s, capacity), cost) }
+                        if gt(s, capacity) {
+                            dt := not(0)
+                            if cost { dt := ceilDiv(sub(s, capacity), cost) }
+                        }
                     }
                     default {
                         if and(lt(regen, cost), iszero(mload(add(h, H_AGG_WIRED)))) {
@@ -545,7 +548,7 @@ library PaidRaceMotion {
                     let op := mload(add(ho, slot))
                     for { let p := add(s, S_RUN) } lt(p, rend) { p := add(p, 0x20) } {
                         let ht := mload(p)
-                        if iszero(eq(ho, ht)) {
+                        if and(iszero(eq(ho, ht)), iszero(mload(add(ht, H_BLINDED)))) {
                             let tp := mload(add(ht, slot))
                             switch gt(tp, op)
                             case 1 {

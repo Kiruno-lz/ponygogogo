@@ -72,7 +72,7 @@ describe('C-22..C-40 actual race effects', () => {
   })
   test('C-25 and rocket use one additive cost factor', () => {
     const r = played([7, 25]), t = start(r, 25)
-    expect(frame(r, t).stamina.cost).toBe(1200n)
+    expect(frame(r, t).stamina.cost).toBe(0n)
     expect(sampleHorse(r.trace!, H, t).pBps).toBe(1500n)
   })
   test('C-26 has no wired gate; rocket offsets fifty percentage points of cost', () => {
@@ -109,12 +109,13 @@ describe('C-22..C-40 actual race effects', () => {
     expect(triggers(r, 31)).toHaveLength(2)
     expect(sampleHorse(r.trace!, H, start(r, 8)).pBps).toBe(2500n)
   })
-  test('C-32 renews expiry, preserving wheel phase and keeping exactly three speed tiers', () => {
+  test('C-32 renews expiry, preserving wheel phase and growing beyond its original lifetime', () => {
     const r = played([11, 32], { profiles: slow }), t = start(r, 11), u = start(r, 32)
     const bursts = r.events.filter((e) => e.code === EV_WHEEL_BURST && e.horse === H)
     expect(r.events.filter((e) => e.code === RENEW && e.horse === H)).toHaveLength(1)
-    expect(bursts.map(e=>e.arg)).toEqual([1n,11n,21n])
-    expect(bursts.every((e) => (e.tau - t) % 10000n === 0n && e.tau < u + 30_000n)).toBe(true)
+    expect(bursts.map(e=>e.arg)).toEqual([1n, ...Array.from({ length: bursts.length - 1 }, (_, n) => BigInt((n + 1) * 10))])
+    expect(bursts.length).toBeGreaterThan(4)
+    expect(bursts.every((e) => (e.tau === t || (e.tau - t + 1000n) % 10000n === 0n) && e.tau < u + 30_000n)).toBe(true)
   })
   test('C-33 checks tail/hooves as well as torso', () => {
     const r = played([33, 8]), t = start(r, 8)
@@ -238,11 +239,11 @@ test('guard blocks one bomb and a second same-instant bomb causes death without 
  expect(frame(second,death.tau).motion.fixed).toBe(0n)
 })
 
-test('tinker snapshots a tail-only loadout and target debuffs survive immunity acquired later', () => {
+test('tinker snapshots a tail-only loadout and isolation removes an existing foreign target debuff', () => {
  const loaded=played([8,31,11])
  expect(triggers(loaded,31)).toHaveLength(2)
  const profiles=slow.map(p=>({...p}));profiles[0]={base:1800n,acceleration:0n,cap:1800n}
  const r=played([34],{profiles,cpu:{0:[19,21,20]}}), blind=start(r,21,0)
  expect(blind).toBeLessThan(start(r,34)+8000n)
- expect(sampleHorse(r.trace!,0,blind).pBps).toBe(-2000n)
+ expect(sampleHorse(r.trace!,0,blind).pBps).toBe(0n)
 })

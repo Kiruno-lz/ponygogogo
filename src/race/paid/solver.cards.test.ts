@@ -107,11 +107,11 @@ const checks: Record<number, (ctx: Ctx) => void> = {
   },
   11: (ctx) => {
     const bursts = ctx.r.events.filter((e) => e.code === EV_WHEEL_BURST && e.horse === ctx.horse)
-    expect(bursts.map((e) => [e.tau - ctx.tau, e.arg])).toEqual([[0n, 1n], [10_000n, 11n], [20_000n, 21n]])
+    expect(bursts.map((e) => [e.tau - ctx.tau, e.arg])).toEqual([[0n, 1n], [9_000n, 10n], [19_000n, 20n], [29_000n, 30n]])
     expect(sampleStatus(ctx.r.trace!, ctx.horse, ctx.tau + 1n)).toMatchObject({ airborne: true, equipment: { hooves: 11 } })
     const fixedAt = (tau: bigint) => ctx.r.trace!.keyframes[ctx.horse]!.find((f) => f.tau0 === tau)!.motion.fixed
     expect(fixedAt(ctx.tau)).toBe(100n)
-    expect(fixedAt(ctx.tau + 20_000n)).toBe(300n)
+    expect(fixedAt(ctx.tau + 19_000n)).toBe(300n)
   },
   12: (ctx) => {
     const draw = ctx.asPlayer

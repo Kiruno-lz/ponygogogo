@@ -38,7 +38,7 @@ contract PaidRaceNewCardsTest {
         (uint256[] memory actions,) = PaidRaceCardPlan.plan(34, 1, horses, equipment);
         require(uint64(actions[1] >> 48) == 3, "eligible tie target");
         (actions,) = PaidRaceCardPlan.plan(36, 1, horses, equipment);
-        require(actions.length == 6 && uint8(actions[0] >> 8) == 0, "all five horses must receive feast");
+        require(actions.length == 5 && uint8(actions[0] >> 8) == 0, "feast includes finished horses but excludes isolated opponents");
     }
 
     function testPercentageAndFixedPoolsGive44UnitsPerSecond() public pure {

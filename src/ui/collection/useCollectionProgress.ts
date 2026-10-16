@@ -71,11 +71,27 @@ export function useCollectionProgress(lang: Lang, owner: Address | null) {
     }
   }, [owner, currentOwner, commit, lang])
 
+  // The read button refreshes authoritative ownership; encrypted backup has its own passkey/API lifecycle.
+  const refresh = useCallback(async () => {
+    if (!owner || !PONY_GAME_ADDRESS) return unlock()
+    if (busy.current) return
+    const epoch = generation.current
+    busy.current = true; setLoading(true); setError(null)
+    try {
+      const { progress: chain } = await readOwnedCollection(wallet.publicClient, PONY_GAME_ADDRESS, owner)
+      if (generation.current === epoch && currentOwner()) commit(mergeCollections(local.current ?? emptyCollection(), chain))
+    } catch {
+      if (generation.current === epoch && currentOwner()) setError('collection.readFailed')
+    } finally {
+      if (generation.current === epoch) { busy.current = false; setLoading(false) }
+    }
+  }, [owner, currentOwner, commit, unlock])
+
   const acceptGrant = useCallback((grant: CollectibleGrant) => {
     if (!currentOwner() || grant.player.toLowerCase() !== owner?.toLowerCase()) return
     commit(mergeCollections(local.current ?? emptyCollection(), collectionFromGrant(grant)))
     void unlock()
   }, [currentOwner, owner, commit, unlock])
   const availablePonyIds = useMemo(() => [...DEFAULT_ROSTER, ...(progress?.unlockedPonyIds ?? [])], [progress])
-  return { progress, ownedRareIds: progress?.rareCardIds ?? null, availablePonyIds, loading, error: error ? t(lang, error) : null, unlock, acceptGrant, reset }
+  return { progress, ownedRareIds: progress?.rareCardIds ?? null, availablePonyIds, loading, error: error ? t(lang, error) : null, unlock, refresh, acceptGrant, reset }
 }

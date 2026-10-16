@@ -35,7 +35,7 @@ function describe(rule: PaidCardRule, part: 'meme' | 'effect'): { zh: string; en
     case 'gravity':
       return localized(key, { durationSeconds: sec(d), strengthPercent: pct(rule.strengthBps!), radiusUnits: rule.radiusMicro! / 1e6 })
     case 'wheel':
-      return localized(key, { durationSeconds: sec(d), flameLayers: rule.flameLayers!.join(' / '), fixedSpeed: rule.fixedSpeed! })
+      return localized(key, { durationSeconds: sec(d), layersPerStep: rule.count!, fixedSpeed: rule.fixedSpeed! })
     case 'wind':
       return localized(key, { strengthPercent: pct(rule.strengthBps!) })
     case 'steal':

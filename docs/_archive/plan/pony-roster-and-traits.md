@@ -13,7 +13,7 @@
 - `src/game/ponyCatalog.ts` 聚合稳定身份、素材与显示信息；规则内核不读取美术资源。
 - `src/race/core/roster.ts` 校验名单；生产链输入及历史响应必须携带有效名单，不接受旧 ABI 或缺少名单的读模型降级。
 - `PaidRaceSolver` 与 TS 求时器按槽位派生比赛参数，再应用该角色的初始能力。免费试玩与有奖比赛共用规则；gogo 只影响镜头表现。
-- `PonyRewards` 独立记录奖励；正常结算以独立熵抽取，判负与试玩不抽取。获得物不参与本场名次或返奖计算。
+- `PonyRewards` 独立记录奖励；结算与判负均以独立熵抽取，仅试玩不抽取新的角色和卡牌。获得物不参与本场名次或返奖计算。
 - `src/ui/collection/useCollectionProgress.ts` 合并链上位图和解密收藏，赛后写入并展示获得窗口；收藏的当前格式与服务验收见[图鉴与收藏奖励](card-collection-unlock.md)。
 - `src/ui/race/useRaceScene.ts` 只预载本场五名角色，管理 Phaser 创建、销毁与重试；HUD、战绩、结算与海报沿用名单身份。
 

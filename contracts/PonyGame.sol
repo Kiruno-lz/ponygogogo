@@ -337,8 +337,10 @@ contract PonyGame is Ownable2Step, AgentBudget, ReentrancyGuard {
             }
         }
         address player = session.player;
+        if (gasleft() < RewardRules.GAS_RESERVE) revert InsufficientRewardGas();
         session.state = STATE_FORFEITED;
         delete sessionOf[player];
+        _grantCollectible(sessionId, player);
         emit SessionForfeited(sessionId, player, stakeForTier(session.stakeTier), reason);
         vault.settleStake(sessionId, 0);
     }

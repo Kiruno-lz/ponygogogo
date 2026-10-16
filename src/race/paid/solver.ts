@@ -8,6 +8,7 @@ import {
 } from '../core/paidDrawRules.ts'
 import { paidSettlement } from '../core/paidSettlement.ts'
 import { paidSwap } from '../core/paidSwap.ts'
+import { canCardAffect } from '../core/cardTargeting.ts'
 import { paidCardRule, PAID_CARD_COUNT, PAID_CARD_GLOBALS, CARD_MAIN_FUNCTION } from './cardRules.ts'
 import { ponyRule } from './ponyRules.ts'
 import {
@@ -166,6 +167,7 @@ type Horse = {
 }
 
 type Instance = {
+  source: number
   ponyId?: number
   id: number
   owner: number
@@ -384,7 +386,7 @@ function mods(st: State, h: number): Mods {
       case 'unarmed': pBps += BigInt(horse.equip.some(Boolean) ? r.fallbackBps! : r.pBps!); break
     }
   }
-  if (st.wind !== 0n && airborne && (!horse.blindedPro || st.windPlacer === h)) pBps += st.wind
+  if (st.wind !== 0n && airborne && canCardAffect(st.windPlacer, h, horse.blindedPro)) pBps += st.wind
   if (role?.ability === 'airborne' && airborne) pBps += BigInt(role.bonusBps!)
   if (role?.ability === 'longEquipment' && horse.equip.some(Boolean)) pBps += BigInt(role.bonusBps!)
   const factor = BPS + costDelta
@@ -417,7 +419,7 @@ function addInstance(
   const inst: Instance = {
     id: st.instances.length + 1, owner, cardId, kind, slot: -1, start: tau,
     end: duration === null ? NEVER : tau + duration, active: true,
-    pBps: 0n, regenBps: 0n, airborne: false, wired: false, luck: false, well: false,
+    source: owner, pBps: 0n, regenBps: 0n, airborne: false, wired: false, luck: false, well: false,
     anchor: ZERO_ANCHOR, checkpoint: 0, eventBase: 0n, count: 0, costDelta: 0n, fixed: 0n, gated: false, nextDist: 0n, baseBonus: 0n, ...fields,
   }
   st.instances.push(inst)
@@ -522,9 +524,7 @@ function triggerAt(st: State, i: Instance, tau: bigint): bigint {
   if (!i.active) return NEVER
   if (i.kind === 'ability' && i.count < SWAP_ATTEMPTS) return i.start + SWAP_PERIOD_MS * BigInt(i.count)
   if (i.kind === 'equip' && i.cardId === 11) {
-    const levels = paidCardRule(11).flameLayers!
-    if (i.count >= levels.length) return NEVER
-    const at = i.start + WHEEL_PERIOD_MS * BigInt(levels[i.count]! - 1)
+    const at = i.start + WHEEL_PERIOD_MS * BigInt(i.count * paidCardRule(11).count! - 1)
     return at < i.end ? at : NEVER
   }
   if (i.kind !== 'watch' || tau >= i.end) return NEVER
@@ -536,7 +536,7 @@ function triggerAt(st: State, i: Instance, tau: bigint): bigint {
     if (h.s < threshold) return tau
     const m = mods(st, i.owner)
     if (!h.exhausted && !h.overcap && m.cost > m.regen) return tau + ceilDiv(h.s - threshold + 1n, m.cost - m.regen)
-    if (h.overcap) return tau + ceilDiv(h.s - h.capacity, m.cost / h.overcapCostDivisor)
+    if (h.overcap && m.cost / h.overcapCostDivisor > 0n) return tau + ceilDiv(h.s - h.capacity, m.cost / h.overcapCostDivisor)
   }
   if (r.effect === 'mileage' && i.count < r.count! && st.horses[i.owner]!.dist >= i.nextDist) return tau
   return NEVER
@@ -590,7 +590,7 @@ function placeBombs(st: State, h: number, tau: bigint): void {
 function steal(st: State, h: number, src: CardSource, tau: bigint): bigint {
   const candidates: number[] = []
   for (let victim = 0; victim < HORSE_COUNT; victim++) {
-    if (victim === h || st.horses[victim]!.finished) continue
+    if (victim === h || st.horses[victim]!.finished || !canCardAffect(h, victim, st.horses[victim]!.blindedPro)) continue
     for (let slot = SLOT_TORSO; slot <= SLOT_HOOVES; slot++) {
       const id = st.horses[victim]!.equip[slot]!
       if (id !== 0) candidates.push(id)
@@ -655,6 +655,9 @@ function applyCard(st: State, h: number, cardId: number, src: CardSource, tau: b
     case 'blindFixed':
       horse.baseBonus += BigInt(rule.fixedSpeed!)
       horse.blindedPro = true
+      for (const inst of st.instances) {
+        if (inst.active && inst.owner === h && !canCardAffect(inst.source, h, true)) endInstance(st, inst, tau, 'isolated')
+      }
       break
     case 'pay': {
       const floor = mods(st, h).wired ? 1_000_000n : 0n
@@ -698,11 +701,11 @@ function applyCard(st: State, h: number, cardId: number, src: CardSource, tau: b
     }
     case 'target': {
       addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(rule.pBps!) })
-      const targets = st.horses.map((x, id) => ({ x, id })).filter(({ x, id }) => id !== h && !x.finished && !x.blindedPro && x.pos > horse.pos)
+      const targets = st.horses.map((x, id) => ({ x, id })).filter(({ x, id }) => id !== h && !x.finished && canCardAffect(h, id, x.blindedPro) && x.pos > horse.pos)
         .sort((a,b) => a.x.pos < b.x.pos ? -1 : a.x.pos > b.x.pos ? 1 : a.id - b.id)
       const target = targets[0]?.id ?? 255
       emit(st, EV_TARGET, tau, h, BigInt(target))
-      if (target !== 255) addInstance(st, tau, target, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(rule.fallbackBps!) })
+      if (target !== 255) addInstance(st, tau, target, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(rule.fallbackBps!), source: h })
       break
     }
     case 'leader': {
@@ -710,7 +713,9 @@ function applyCard(st: State, h: number, cardId: number, src: CardSource, tau: b
       addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(first ? rule.pBps! : rule.fallbackBps!) }); break
     }
     case 'feast':
-      for (let target = 0; target < HORSE_COUNT; target++) recover(st, target, BigInt(rule.staminaMicro!), tau)
+      for (let target = 0; target < HORSE_COUNT; target++) {
+        if (canCardAffect(h, target, st.horses[target]!.blindedPro)) recover(st, target, BigInt(rule.staminaMicro!), tau)
+      }
       addInstance(st, tau, h, cardId, 'buff', BigInt(rule.durationMs!), { pBps: BigInt(rule.pBps!) }); break
     case 'guard': addInstance(st, tau, h, cardId, 'watch', null); break
     case 'exhaustReserve': addInstance(st, tau, h, cardId, 'watch', BigInt(rule.durationMs!)); break
@@ -984,7 +989,7 @@ function applyDue(st: State, due: Due, tau: bigint): void {
       } else {
         inst.fixed += WHEEL_DELTA_V
         st.horses[inst.owner]!.fixed += WHEEL_DELTA_V
-        emit(st, EV_WHEEL_BURST, tau, inst.owner, BigInt(paidCardRule(11).flameLayers![inst.count]!))
+        emit(st, EV_WHEEL_BURST, tau, inst.owner, BigInt(inst.count * paidCardRule(11).count!))
         inst.count++
       }
       return
@@ -1095,7 +1100,7 @@ function fieldsAt(st: State, owners: readonly number[], positions: readonly bigi
   const out = [0n, 0n, 0n, 0n, 0n]
   for (let target = 0; target < HORSE_COUNT; target++) {
     if (st.horses[target]!.finished) continue
-    for (const owner of owners) if (owner !== target) out[target]! += wellFieldBps(positions[owner]!, positions[target]!)
+    for (const owner of owners) if (owner !== target && canCardAffect(owner, target, st.horses[target]!.blindedPro)) out[target]! += wellFieldBps(positions[owner]!, positions[target]!)
   }
   return out
 }
@@ -1116,7 +1121,7 @@ function crossingNeed(st: State, h: number, airborne: boolean): bigint {
   if (!airborne) {
     for (const bomb of st.bombs) {
       if (!bomb.live || bomb.lane !== horse.lane || bomb.pos <= horse.pos) continue
-      if (horse.blindedPro && bomb.placer !== h) continue
+      if (!canCardAffect(bomb.placer, h, horse.blindedPro)) continue
       if (bomb.pos - horse.pos < need) need = bomb.pos - horse.pos
     }
   }
@@ -1178,7 +1183,7 @@ function advance(st: State, tau: bigint, maxDt: bigint): bigint {
     for (let id = 0; id < st.bombs.length; id++) {
       const bomb = st.bombs[id]!
       if (!bomb.live || bomb.lane !== horse.lane || bomb.pos <= horse.prevPos || bomb.pos > horse.pos) continue
-      if (horse.blindedPro && bomb.placer !== h) continue
+      if (!canCardAffect(bomb.placer, h, horse.blindedPro)) continue
       st.pending.push({ horse: h, bomb: id, done: false })
     }
   }

@@ -140,13 +140,13 @@ flowchart LR
 
 `PonyGame` 发出 `SessionOpened`（sessionId、玩家、马、下注、seed、`openedAt`、`openedBlock`、`rulesetHash`、`roster[5]`）、`CardChosen`（检查点、`cardId`、刷新位置、`txSec`、区块号）、`RandomAnchorSealed`（源区块与实际哈希）、`SessionSettled`（`finishTime[5]`、`rawOrder`、`settlementOrder`、玩家结算名次、返还、`digest`、实际获得的三张牌）、`SessionForfeited`（含判负原因）；Vault 发出 `StakeLocked`、`StakeSettled`（判负为返还 0）与庄家资金事件。
 
-正常有奖结算在求时、名次校验与会话状态更新后，以结算父区块哈希独立抽取获得物：概率 20%，未拥有的稀有卡权重 1、非默认角色（ponyId 5–8）权重 3；判负与试玩不抽取。`PonyRewards` 发出 `CollectibleGranted` 并更新位图；读取或记录失败时 Game 发出 `CollectibleSkipped`，不阻断返奖。获得物不参与求时、名次或返奖。浏览器以结算回执中是否有 `CollectibleGranted` 判断获得；`CollectibleSkipped` 只在链上留痕，浏览器与 Envio 都不使用。
+有奖结算完成求时、名次校验与状态更新后，或判负完成资格校验与状态更新后，均以当前终局交易父区块哈希独立抽取获得物：概率 20%，未拥有的稀有卡权重 1、非默认角色（ponyId 5–8）权重 3；仅试玩不抽取新的角色和卡牌。`PonyRewards` 发出 `CollectibleGranted` 并更新位图；读取或记录失败时 Game 发出 `CollectibleSkipped`，不阻断返奖。获得物不参与求时、名次或返奖。浏览器以结算回执中是否有 `CollectibleGranted` 判断获得；`CollectibleSkipped` 只在链上留痕，浏览器与 Envio 都不使用。
 
 ## 7. 索引、图鉴与战绩
 
 **Envio 读模型。** Envio（`envio/`）按合约事件建立比赛历史、玩家战绩、角色胜率与 Vault 统计，角色统计按 `roster` 映射；通过 `RewardsBound`、`VaultBound` 动态注册账本与 Vault，并启用重组回滚。它不索引 `CollectibleSkipped`、`AgentBudget*` 与 Vault 的暂停事件。浏览器从 `VITE_ENVIO_GRAPHQL_URL`（生产构建必填，开发模式缺省时钱包不显示战绩）查询当前账户最近会话；响应缺少有效名单或格式不合法时整个结果失败，不以部分记录掩盖问题。RPC/合约决定资金与会话状态，链重组后 Envio 按 canonical 事件重算统计。
 
-**收藏的三个来源。** 默认开放角色、链上 `PonyRewards` 位图与已解密的图鉴收藏求并集，供图鉴与选马使用（`src/ui/collection/useCollectionProgress.ts`）。解锁只影响客户端选马与图鉴，不筛选合约入场或牌池；图鉴密文不构成链上所有权证明。
+**收藏的三个来源。** 默认开放角色、链上 `PonyRewards` 位图与已解密的图鉴收藏求并集，供图鉴与选马使用（`src/ui/collection/useCollectionProgress.ts`）。普通卡默认开放；首页卡牌数按普通卡与已拥有稀有卡的并集计数，未读取时显示 `— / 40`。配置 Game 后，「读取收藏」只刷新链上位图，无需通行密钥验证或加密备份服务；奖励回执触发的加密备份与重试仍使用下述协议。解锁只影响客户端选马与图鉴，不筛选合约入场或牌池；图鉴密文不构成链上所有权证明。
 
 **图鉴同步协议（v0.1）。**
 

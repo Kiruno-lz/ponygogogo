@@ -30,3 +30,11 @@ describe('首页开发验收入口', () => {
     expect(html).toContain('特效验收')
   })
 })
+
+test('home counts default common cards plus owned rare cards and distinguishes unread ownership', () => {
+  const account = { label: 'collection', address: '0x1111111111111111111111111111111111111111' } as const
+  const known = renderToStaticMarkup(<HomeScreen {...baseProps} account={account} ownedRareIds={['C-02', 'C-21']} />)
+  expect(known).toContain('29 / 40')
+  const unknown = renderToStaticMarkup(<HomeScreen {...baseProps} account={account} />)
+  expect(unknown).toContain('— / 40')
+})

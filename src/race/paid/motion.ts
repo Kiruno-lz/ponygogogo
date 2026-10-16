@@ -111,7 +111,10 @@ export function staminaEventDt(x: PaidStaminaMotion): bigint | null {
   const capacity = x.capacity ?? STAMINA_CAPACITY
   const release = x.exhaustRelease ?? capacity
   if (x.exhausted) return x.s >= release ? 0n : ceilDiv(release - x.s, x.regen)
-  if (x.overcap) return x.s <= capacity ? 0n : ceilDiv(x.s - capacity, x.cost / (x.overcapCostDivisor ?? 1n))
+  if (x.overcap) {
+    const drain = x.cost / (x.overcapCostDivisor ?? 1n)
+    return x.s <= capacity ? 0n : drain === 0n ? null : ceilDiv(x.s - capacity, drain)
+  }
   const net = x.regen - x.cost
   if (net >= 0n || x.wired) return null
   return ceilDiv(x.s, -net)

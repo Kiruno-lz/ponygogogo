@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {CardTargeting} from "./CardTargeting.sol";
 import {PaidCardRules} from "./PaidCardRules.sol";
 
 /// @notice Snapshot decisions for C-22..C-40. The engine alone applies actions and owns event ordering/lifecycles.
@@ -108,7 +109,9 @@ library PaidRaceCardPlan {
             uint8 target = 255;
             for (uint8 id; id < 5; ++id) {
                 Horse memory x = horses[id];
-                if (id == h || x.finished || x.blinded || x.pos <= horses[h].pos) continue;
+                if (id == h || x.finished || !CardTargeting.canAffect(h, id, x.blinded) || x.pos <= horses[h].pos) {
+                    continue;
+                }
                 if (target == 255 || x.pos < horses[target].pos) target = id;
             }
             actions[n++] = Action(TARGET, h, 0, int256(uint256(target)), 0);
@@ -124,7 +127,9 @@ library PaidRaceCardPlan {
             actions[n++] = Action(BUFF, h, r.durationMs, first ? r.pBps : r.fallbackBps, 0);
         } else if (card == 36) {
             for (uint8 id; id < 5; ++id) {
-                actions[n++] = Action(RECOVER, id, 0, int256(uint256(r.staminaMicro)), 0);
+                if (CardTargeting.canAffect(h, id, horses[id].blinded)) {
+                    actions[n++] = Action(RECOVER, id, 0, int256(uint256(r.staminaMicro)), 0);
+                }
             }
             actions[n++] = Action(BUFF, h, r.durationMs, r.pBps, 0);
         } else if (card == 37 || card == 38 || card == 39 || card == 40) {

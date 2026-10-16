@@ -126,6 +126,9 @@ export default function App() {
     syncedGrants.current.add(key)
     collection.acceptGrant(confirmedGrant)
   }, [confirmedGrant, gameAccount?.address, collection.acceptGrant])
+  useEffect(() => {
+    if (paid.settle?.phase === 'forfeited') void collection.refresh()
+  }, [paid.settle?.phase, collection.refresh])
   const { checkResume, reset: resetPaid } = paid
   /** 木牌与选马页显示的「钱包余额」就是 sma-b 的原生 MON；null = 还没读到 */
   const walletBalance = funds.funds?.wallet ?? null
@@ -384,6 +387,7 @@ export default function App() {
             account={account}
             gameAccount={gameAccount}
             balance={walletBalance}
+            ownedRareIds={collection.ownedRareIds}
             busy={walletBusy}
             error={walletError}
             errorKey={walletErrorKey}
@@ -466,7 +470,7 @@ export default function App() {
           ownedPonyIds={collection.progress?.unlockedPonyIds ?? null}
           loading={collection.loading}
           error={collection.error}
-          onUnlock={() => { void collection.unlock() }}
+          onUnlock={() => { void collection.refresh() }}
         />}
         {settingsOpen && (
           <SettingsScreen
