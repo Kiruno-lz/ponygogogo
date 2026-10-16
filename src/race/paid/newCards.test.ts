@@ -238,11 +238,11 @@ test('guard blocks one bomb and a second same-instant bomb causes death without 
  expect(frame(second,death.tau).motion.fixed).toBe(0n)
 })
 
-test('tinker snapshots a tail-only loadout and target debuffs survive immunity acquired later', () => {
+test('tinker snapshots a tail-only loadout and isolation removes an existing foreign target debuff', () => {
  const loaded=played([8,31,11])
  expect(triggers(loaded,31)).toHaveLength(2)
  const profiles=slow.map(p=>({...p}));profiles[0]={base:1800n,acceleration:0n,cap:1800n}
  const r=played([34],{profiles,cpu:{0:[19,21,20]}}), blind=start(r,21,0)
  expect(blind).toBeLessThan(start(r,34)+8000n)
- expect(sampleHorse(r.trace!,0,blind).pBps).toBe(-2000n)
+ expect(sampleHorse(r.trace!,0,blind).pBps).toBe(0n)
 })

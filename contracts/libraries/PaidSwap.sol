@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {CardTargeting} from "./CardTargeting.sol";
 import {RaceEntropy} from "./RaceEntropy.sol";
 
 /// @notice C-09 swaps lane and position; progress, base speed and stamina stay with each horse.
@@ -47,8 +48,9 @@ library PaidSwap {
             }
         }
         if (
-            next[ownerHorseId].finished || next[ownerHorseId].immune || next[targetHorseId].finished
-                || next[targetHorseId].immune
+            next[ownerHorseId].finished || next[targetHorseId].finished
+                || !CardTargeting.canAffect(targetHorseId, ownerHorseId, next[ownerHorseId].immune)
+                || !CardTargeting.canAffect(ownerHorseId, targetHorseId, next[targetHorseId].immune)
         ) return (next, targetHorseId, false);
         uint64 oldPos = next[ownerHorseId].pos;
         next[ownerHorseId].pos = next[targetHorseId].pos;

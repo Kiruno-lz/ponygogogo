@@ -19,7 +19,7 @@ export type PaidKeyframe = {
 
 /** bonus = C-04 +2000 bps attached to a later card (cardId = that card). */
 export type PaidInstanceKind = 'buff' | 'bonus' | 'equip' | 'ability' | 'respawn' | 'watch' | 'fixed' | 'trait'
-export type PaidInstanceEnd = 'expired' | 'replaced' | 'stolen' | 'finished' | 'recycled' | 'consumed' | 'death'
+export type PaidInstanceEnd = 'expired' | 'replaced' | 'stolen' | 'finished' | 'recycled' | 'consumed' | 'death' | 'isolated'
 
 export type PaidTraceInstance = {
   ponyId?: number

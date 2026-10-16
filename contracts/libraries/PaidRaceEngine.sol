@@ -6,6 +6,7 @@ import {PaidRaceCardPlan} from "./PaidRaceCardPlan.sol";
 import {PaidCardRules} from "./PaidCardRules.sol";
 import {PaidDrawRules} from "./PaidDrawRules.sol";
 import {PaidProfiles} from "./PaidProfiles.sol";
+import {CardTargeting} from "./CardTargeting.sol";
 import {PaidRaceMotion} from "./PaidRaceMotion.sol";
 import {PaidRaceCold} from "./PaidRaceCold.sol";
 import {PaidSwap} from "./PaidSwap.sol";
@@ -232,6 +233,7 @@ library PaidRaceEngine {
 
     struct Instance {
         uint256 owner;
+        uint256 source;
         uint256 cardId;
         uint256 kind;
         uint256 slot;
@@ -559,6 +561,7 @@ library PaidRaceEngine {
         st.instanceCount = id;
         inst = st.instances[index];
         inst.owner = owner;
+        inst.source = owner;
         inst.cardId = cardId;
         inst.kind = kind;
         inst.slot = NO_SLOT;
@@ -1026,7 +1029,15 @@ library PaidRaceEngine {
             if (!horse.exhausted) horse.overcap = horse.s > horse.staminaCapacity;
         } else if (effect == PaidCardRules.EFFECT_FIXED || effect == PaidCardRules.EFFECT_BLIND_FIXED) {
             horse.baseBonus += int256(rule.fixedSpeed);
-            if (effect == PaidCardRules.EFFECT_BLIND_FIXED) horse.blindedPro = true;
+            if (effect == PaidCardRules.EFFECT_BLIND_FIXED) {
+                horse.blindedPro = true;
+                for (uint256 i; i < st.instanceCount; ++i) {
+                    Instance memory inst = st.instances[i];
+                    if (inst.active && inst.owner == h && !CardTargeting.canAffect(inst.source, h, true)) {
+                        _endInstance(st, inst, i + 1);
+                    }
+                }
+            }
         } else if (effect == PaidCardRules.EFFECT_COAT) {
             st.coats[h] = rule.coatRgb;
             st.hairTypes[h] |= rule.id == 19 ? 1 : 2;
@@ -1243,8 +1254,9 @@ library PaidRaceEngine {
             PaidRaceCardPlan.Action memory a = PaidRaceCardPlan.Action(
                 uint8(w), uint8(w >> 8), uint32(w >> 16), int64(uint64(w >> 48)), uint64(w >> 112)
             );
+            if (!CardTargeting.canAffect(h, a.horse, st.horses[a.horse].blindedPro)) continue;
             if (a.kind <= PaidRaceCardPlan.GATE) {
-                _activateAction(st, r, a, tau);
+                _activateAction(st, r, a, tau, h);
             } else if (a.kind == PaidRaceCardPlan.PAY) {
                 _pay(st, h, uint256(a.value), tau);
             } else if (a.kind == PaidRaceCardPlan.RECOVER) {
@@ -1280,12 +1292,14 @@ library PaidRaceEngine {
         State memory st,
         PaidCardRules.Rule memory r,
         PaidRaceCardPlan.Action memory a,
-        uint256 tau
+        uint256 tau,
+        uint256 source
     ) private pure {
         bool watch = a.kind == PaidRaceCardPlan.WATCH;
         bool gate = a.kind == PaidRaceCardPlan.GATE;
         (Instance memory inst, uint256 id) =
             _addInstance(st, tau, a.horse, r.id, watch ? KIND_WATCH : KIND_BUFF, a.duration);
+        inst.source = source;
         inst.gated = gate && r.id != 25;
         inst.pBps = gate ? (r.id == 25 ? r.pBps : int256(0)) : (watch && r.id != 23 ? int256(0) : a.value);
         if (gate) inst.costDelta = a.value;
@@ -1361,7 +1375,7 @@ library PaidRaceEngine {
         uint256 n;
         for (uint256 victim; victim < HORSES; ++victim) {
             PaidRaceMotion.Horse memory horse = st.horses[victim];
-            if (victim == h || horse.finished) continue;
+            if (victim == h || horse.finished || !CardTargeting.canAffect(h, victim, horse.blindedPro)) continue;
             for (uint256 slot; slot < 3; ++slot) {
                 uint256 id = horse.equipOf(slot);
                 if (id != 0) candidates[n++] = id;
@@ -1605,7 +1619,10 @@ library PaidRaceEngine {
             for (uint256 id; mask != 0; ++id) {
                 if (mask & 1 != 0) {
                     PaidRaceMotion.Bomb memory bomb = st.bombs[id];
-                    if (bomb.pos > horse.prevPos && bomb.pos <= horse.pos && (!horse.blindedPro || bomb.placer == h)) {
+                    if (
+                        bomb.pos > horse.prevPos && bomb.pos <= horse.pos
+                            && CardTargeting.canAffect(bomb.placer, h, horse.blindedPro)
+                    ) {
                         st.pending[n++] = h | (id << 8);
                     }
                 }

@@ -1,5 +1,6 @@
 import { keccak256, toBytes, type Hex } from 'viem'
 import { chainEntropy } from './chainEntropy.ts'
+import { canCardAffect } from './cardTargeting.ts'
 
 const SWAP_DOMAIN = keccak256(toBytes('swap'))
 
@@ -33,7 +34,7 @@ export function paidSwap(
   const targetLane = draw >= ownerLane ? draw + 1 : draw
   const targetHorseId = next.findIndex((horse) => horse.laneIndex === targetLane)
   const target = next[targetHorseId]!
-  if (owner.finished || owner.immune || target.finished || target.immune) {
+  if (owner.finished || target.finished || !canCardAffect(targetHorseId, ownerHorseId, owner.immune) || !canCardAffect(ownerHorseId, targetHorseId, target.immune)) {
     return { horses: next, targetHorseId, swapped: false }
   }
   const oldPos = owner.pos

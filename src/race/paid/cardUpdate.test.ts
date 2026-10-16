@@ -183,3 +183,15 @@ test('recycling refreshed equipment keeps C32 independent speed alive', () => {
   expect(buff.endTau!).toBeGreaterThan(t)
   expect(sampleHorse(r.trace!,H,t).pBps).toBe(3500n)
 })
+
+test('C21 excludes its holder from other horses gravity, theft and feast, but preserves self effects', () => {
+  const ps = profiles(1800n)
+  const r = solvePaidCore(playNewCards([21, 8, 36], {
+    profiles: ps, cpu: { 0: [10, 36, 13], 2: [19, 20, 5], 3: [19, 20, 5], 4: [19, 20, 5] },
+  }))
+  const t = at(r, 21), feast = at(r, 36)
+  expect(sampleHorse(r.trace!, H, t + 1000n).pBps).toBe(0n)
+  expect(r.events.filter(e => e.code === EV_RESOURCE && e.horse === H && e.tau < feast)).toHaveLength(0)
+  expect(r.trace!.instances.find(i => i.horse === H && i.cardId === 8)!.endReason).not.toBe('stolen')
+  expect(r.events.find(e => e.code === EV_RESOURCE && e.horse === H && e.tau === feast)?.arg).toBe(100000000n)
+})

@@ -545,7 +545,7 @@ library PaidRaceMotion {
                     let op := mload(add(ho, slot))
                     for { let p := add(s, S_RUN) } lt(p, rend) { p := add(p, 0x20) } {
                         let ht := mload(p)
-                        if iszero(eq(ho, ht)) {
+                        if and(iszero(eq(ho, ht)), iszero(mload(add(ht, H_BLINDED)))) {
                             let tp := mload(add(ht, slot))
                             switch gt(tp, op)
                             case 1 {
