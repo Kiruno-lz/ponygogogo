@@ -467,7 +467,7 @@ export default function App() {
           ownedPonyIds={collection.progress?.unlockedPonyIds ?? null}
           loading={collection.loading}
           error={collection.error}
-          onUnlock={() => { void collection.unlock() }}
+          onUnlock={() => { void collection.refresh() }}
         />}
         {settingsOpen && (
           <SettingsScreen
