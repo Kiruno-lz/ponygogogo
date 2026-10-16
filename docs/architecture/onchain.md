@@ -140,7 +140,7 @@ flowchart LR
 
 `PonyGame` 发出 `SessionOpened`（sessionId、玩家、马、下注、seed、`openedAt`、`openedBlock`、`rulesetHash`、`roster[5]`）、`CardChosen`（检查点、`cardId`、刷新位置、`txSec`、区块号）、`RandomAnchorSealed`（源区块与实际哈希）、`SessionSettled`（`finishTime[5]`、`rawOrder`、`settlementOrder`、玩家结算名次、返还、`digest`、实际获得的三张牌）、`SessionForfeited`（含判负原因）；Vault 发出 `StakeLocked`、`StakeSettled`（判负为返还 0）与庄家资金事件。
 
-正常有奖结算在求时、名次校验与会话状态更新后，以结算父区块哈希独立抽取获得物：概率 20%，未拥有的稀有卡权重 1、非默认角色（ponyId 5–8）权重 3；判负与试玩不抽取。`PonyRewards` 发出 `CollectibleGranted` 并更新位图；读取或记录失败时 Game 发出 `CollectibleSkipped`，不阻断返奖。获得物不参与求时、名次或返奖。浏览器以结算回执中是否有 `CollectibleGranted` 判断获得；`CollectibleSkipped` 只在链上留痕，浏览器与 Envio 都不使用。
+有奖结算完成求时、名次校验与状态更新后，或判负完成资格校验与状态更新后，均以当前终局交易父区块哈希独立抽取获得物：概率 20%，未拥有的稀有卡权重 1、非默认角色（ponyId 5–8）权重 3；仅试玩不抽取新的角色和卡牌。`PonyRewards` 发出 `CollectibleGranted` 并更新位图；读取或记录失败时 Game 发出 `CollectibleSkipped`，不阻断返奖。获得物不参与求时、名次或返奖。浏览器以结算回执中是否有 `CollectibleGranted` 判断获得；`CollectibleSkipped` 只在链上留痕，浏览器与 Envio 都不使用。
 
 ## 7. 索引、图鉴与战绩
 

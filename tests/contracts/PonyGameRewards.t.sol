@@ -174,11 +174,43 @@ contract PonyGameRewardsTest is PonyGameBase {
         return string(out);
     }
 
-    function testForfeitNeverGrantsCollectibles() public {
+    function testSolverFaultForfeitAlsoDrawsCollectibles() public {
+        bytes32 sessionId = _open(ALICE, 0, TIER1);
+        _mine(1, 1);
+        game.sealAnchors(sessionId);
+        _jump(2, game.FORFEIT_DELAY());
+        solver.setSolveReverts(true);
+        (uint8 kind, uint8 id) = winningParent(sessionId);
+        game.forfeitSession(sessionId);
+        require(rewards.ownedMask(ALICE) == uint256(1) << (kind == 0 ? id : 64 + id), "solver fault skipped draw");
+    }
+
+    function testForfeitLedgerFailureStillClosesAndReleasesStake() public {
+        bytes32 sessionId = _open(ALICE, 0, TIER1);
+        _jump(9000, 3000);
+        winningParent(sessionId);
+        rewards.setGame(address(game), false);
+        game.forfeitSession(sessionId);
+        require(game.getSession(sessionId).state == 3, "ledger failure blocked forfeit");
+        require(rewards.ownedMask(ALICE) == 0, "unauthorized grant");
+    }
+
+    function testLowForfeitGasCannotSkipTheDraw() public {
+        bytes32 sessionId = _open(ALICE, 0, TIER1);
+        _jump(9000, 3000);
+        winningParent(sessionId);
+        (bool ok,) = address(game).call{gas: RewardRules.GAS_RESERVE}(abi.encodeCall(game.forfeitSession, (sessionId)));
+        require(!ok && game.getSession(sessionId).state == 1, "underfunded forfeit closed session");
+        require(!rewards.recorded(sessionId), "reverted grant persisted");
+    }
+
+    function testForfeitDrawsCollectiblesFromItsParentBlock() public {
         bytes32 sessionId = _open(ALICE, 0, TIER1);
         _mine(1, 1);
         _jump(9000, 3000);
+        (uint8 kind, uint8 id) = winningParent(sessionId);
         game.forfeitSession(sessionId);
-        require(rewards.ownedMask(ALICE) == 0 && !rewards.recorded(sessionId), "forfeit granted");
+        uint256 bit = kind == 0 ? id : 64 + id;
+        require(rewards.ownedMask(ALICE) == uint256(1) << bit && rewards.recorded(sessionId), "forfeit skipped draw");
     }
 }
