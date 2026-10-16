@@ -16,13 +16,14 @@ import { TransientNotice } from '../shared/TransientNotice.tsx'
 export type { WalletBusy } from '../wallet/types.ts'
 
 export function HomeScreen({ lang, account, gameAccount, balance, busy, error, errorKey, onDismissError, onStart, onCollection, onSettings,
-  onRegister, onLogin, onOpenWallet, onLogout, onOpenEffects }: {
+  onRegister, onLogin, onOpenWallet, onLogout, onOpenEffects, ownedRareIds = null }: {
   /** 根 EOA 只决定「是否已登录」；木牌上展示的是游戏账户（sma-b）的地址与余额 */
   lang: Lang; account: WalletAccount | null; gameAccount: GameAccount | null
   /** sma-b 的原生 MON 余额；null = 还没读到 */
   balance: bigint | null; busy: WalletBusy; error: string | null
   onStart: () => void; onCollection: () => void; onSettings: () => void
   onRegister: () => void; onLogin: () => void; onOpenWallet: () => void; onLogout: () => void
+  ownedRareIds?: readonly string[] | null
   errorKey?: unknown
   onDismissError: () => void
   /** 仅由 Vite 开发构建传入；生产首页不显示验收入口 */
@@ -43,7 +44,7 @@ export function HomeScreen({ lang, account, gameAccount, balance, busy, error, e
           aria-label={t(lang, 'wallet.title')} onClick={onOpenWallet}>
           <div className="wallet-row"><img src="/assets/art/ui/avatar-trimmed.webp" alt=""/><span className="mono wallet-label" data-testid="wallet-label">{gameAccount ? `${gameAccount.address.slice(0, 6)}…${gameAccount.address.slice(-4)}` : '…'}</span></div>
           <div className="wallet-row"><img src="/assets/art/ui/coin-trimmed.webp" alt=""/><span className="mono" data-testid="balance">{balance === null ? '—' : `${formatMon(balance)} ${CURRENCY}`}</span></div>
-          <div className="wallet-row"><img src="/assets/placeholder/icons/icon_13.webp" alt=""/><span>0 / {PAID_CARD_POOL.length}</span></div>
+          <div className="wallet-row"><img src="/assets/placeholder/icons/icon_13.webp" alt=""/><span data-testid="collection-count">{ownedRareIds === null ? '—' : PAID_CARD_POOL.filter(c => c.quality === 'common' || ownedRareIds.includes(c.cardId)).length} / {PAID_CARD_POOL.length}</span></div>
         </button>
         <button className="wallet-logout btn" data-testid="wallet-logout" onClick={onLogout} aria-label={t(lang, 'home.logout')} title={t(lang, 'home.logout')}>{t(lang, 'home.logout')}</button>
       </div> : <>

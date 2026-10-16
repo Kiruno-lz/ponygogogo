@@ -384,6 +384,7 @@ export default function App() {
             account={account}
             gameAccount={gameAccount}
             balance={walletBalance}
+            ownedRareIds={collection.ownedRareIds}
             busy={walletBusy}
             error={walletError}
             errorKey={walletErrorKey}
