@@ -16,7 +16,7 @@ export type PaidCardEffect = keyof typeof CARD_EFFECT
 export type PaidCardBonusMode = 'follow' | 'permanent' | 'default' | 'loot'
 export const CARD_MAIN_FUNCTION = { power: 0, supply: 1, equipment: 2, interference: 3, draw: 4, appearance: 5 } as const
 export type CardMainFunction = keyof typeof CARD_MAIN_FUNCTION
-export const PAID_CARD_GLOBALS = { bonusDefaultMs: 20_000, minCostFactorBps: 500, rkStepMs: 250 } as const
+export const PAID_CARD_GLOBALS = { bonusDefaultMs: 20_000, minCostFactorBps: 0, rkStepMs: 250 } as const
 export type PaidCardRule = {
   id: number
   mainFunction: CardMainFunction

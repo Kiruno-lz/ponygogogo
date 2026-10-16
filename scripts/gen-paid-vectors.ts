@@ -277,6 +277,10 @@ function build(stats: FuzzStats): PaidVectorCase[] {
   const isolationProfiles = Array.from({length:5},()=>({base:1200n,acceleration:0n,cap:1200n}))
   isolationProfiles[0] = {base:1800n,acceleration:0n,cap:1800n}
   add('isolation-removes-existing-target', playNewCards([34], {profiles:isolationProfiles,cpu:{0:[19,21,20]}}))
+  add('zero-cost-overcap', playNewCards([7,25,15], {
+    profiles: Array.from({length:5},()=>({base:3000n,acceleration:0n,cap:3000n})),
+  }))
+
   add('new-death-preserves-wheel-phase', fixtureInput({cpu:{0:[2,11,32]}}))
   add('new-recycle-preserves-renewal-buff', playNewCards([8,32,30], {
     profiles: Array.from({length:5},()=>({base:3000n,acceleration:0n,cap:3000n})),

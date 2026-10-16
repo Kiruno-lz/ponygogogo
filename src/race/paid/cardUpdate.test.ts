@@ -196,6 +196,12 @@ test('C21 excludes its holder from other horses gravity, theft and feast, but pr
   expect(r.events.find(e => e.code === EV_RESOURCE && e.horse === H && e.tau === feast)?.arg).toBe(100000000n)
 })
 
+test('stacked cost reductions reach zero and remain safe above stamina capacity', () => {
+  const r = run([7, 25, 15], 3000n), t = at(r, 25)
+  expect(frame(r, t).stamina.cost).toBe(0n)
+  expect(sampleHorse(r.trace!, H, t + 1n).stamina).toBeGreaterThanOrEqual(sampleHorse(r.trace!, H, t).stamina)
+})
+
 test('renewed wheel derives unbounded K from every ten layers including the layer-ten boundary', () => {
   const r = run([11, 32], 1000n), t = at(r, 11)
   for (const [dt, k] of [[8999n,100n],[9000n,200n],[18999n,200n],[19000n,300n],[29000n,400n],[39000n,500n]]) {

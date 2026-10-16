@@ -536,7 +536,7 @@ function triggerAt(st: State, i: Instance, tau: bigint): bigint {
     if (h.s < threshold) return tau
     const m = mods(st, i.owner)
     if (!h.exhausted && !h.overcap && m.cost > m.regen) return tau + ceilDiv(h.s - threshold + 1n, m.cost - m.regen)
-    if (h.overcap) return tau + ceilDiv(h.s - h.capacity, m.cost / h.overcapCostDivisor)
+    if (h.overcap && m.cost / h.overcapCostDivisor > 0n) return tau + ceilDiv(h.s - h.capacity, m.cost / h.overcapCostDivisor)
   }
   if (r.effect === 'mileage' && i.count < r.count! && st.horses[i.owner]!.dist >= i.nextDist) return tau
   return NEVER

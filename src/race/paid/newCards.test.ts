@@ -72,7 +72,7 @@ describe('C-22..C-40 actual race effects', () => {
   })
   test('C-25 and rocket use one additive cost factor', () => {
     const r = played([7, 25]), t = start(r, 25)
-    expect(frame(r, t).stamina.cost).toBe(1200n)
+    expect(frame(r, t).stamina.cost).toBe(0n)
     expect(sampleHorse(r.trace!, H, t).pBps).toBe(1500n)
   })
   test('C-26 has no wired gate; rocket offsets fifty percentage points of cost', () => {

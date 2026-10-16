@@ -403,7 +403,10 @@ library PaidRaceMotion {
                     case 1 {
                         dt := 0
                         let capacity := mload(add(h, H_STAMINA_CAPACITY))
-                        if gt(s, capacity) { dt := ceilDiv(sub(s, capacity), cost) }
+                        if gt(s, capacity) {
+                            dt := not(0)
+                            if cost { dt := ceilDiv(sub(s, capacity), cost) }
+                        }
                     }
                     default {
                         if and(lt(regen, cost), iszero(mload(add(h, H_AGG_WIRED)))) {
