@@ -2,101 +2,43 @@
 
 ## 1. 总体模型
 
-React/Vite 前端负责页面、输入与比赛预览；TypeScript 规则实现用于即时渲染和测试对照；Monad 上的 PonyGame/PaidRaceSolver 依据冻结规则独立求出比赛结果，PonyVault 按合约结算指令直接付款。浏览器名次不是奖金依据，具体边界见[项目决策](../decision.md)与[链上架构](onchain.md)。
-
-## 2. 技术与数据流
-
-- Vite、React 和 Phaser 承载页面与赛道；规则计算不依赖 DOM、Phaser、系统时钟或美术资源。
-- Mera 通行密钥恢复根 EOA；Alchemy `sma-b` 智能账户发起 Monad 交易。原生 MON 经 Game 在开场收款并同笔转入 Vault；Vault 管理下注锁定、庄家流动性和直接奖金付款。
-- PonyGame 记录会话与检查点选择，单个 PaidRaceSolver 以内联 Engine/Motion/Cold 复算五马轨迹与名次，PonyVault 执行账务变化。RPC/合约是资金与会话状态的权威来源。
-- Envio 从合约事件建立可回滚的历史与统计；图鉴 Worker 通过 D1 保存经浏览器加密的图鉴密文。二者都不决定比赛结果或资金状态。
+React/Vite 前端负责页面、输入与比赛预览，Phaser 绘制赛道；TypeScript 事件求时器为免费试玩与有奖比赛提供同一套确定性规则与轨迹。Monad 上的 PonyGame/PaidRaceSolver 独立复算有奖结果，PonyVault 执行下注托管与付款。Envio 提供事件历史，Cloudflare Worker/D1 同步图鉴密文。
 
 ```text
-Mera Passkey → 根 EOA → Monad sma-b
-                              ├─ PonyGame → PaidRaceSolver
-                              └─ PonyVault ← 原生 MON
-                                   ↓
-                             合约/RPC 为准
-                                   ↓
-                         Envio 历史与统计
-
-浏览器：页面、输入、预览与交易状态呈现
-图鉴：独立 PRF → 浏览器加密 → Worker/D1 密文同步
+Mera 通行密钥 → 根 EOA → Alchemy sma-b → PonyGame → PaidRaceSolver
+                                            ├─ PonyVault → 智能账户返还
+                                            └─ PonyRewards → 获得位图
+合约事件 → Envio → 浏览器战绩
+独立 PRF → 浏览器图鉴加密/签名 → 同源 Worker → D1 密文
 ```
 
-`src/App.tsx` 组合页面与流程；`src/app/useAssets.ts` 管理资源加载，`src/ui/wallet/useWalletSession.ts` 管理账户生命周期，`src/ui/race/useRaceScene.ts` 管理 Phaser。UI 按 shared/home/wallet/select/race/collection/settings/loading/showcase 聚合，页面类型放在对应 types.ts 或 raceView.ts，避免领域模块反向导入页面。`theme.css` 依次加载 base、controls、screens、result 样式，保持原布局与层级。
+| 主题 | 文档 |
+| --- | --- |
+| 比赛流程、里程、牌堆、运动与体力参数、角色能力、结算展示规则 | [玩法设计](game-design.md) |
+| 效果原语、状态与装备、40 张卡、美术需求 | [卡牌设计](card-design.md) |
+| 求时器边界、效果实例、写入边界、事件顺序；表现层的场景、页面、素材与结算 | [效果系统](effect-system.md) |
+| 账户、合约、Vault 与赔率、规则输入与时钟、随机锚、链上结算、索引与图鉴、交易恢复 | [链上架构](onchain.md) |
+| 构建变量、合约部署、Cloudflare、Keeper、Envio、发布验收 | [部署与服务](deploy.md) |
 
-## 3. 规则模块
+## 2. 模块边界
 
-免费试玩与有奖比赛共用 `src/race/paid/` 的确定性规则表和事件求时器。区别只在时钟与锚：有奖比赛由链上规范时间线和链上入场锚驱动（`src/race/paidDriver.ts`），免费试玩由本地时钟和本地派生的锚驱动（`src/race/driver.ts`），结果只在本地展示，不能转为有奖结算输入。卡牌参数以 `src/race/paid/cardRules.ts` 为唯一来源，并生成 Solidity 规则表与跨语言向量。
-
-gogo 输入只更新表现层摄像机状态。跨马卡牌按规则显式修改马匹状态；电脑马自主参数由入场输入派生，不能读取玩家位置、名次或镜头。规则内核不导入音频、图片或资源清单。
-
-## 4. 确定性与随机
-
-有奖比赛的 seed、入场交易区块哈希、实际选择交易时间和区块哈希、刷新/放弃输入及冻结规则共同确定牌堆与比赛结果。随机派生使用用途域和事件序号隔离；自动选牌、超时等状态从已有链上输入推导，不接收客户端补报的随机值。
-
-检查点时间以链上秒级交易时间重建；浏览器本地时钟只驱动预览，交易确认后按规范时间线校正。重力井按实时距离改变场效应，以冻结的定点数值积分求解。逐项规则以[游戏设计](../game-design.md)与[链上与经济](../chain-and-economy.md)为准。
-
-## 5. 比赛生命周期
-
-开场冻结下注档位、规则版本与 seed（各名次赔率是合约常量）；Vault 锁定下注及庄家净赔付预留。实际选牌写链并封存所需区块哈希；冲线后 PonyGame 调用求时器复算物理排序与结算排序，再指示 Vault 直接向玩家智能账户转入返还。所需随机锚过窗丢失或求时器故障的会话按返还 0 判负，玩家放弃某个检查点的选牌不判负；Vault 不设退款。
-
-页面刷新或网络状态不确定时，客户端根据合约状态、账户、sessionId、调用 ID 与交易哈希恢复，不以浏览器快照覆盖链上状态。进度细节和链上验收记录见[链上服务交付](../plan/onchain-services.md)。
-
-## 6. 钱包、图鉴与查询
-
-Mera 根 EOA 负责身份恢复与账户所有权；每条链使用独立 `sma-b` 发起交易，不默认使用根 EOA 同址 EIP-7702。游戏资金只使用 Monad 原生 MON，账本使用 wei。
-
-图鉴用独立 PRF 命名空间派生密钥，浏览器加密数据后同步到 D1；Worker 验证一次性签名挑战并以版本号处理并发写入。图鉴密文不构成链上卡牌所有权证明。Envio 只提供历史查询，资金与最终会话状态始终读取 RPC/合约。
-
-## 7. 运行时表现边界
-
-Phaser 绘制赛道；选牌面板与图鉴由 DOM 呈现并共用 `src/cards/Card.tsx`。动画、声音、加载时间、掉帧和 `prefers-reduced-motion` 都不能改变规则输入或比赛结果。资源加载失败由加载页或分级门显示失败项并提供重试；规则不依赖美术资源，加载失败不改变规则结果。
-
-## 8. 卡面与结算展示
-
-卡面组件只有一套实现，在 `src/cards/Card.tsx`，选牌面板与图鉴共用；HUD 生效槽与结算回顾以图标加名称做简化展示。三处的名称、说明、品质与图标都读 `paidCardDef`（由规则表与卡牌元数据生成），不各自维护——这三处恰好是玩家在一局里反复对照的地方，数据一旦分叉就会对不上。
-
-**卡牌在 DOM 层，不在 Phaser 里。** 卡面是文字、数值与品质样式的排版，DOM 在这件事上便宜得多，响应式与可访问性也是现成的；Phaser 画同样的东西要自己管字体度量和换行。代价是浮层与画布要在 z 轴上正确叠放，且选牌浮层出现时赛道继续跑——卡牌层绝不暂停 Phaser 场景。
-
-三段动画都归这个模块：发牌入场（三张错峰落位）、悬浮（指针与键盘焦点共用同一视觉态）、选定消失（选中的一张缩小，另两张淡出）。
-
-**硬约束：动画不参与规则。** 选牌效果按交易入块秒级时间映射的规范模拟时刻生效，区块哈希在后续块验证；飞行与淡出只是表现。gogo 点击只写镜头状态，不写比赛输入序列。动画时长不进入求时器；掉帧、`prefers-reduced-motion` 或直接关掉动画都不得改变名次。
-
-组件动效统一由表现层状态差异驱动：按钮按下播放缩放，`gogo` 额外播放旋转与缩放，状态新增或层数增加播放图标/层数徽章的缩放与摇晃。规则层只提供已经提交的状态快照或表现事件，不直接操作 DOM/Phaser 对象；表现层不得把动画完成、取消或掉帧回写为规则输入。动画连续触发时只保留最新一次，不建立等待队列。
-
-选牌的 20 秒现实限时**从规范模拟首次跨过检查点的时间起算**；发牌动画（约 0.48 s，减弱动效下为 0）期间不可点选，动画不顺延链上截止时刻，浏览器显示的倒计时须按链上规范时间校正。慢设备不能靠延长本地动画顺延链上截止时刻。
-
-首页与结算页的美术走同一套方法：木牌、按钮、标题这类素材由作者直接出成**无字透明图**，文字在 DOM 里排版覆盖上去——换语言只换文本节点，不换图，不必为每种语言维护第二套切片。版位不靠自动流式布局，而是把新素材的实体包围盒（排除投影一类中性灰区域）对到原画参考图（`art-src/renders/tittle.png`、`art-src/renders/result.png`）里同一块牌的位置；素材保持原始宽高比，只按版位等比缩放，不横纵各自拉伸。两屏各自对齐自己那张原画的画布（首页 1611×976、结算页 1620×971），`src/App.tsx` 按当前页面选用对应画布尺寸，与赛道渲染画布互不影响。悬浮反馈必须走 `filter`（`brightness` 叠 `drop-shadow`），不能用 `background`/`box-shadow`：前者只对切片里有 alpha 的像素起效，后者会把切片外那圈透明矩形一起提亮，糊成比按钮本身大一圈的方块。
-
-`src/result/` 负责冲线之后的那一屏：名次、总返还、净盈亏、本场三张牌的回顾（图标加名称，数据取自 `paidCardDef`）。名次徽记拆成两层——木牌+名次条的 `nameplate.webp` 在下，按名次取图的奖章 `medal-1..5.webp` 在上（母版在 `art-src/art/result/`），与原画里奖章压在木牌之上的顺序等价；名次数字画在奖章牌面上，DOM 只保留一个供读屏与测试取值的隐藏节点。它在冲线封存后立即可显示，**先标记为待验证预览，不等链上确认才展示画面**——奖金结果由 PonyGame 独立复算（第 1 节），资金状态用结算印章（结算中 / 已结算 / 结算失败 / 已判负）单独标注，交易状态词汇见[链上与经济 §6](../chain-and-economy.md)，名次以 `SessionSettled` 为准。名次预览与资金状态不得合并成一个"结算中"转圈，否则玩家会以为名次还没定。
-
-//TODO - 卡面一致性测试：对同一 `cardId`，选牌面板、图鉴、HUD 生效槽与结算回顾的名称、说明与品质都取自 `paidCardDef`；关闭动画（`prefers-reduced-motion: reduce`）与正常动画两条路径下，同一输入序列产生的名次与输入序列编码完全相等（目前 `motion.spec.ts` 只检查流程不变）。
-
-所有手写中文界面描述、卡牌/角色名称及描述模板、资源和同步错误位于 `src/ui/i18n.ts`；数值仍以规则表插值。修改中文文字只需编辑该文件。图片中的美术字需要修改素材；LoadingScreen、Hud、ResultScreen 与海报的装饰英文保持原样。缺失键显式报错，双语键集合由类型检查保持一致。
-
-
-## 9. 出图与分享
-
-`src/export/poster.ts` 只做一件事：把一场比赛变成一张 PNG；`src/result/SharePosterDialog.tsx` 把它交给用户和平台。结算页的分享按钮打开这个浮窗，浮窗里预览海报，并提供复制、保存与平台入口。
-
-**海报用离屏 Canvas 自己画，不截屏 DOM。** 把结算页光栅化（html2canvas 一类）在字体加载时序、跨域图片与 CSS 支持面上都不可靠，而海报是固定版式：1620×971 的预制空白美术（`public/assets/art/share/`：背景、奖项组、获胜与完赛标题、五匹马各自的立绘）上叠加动态内容——奖章、马名、金额和二维码。内容只取真实结果：名次与金额来自 `posterContent`，有奖场次取链上结算，未最终确认时写“待链上验证”，试玩写“免费试玩”，不虚构收益。五匹马立绘按各自测得的蹄底接触点对齐到奖台平面（`HORSE_FOOTINGS`），二维码取自 `art/share/qr.png`（`scripts/prepare-share-qr.ts` 把母版白底去成 alpha，二维码像素不重绘）。自己画一遍是确定的，截屏是碰运气的。
-
-浮窗只提供实际做得到的动作，接口按能力划分：
-
-| 能力 | 实现 | 真实约束 |
-| --- | --- | --- |
-| `drawPoster(content)` → `Blob` | 离屏 Canvas，先等 `Kalam` 字体加载再画 | 任一素材加载失败时浮窗显示失败说明，关闭后可重新生成 |
-| `copyPoster(blob)` | `navigator.clipboard.write([new ClipboardItem({'image/png': blob})])` | 必须在点击的用户手势内立即调用 `write`，Safari 同样；不可用或被拒时提示改为保存 |
-| `downloadBlob(blob)` | 临时 `<a download>`，默认文件名 `ponygogogo.png` | 无 |
-| `platformUrl(platform, text)` | X：`https://x.com/intent/post?text=…`；Instagram、小红书：打开站点首页 | 三者都不能带图片 |
-
-按平台说清楚能做到什么，不要在 UI 上承诺做不到的事：
-
-- **X**：web intent 只能带文字，不能带图片。静态前端没有服务端，也就没法给每一场生成带 OG 图的独立 URL。因此点击 X 只打开带文案的发帖页并提示“请复制或保存图片后，在平台中添加图片”，不做成一键直发的样子。
-- **Instagram、小红书**：web 端不存在分享 API，只打开站点，由玩家把已保存的图片自行发布。
-
-没有 `navigator.share`：桌面端普遍不支持带文件分享，保存或复制再手动发布是所有浏览器都成立的路径。
-
-//TODO - 实测分发路径：在 Safari / Chrome 桌面与 iOS Safari / Android Chrome 四处各跑一遍，记录 `copyPoster()` 是否保住手势上下文、保存的 PNG 是否可被各平台接受。任一平台不通即在 UI 上隐藏该入口，不保留会失败的按钮。
+| 模块 | 职责 |
+| --- | --- |
+| `src/main.tsx`、`src/App.tsx` | 规范域名跳转后挂载；页面状态、资源门与浮窗 |
+| `src/app/`、`src/assets/` | manifest、分级加载、重试、后台预取与音频 |
+| `src/ui/loading/`、`src/ui/home/`、`src/ui/settings/`、`src/ui/shared/` | 加载页与分级门、首页、设置、共享舞台缩放与对话框 |
+| `src/ui/wallet/` | 通行密钥仪式、账户状态、余额、助记词展示与战绩 |
+| `src/ui/select/` | 选马队列与下注档位 |
+| `src/ui/race/` | 比赛页与 HUD、Phaser 生命周期；`usePaidRace` 管理有奖会话的开场、选牌、结算与恢复 |
+| `src/ui/collection/` | 图鉴页与收藏进度合并、同步 |
+| `src/ui/showcase/` | 开发特效验收入口，仅开发构建可见 |
+| `src/chain/` | 网络配置、规范域名、账户、会话读写、资金、随机锚期限、奖励、图鉴协议与 Keeper 核心 |
+| `src/race/paid/`、`src/race/core/`、`src/race/cards/` | 规范表、整数求时、随机派生、发牌、排序与卡面数据 |
+| `src/race/*.ts` | 试玩与有奖驱动器、规范轨迹到场景快照的转换 |
+| `src/practice.ts` | 试玩 seed 解析与本地局号 |
+| `src/game/` | 角色目录、Phaser 场景、挂点、动画、镜头与特效验收驱动 |
+| `src/cards/` | DOM 卡面与选牌面板 |
+| `src/result/`、`src/export/` | 结算页、获得窗口与海报导出 |
+| `scripts/Wrangler/` | 同源图鉴 API、SPA 回退与 scheduled Keeper；D1 迁移 |
+| `contracts/` | Solidity 权威规则与资金（[链上架构 §3.3](onchain.md)） |
+| `envio/` | 独立索引器读模型（git submodule） |

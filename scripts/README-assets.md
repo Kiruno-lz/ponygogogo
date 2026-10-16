@@ -1,325 +1,81 @@
 # Ponygogogo — 素材管线
 
-素材分两段，中间隔着 `art-src/`：
+## 1. 母版与运行时产物
 
-```
-art-src/renders/     作者出的整屏渲染图（参考稿，永不上线）
-        ↓  scripts/process-assets.py · postprocess-assets.py · prepare-art.py
-art-src/art/         作者定稿素材与切片
-art-src/placeholder/ 占位素材（图标、木牌、音频）
-        ↓  scripts/build-web-assets.py
-public/assets/       部署产物：WebP + Opus + woff2 + SVG + manifest.json
+```text
+art-src/renders/                  整屏参考稿，不上线
+art-src/art/、placeholder/        作者定稿素材、切片、字体与音频母版
+        ↓ scripts/build-web-assets.py
+public/assets/                   WebP、PNG 二维码、双编码音频、woff2、JSON、许可和 manifest
 ```
 
-**`art-src/` 是唯一真源，`public/assets/` 全部由脚本生成，不要手改。** 产物已提交进仓库，
-日常开发不需要重跑管线（一次约五分钟）；改了母版或改了版位之后手动跑
-`python3 scripts/build-web-assets.py`。唯一的例外是 `public/assets/cards/*.svg`：它们的真源是 `scripts/gen-paid-card-icons.ts`，不经过 `art-src/`。
+`art-src/` 是作者本地保存的母版，Git 忽略；`public/assets/` 是已提交的运行时产物，正常开发和部署直接使用，不重新出图。重新生成必须有对应母版及工具，不能用缺少母版的新检出来替代美术源。
 
-本文 Product 1–6 描述前一段（怎么从渲染图切出母版），第 7 节描述后一段（母版怎么变成产物）。
-前一段的脚本是幂等的，要求 Python 3、Pillow ≥ 11、NumPy。
+依赖按脚本实际调用准备：Python 3、Pillow、NumPy，WebP 编码使用 cwebp，音频使用 ffmpeg，字体转换使用 uvx/fonttools，二维码脚本使用 Bun。`scripts/process-assets.py`、`postprocess-assets.py` 处理参考稿和占位切片；`prepare-art.py` 只处理 HUD/UI 切片及赛道背景，不生成首页或结算页的独立木牌/奖章。
 
----
+## 2. 当前素材入口
 
-## Product 1 — Card Icons
+| 素材 | 母版 / 处理入口 | 当前产物与使用者 |
+| --- | --- | --- |
+| 40 张卡图 | 生成源 `art-src/art/cards/_generated/card-N.png` → `scripts/prepare-card-art.py` → 母版 `art-src/art/cards/card-N.png`（512×512） | `public/assets/art/cards/card-N.webp`（320×320），manifest 键 `art.cards.card-N`，race 级；Card、HUD、图鉴、结算与海报共用 |
+| 九角色待机与跑步 | pony 母版，`prepare-pony-roster.py` 与 `prepare-pony-running.py` | `art/ponies/N-idle.webp`、`N-running.webp`；八帧 256×192，整图 2048×192 |
+| 角色静态图 | `prepare-pony-roster.py`、`prepare-plaque-portraits.py` 等 | 头像、选马名牌、结算 hero 与海报 horse 各有专用图，按 ponyCatalog 的锚点注册 |
+| 六张特效分镜 | `art/effects/*-sheet.png`；旋转突进由 prepare-spin-thrust.py/render-spin-thrust.ts 烘焙 | rocket、rainbow-trail、blackhole、fire-wheel、wind、spin-thrust；4×4、16 帧，race 级 |
+| 头饰 | `prepare-head-cosmetics.py` | `art/cosmetics/blonde-hair.webp`、`green-hair.webp`，race 级 |
+| 分享海报 | `prepare-share-art.py` | `art/share/` 背景、标题、奖项组、九角色立绘和二维码，result 级 |
+| 二维码 | `art-src/QR code.png` → `prepare-share-qr.ts` | `art/share/qr.png` 去白底后保留 PNG，不转 WebP |
+| 图鉴与获得窗口 | `art/collection/`、`art/collectibles/` | 图鉴底板/标签与获得卡片、按钮/纸屑；可按类别增量编码 |
+| 音频 | `fetch-audio.sh`；来源见[音频说明](README-audio.md) | `placeholder/audio/`，按 source.ts 的 canPlayType 选择编码 |
 
-| File | Size | Source region |
-|------|------|---------------|
-| `icons/icon_01.png` … `icon_19.png` | 256×256 px each | `art-src/renders/card_icon.png` (1254×1254) |
-| `icons/_contact_sheet.png` | 1316×1126 px | composed from the 19 icons |
+`prepare-card-art.py` 要求 40 张来源均存在，透明 PNG 母版为 512×512，输出为 320×320 WebP；标记 preserveCanvas 的来源保持画布和像素，其他来源按 alpha 包围盒统一缩放注册。图标路径由 `src/race/cards/metadata.ts` 与 `iconUrl.ts` 定义。
 
-**Extraction method:**  
-Row-band + column-blob projection (NOT a fixed grid).  
-The source sheet has 5 horizontal bands detected by alpha-column projection, then per-band column blobs split on gaps ≥ 20 px.  
-This correctly handles the last row where 3 icons (17–19) are spaced wider than the uniform 4-column grid would place them.
+全量 `build-web-assets.py` 不认识卡图的 320 目标：`display-sizes.json` 没有卡图键、卡图也不在 NO_DOWNSCALE 中，会按 512×512 母版重新编码，而 `shipped-assets.test.ts` 不校验尺寸。全量构建后须再运行 `prepare-card-art.py`。
 
-**Actual source bboxes (x0, y0, x1, y1):**
+//TODO - 让全量构建产出 320×320 卡图：把卡图目标尺寸纳入 `build-web-assets.py`（或尺寸表），并在 `src/assets/shipped-assets.test.ts` 断言 40 张卡图 WebP 均为 320×320。
 
-| # | bbox |
-|---|------|
-| 01 | (54, 33, 305, 257) |
-| 02 | (360, 33, 595, 257) |
-| 03 | (650, 33, 895, 257) |
-| 04 | (946, 35, 1205, 257) |
-| 05 | (58, 284, 300, 498) |
-| 06 | (351, 284, 605, 498) |
-| 07 | (660, 284, 885, 498) |
-| 08 | (951, 284, 1208, 498) |
-| 09 | (59, 526, 295, 746) |
-| 10 | (356, 526, 589, 746) |
-| 11 | (651, 526, 900, 743) |
-| 12 | (946, 526, 1212, 746) |
-| 13 | (52, 774, 309, 990) |
-| 14 | (358, 775, 589, 998) |
-| 15 | (649, 774, 897, 998) |
-| 16 | (940, 774, 1205, 998) |
-| 17 | (62, 1018, 340, 1230) |
-| 18 | (414, 1018, 690, 1230) |
-| 19 | (757, 1018, 1097, 1230) |
+跑步打包和动作验收见[跑步参考研究](../docs/_reaserch/pony-running-reference-validation.md)。技术尺寸和哈希通过不代表动作观感已经验收。
 
----
+## 3. 出片与尺寸
 
-## Product 2 — Card Frames
+`build-web-assets.py/ships()` 先排除 DEAD、下划线或点开头的路径，再执行类别白名单和中间产物过滤。整屏 renders 不出片；提示词、参考图、分镜母图、逐帧拆图与制作元数据不作为运行时素材。逐帧图仅 `-idle-0` 保留，供旋转突进制作输入与 shipped-assets 存在性检查；运行时头像使用独立头像或八帧分镜，海报使用专用立绘。
 
-| File | Size | Source |
-|------|------|--------|
-| `ui/card_frame_common.png` | 798×900 px | `art-src/renders/card_normal.png` |
-| `ui/card_frame_rare.png` | 757×900 px | `art-src/renders/card_rare.png` |
-| `ui/card_frame.json` | — | measured from outputs |
+`art/effects/` 只出 `*-sheet.png`；`art/cosmetics/` 只出金色与绿色头饰。UI 仅出 UI_KEEP 匹配项。DEAD 中的旧背景、起跑整图等虽然可能保存在本地母版中，不进入部署。
 
-Both source files are RGBA with pre-existing transparent backgrounds.  
-The script crops to the alpha content bbox, then resizes to height = 900 px preserving aspect ratio.
+普通图片目标为 `min(源图尺寸, 实测显示尺寸 × 2)`，只降不升。测量入口是 `scripts/measure-display-sizes.ts`，结果保存在 `scripts/display-sizes.json`，键不带扩展名，使 PNG 母版与 WebP 产物匹配。测量使用元素未经过舞台 transform 的盒子和背景尺寸；全量构建检查尺寸表至少 80% 的组与出片清单匹配。
 
-**card_frame.json** (all coordinates in output-image pixels):
+以下素材属于 NO_DOWNSCALE：赛道循环贴图、八帧待机/跑步、idle-0、特效分镜及指定 border-image 木牌/羊皮纸。它们的切片或平铺规则依赖原始像素，改变尺寸必须同时修改消费者。
 
-```json
-{
-  "common": {
-    "w": 798, "h": 900,
-    "artRect":    [100, 111, 589, 546],
-    "ribbonRect": [72,  661, 698, 150]
-  },
-  "rare": {
-    "w": 757, "h": 900,
-    "artRect":    [87, 142, 572, 528],
-    "ribbonRect": [62, 674, 631, 146]
-  }
-}
-```
+## 4. 编码与 manifest
 
-`artRect` — inner parchment usable area [x, y, w, h].  
-`ribbonRect` — scroll banner at bottom for card name [x, y, w, h].
+- 位图使用 WebP，参数为 `-q 84 -m 6 -alpha_q 100 -sharp_yuv`；二维码例外保留 PNG。
+- 字体转 woff2，OFL 许可随产物复制。
+- 音频达到 200 KiB 时重编码：Ogg/Opus 80k、MP3 96k；更小的文件直接复制，不能由扩展名推定原始 Ogg 的编解码器。
+- manifest 保存 kind、path、bytes、sha256 摘要、tier 与 deferred 标记；音频主条目可带 alt 编码。所有键与文件必须同步更新。
 
-**Measurement basis:**  
-- artRect top (y): first row at center-x with R>205, G>170, B>125, A>80.  
-- artRect left/right: column extent of parchment at 40% image height.  
-- artRect bottom / ribbonRect top: first row where parchment column-width  
-  exceeds art-area width + 80 px (ribbon protrudes beyond the frame).  
-- ribbonRect bottom: last row at center-x with parchment colour.  
-- ribbonRect left/right: column extent at mid-ribbon height.
+加载层级为 boot/home/race/result，按首次使用页面映射或 FALLBACK_TIER 分配；`art/collectibles/` 固定归入 result 级。应用先加载 boot，再阻塞加载 home，其余后台预取；选马、比赛、图鉴等通过资源门等 race，结算等 result。角色的 idle、running、idle-0、portrait、plaque-portrait 以及 `result/hero-N`、`share/horse-N` 标为 deferred，不随分级加载：比赛分镜由开赛前按本场名单 `loadKeys` 加载，其余由 img/CSS 直接请求。
 
----
+## 5. 构建与验证
 
-## Product 3 — Background Layers
-
-> 这一节的产物**已不再上线**：整层背景被 `art/track/` 的原画切片取代，留在 `art-src/` 作为制作记录。
-
-All layers are RGB (no alpha), cropped from `art-src/renders/race_gaming.png` (1619×971).
-
-| File | Size | Crop (y0..y1) | Notes |
-|------|------|---------------|-------|
-| `bg/layer_far.png` | 1619×268 | y 0–268 | Sky, castle, mountains, pines, stands |
-| `bg/layer_fence.png` | 1619×98 | y 250–348 | Mid fence + signboards |
-| `bg/layer_fence_tile.png` | 3238×98 | y 250–348 | `[orig ∣ flipped]` for seamless scroll |
-| `bg/layer_front.png` | 1619×223 | y 748–971 | Foreground fence + audience silhouettes |
-| `bg/layer_front_tile.png` | 3238×223 | y 748–971 | `[orig ∣ flipped]` for seamless scroll |
-| `bg/track_dirt.png` | 512×64 | y 680–744, x 950–1206 | Clean dirt patch → mirrored to 512×64 |
-
-**track_dirt** source region: track-5 right side, x=950–1206, y=680–744.  
-Chosen to avoid horses (clustered at x=400–900), lane markers (visible around y=460), and the scoreboard (x>1275).
-
----
-
-## Product 4 — UI Assets
-
-### `ui/start_gate.png` — 990×615 *（已不再上线：起跑线改由 `RaceScene` 的 graphics 画）*
-
-Cropped from `art-src/renders/race_start.png` (1619×971) at y=175..790, x=150..1140.  
-Contains: wooden arch gate, RACE crown sign, numbered flags 1–5, five starter ponies.  
-RGB (no transparency needed — rendered as a full background element).
-
-### `ui/logo_title.png` — 1349×465
-
-From `art-src/renders/tittle.png` (1611×976), top content band y=0..465.  
-White background removed (threshold: all channels > 244 → transparent).  
-Cropped to non-transparent bbox. Contains: Ponygogogo text, horse, cards, gold coins.  
-Note: includes the "登录 / 注册" wooden signs at top-right of the same composition.
-
-### `ui/btn_wood.png` — 628×147
-
-From `art-src/renders/tittle.png`, START button at y=482..633, x=488..1128.  
-White background removed. Centre text erased (x 20–80%, y 10–90%) and  
-replaced with median wood colour (#d89f6c), sampled from left/right end-caps.
-
-**btn_wood.json** (nine-slice margins in output pixels):
-```json
-{ "left": 81, "right": 81, "top": 20, "bottom": 20 }
-```
-The left/right margins preserve the angled decorative end-caps (~13% each side).  
-The top/bottom margins preserve the dark border edge (~14% each).
-
-### `ui/btn_star.png` — 339×281 *（已不再上线：`theme.css` 里被同特异性的后置规则覆盖，从不绘制）*
-
-From `art-src/renders/race_start.png`, bottom-right region x≥1155, y≥575.  
-Gold isolation: R>190, B<90, R−B>130, G>120 (plus dark outline R<85).  
-Background removed via BFS connected-component from the gold centroid.  
-Centre text zone (x 18–82%, y 15–80%) uniformly filled with median gold (#fdb84a).
-
-**btn_star.json** (nine-slice margins in output pixels):
-```json
-{ "left": 67, "right": 67, "top": 56, "bottom": 56 }
-```
-
-### `ui/panel_parchment.png` — 354×445
-
-From `art-src/renders/race_gaming.png`, right panel x=1265..1619, y=75..520.  
-Panel isolated via colour mask (parchment + wood + dark pixels) + BFS  
-connected-component from centre. Interior (x 7–93%, y 6–94%) uniformly  
-filled with median parchment colour (#f2cdaf) to erase leaderboard content.
-
-**panel_parchment.json** (nine-slice margins in output pixels):
-```json
-{ "left": 63, "right": 63, "top": 53, "bottom": 53 }
-```
-
----
-
-## Product 5 — Palette
-
-`bg/palette.json` — median pixel colours sampled from `art-src/renders/race_gaming.png`:
-
-| Key | Hex | Sampled from |
-|-----|-----|--------------|
-| `dirt` | `#b77249` | Track surface x=1000, y=490, r=12 |
-| `dirtDark` | `#b16c43` | Darker track patch x=1000, y=440, r=4 |
-| `laneLine` | `#ebbe9c` | Inter-lane divider strip x=600, y=452, r=3 |
-| `grass` | `#58924e` | Pine tree / grass zone x=400, y=150, r=10 |
-| `sky` | `#6f9efa` | Open sky x=550, y=5, r=15 |
-| `wood` | `#b28168` | Fence rail x=300, y=285, r=10 |
-| `woodDark` | `#a17865` | Fence post shadow x=180, y=283, r=5 |
-| `parchment` | `#f1cdb0` | Scoreboard interior x=1440, y=300, r=20 |
-| `gold` | `#f4a22a` | Lightning bolt icon x=135, y=63, r=6 |
-| `ink` | `#57250c` | Dark text on parchment x=1360, y=210, r=4 |
-
----
-
-## Product 6 — `prepare-art.py` outputs (manual, run on source-art changes)
-
-Not part of `scripts/dev.sh`; `process-assets.py` and `postprocess-assets.py` regenerate automatically on a missing-directory check, but `prepare-art.py` is a one-off you run by hand whenever the underlying render changes:
+`measure-display-sizes.ts` 需要先在 5177 端口启动 Vite。
 
 ```bash
-python3 scripts/prepare-art.py
+bun scripts/measure-display-sizes.ts
+python3 scripts/build-web-assets.py
+python3 scripts/check-asset-quality.py
+bun test src/assets/shipped-assets.test.ts src/game/pony-assets.test.ts
 ```
 
-**首页不再由这个脚本切。** 早期版本从 `art-src/renders/tittle.png` 抠白底、裁六个矩形得到 `home/{logo,start,collection,settings,login,register}.png`；这段已删除。首页素材现在由作者直接出成无字、透明、非原生尺寸的 PNG，版位靠把素材的实体包围盒对到 `art-src/renders/tittle.png` 里同一块牌的包围盒得出（算法与横纵独立缩放见 `docs/architecture/overall.md` 第 9 节），不再走脚本裁切。
+只改一类时使用现有增量入口：
 
-**结算页的奖章与名牌也不再由这个脚本切。** 早期版本把 `result/placement.png`（奖章+木牌+名次条焊成一张）拆成 `medal-1.png` 与 `nameplate.png`；这段连同 `placement.png` 一起删除了。五档奖章与名牌现在都是作者直接出的独立素材：`medal-1..5.png`（金/银/铜/铁/木，名次数字画在牌面上，所以 DOM 里不再叠数字）、`nameplate.png`（木牌+名次条）。渲染顺序仍是先名牌、后奖章，与原画里奖章压在木牌之上的叠放一致；版位见 `src/ui/theme.css` 的 `.result-nameplate` / `.result-medal-art`。
+```bash
+python3 scripts/prepare-card-art.py
+python3 scripts/build-web-assets.py --pony 0 1 2 3 4 --running-only
+python3 scripts/build-web-assets.py --collectibles
+python3 scripts/build-web-assets.py --collection-ui
+```
 
-脚本现在只做两件事：
+`--pony` 可选择 0–8；不加 running-only 时更新该角色的 idle/running/idle-0/portrait、result hero 和 share horse。增量构建要求完整旧 manifest 已存在且所选母版齐全，仅更新选中的产物。全量构建会清空并重建 `public/assets/`，执行前须确保本地母版完整。
 
-### 6.1 UI 元件二次抠图
+`check-asset-quality.py` 对显示尺寸表中同时存在 PNG 母版和 WebP 的图片，在白底与深底合成后测 PSNR，取更差的一项，阈值 35 dB；缺少全部可比对素材时失败，缺少单项时跳过。因此它不能证明未进入尺寸表的图片质量，也不能替代动作/布局验收。
 
-- `avatar-source.png` / `star-race-source.png`：从 `art-src/renders/race_start.png` 裁出后套用已有的 `avatar-reference.png` / `star-reference.png` 蒙版做二次抠图。
-- `avatar` `avatar-blank` `stamina` `star` `wallet` `bet-panel` `bet-chip` `bet-chip-selected` `coin` `win-strip` `horseshoe` `dust` `gold-ring` `buff-frame` `buff-wing` `buff-leaf` `buff-fire` `buff-eye`：裁到各自 alpha 包围盒存为 `*-trimmed.png`；`dust` 额外缩到 128px 宽；`buff-eye` 的源文件是 `buff-eye-v2.png`。
-- `lane-flags.png` 横向切成 5 张 `flag-{0..4}.png`。
-
-### 6.2 赛道背景分层
-
-从 `track/scene.png`（缩放到 1619×971）按 y 区间裁出 `track/far.png`（天空/看台）、`track/front.png`（前景围栏）、`track/track.png`（赛道本体）；远景与前景用 `track/scene-loop.png` 同区间拼接成可循环贴图，赛道层改用左右镜像拼接（`[原图 ∣ 翻转]`）得到 3238px 宽的无缝循环图。
-
----
-
-## 7. Web 产物管线（`scripts/build-web-assets.py`）
-
-母版约 285 MB，其中大半是参考图、抠图蒙版、逐帧拆分、生成源图和废弃版本。产物只取被代码引用的那一部分，
-并按实测显示尺寸重采样。三条规则各自有必须成立的理由，改动前先读脚本里对应常量旁的注释。
-
-### 7.1 出片清单
-
-脚本里 `DEAD` 与 `INTERMEDIATE` 两张表决定什么不上线。`DEAD` 的每一项都核对过零引用，
-理由写在常量旁：整层背景 `placeholder/bg/`（已被 `art/track/` 的原画切片取代）、
-`start_gate.png`（起跑线改由 `RaceScene` 画）、`btn_star.png`（`theme.css` 里被同特异性的后置规则覆盖，从不绘制）、
-`running-v3/`（未采用的跑步循环重做版）、以及三张被 `-reference` 版本取代的切片。
-`INTERMEDIATE` 挡掉制作期资料：AI 生成提示词、抠图蒙版、拼版留档、逐帧拆分。
-
-逐帧拆分里只有 `-idle-0` 上线，运行时不读取它，只作 `scripts/prepare-spin-thrust.py` 的输入和 `src/assets/shipped-assets.test.ts` 的存在性检查；选马页头像用八帧 `-idle` 分镜，海报用 `art/share/horse-N`。
-注意 `ships()` 里 `INTERMEDIATE` 必须先判、`FRAME_SPLIT` 后判：`fidelity/` 下也有 `-idle-0`，
-顺序反过来会让十张保真度对照图跟着上线。
-
-后加的三类素材里，`art/effects/` 与 `art/cosmetics/` 在 `ships()` 里有专门的白名单，`art/share/` 走通用规则（`_archive/` 被下划线规则排除，提示词被 `INTERMEDIATE` 排除）；其余文件（生成源图、参考图、`_review/`、`_previous/`、提示词与元数据）一律不出片：
-
-| 母版目录 | 出片 | 说明 |
-|---|---|---|
-| `art/effects/` | 只出 `*-sheet.png`（火箭、彩虹拖尾、黑洞、风火轮、风、旋转突进六张 4×4 分镜） | 帧尺寸由 `src/game/effects.ts` 固定，进 `NO_DOWNSCALE`，分级 `race` |
-| `art/cosmetics/` | 只出 `blonde-hair.png`、`green-hair.png` | C-19、C-20 的头顶尖发，分级 `race` |
-| `art/share/` | 背景、标题（获胜与完赛）、奖项组、五匹马立绘与 `qr.png` | 分享海报素材，分级 `result`；`qr.png` 不转 WebP，原样拷贝以保持二维码像素 |
-
-`build-web-assets.py` 开头先跑 `scripts/prepare-share-qr.ts`：把 `art-src/QR code.png` 的白底去成 alpha，只出 `art/share/qr.png`，输入母版自身列入 `DEAD`。结尾再跑 `scripts/gen-paid-card-icons.ts`：C-22 至 C-40 的 19 张卡面是代码生成的 SVG，直接写入 `public/assets/cards/` 并登记 manifest（键 `cards.card-NN`），不经过 `art-src/`。`public/_headers` 与 `scripts/deploy.sh` 的缓存覆盖核验都认 `cards/` 目录。
-
-只想重出某一类时不必重跑整条管线：`scripts/prepare-share-art.py`（海报素材与二维码）、`scripts/prepare-head-cosmetics.py`（头饰）、`scripts/prepare-spin-thrust.py`（C-02 旋转突进分镜；帧由 `scripts/render-spin-thrust.ts` 用螺旋几何烘焙，几何定义在 `scripts/spin-thrust-motion.ts`）都复用 `build-web-assets.py` 的编码函数，只更新各自的产物与 manifest 项。
-
-### 7.2 目标分辨率
-
-**目标 = min(原图, 实测显示尺寸 × 2)，只降不升。** 显示尺寸不是估的：
-`scripts/measure-display-sizes.ts` 驱动真实页面走完加载页、首页、图鉴、设置、选马、比赛、选牌、结算，
-逐个元素量 `offsetWidth/offsetHeight`（不是 `getBoundingClientRect`——舞台是 `transform: scale`，
-后者混进了屏幕缩放），并按 `background-size` 换算贴图实际被画成多大，结果落在 `scripts/display-sizes.json`。
-改了版位之后跑 `bun scripts/measure-display-sizes.ts` 重量一次。
-
-有些素材只在走不到的状态里出现：钱包面板要先有账户，增益图标要恰好抽到那几张卡，
-`star-reference` 是 `.btn-star` 在文案既不是 `RACE!` 也不是 `GOGOGO` 时的底图。
-这些不写死数字——写死会随样式漂移且无人察觉。测量脚本把同样结构的空元素挂进真实页面，
-让浏览器按同一份样式表算一次盒子再读回来（`DETACHED` 表，每条注明出处）。
-量的是 CSS 级联的结果，不是谁对级联的理解。
-
-**显示尺寸表的键不带扩展名**，这是这条接缝成立的前提：测量跑在已转成 WebP 的应用上，
-而管线查的是母版 PNG。键里留着扩展名两边就永远对不上，而对不上时管线不报错，
-只会安静地一张都不降采样、产物悄悄变大。管线在出片前核对覆盖率，对不上 80% 就停；
-`src/assets/shipped-assets.test.ts` 另有两条断言守这个格式。
-
-`NO_DOWNSCALE` 里的素材禁止降采样，缩小它们不是画质取舍而是功能回归：
-
-| 素材 | 缩小的后果 |
-|------|------------|
-| `art/track/{far,track,front}.png` | `tileSprite` 按 1:1 平铺，贴图宽度就是滚动循环周期，缩一半等于景物重复频率翻倍 |
-| `*-idle.png` / `*-running.png` | 八帧横排分镜，`src/game/pony.ts` 硬编码 `FRAME_W=256`/`FRAME_H=192`，改尺寸即错帧 |
-| `art/effects/*-sheet.png` | 4×4 特效分镜，`src/game/effects.ts` 按帧尺寸切片，整图降采样会串帧 |
-| `placeholder/ui/btn_wood_*.png`、`panel_parchment.png` | `border-image` 的切片数值按源图像素计（`theme.css` 里的 `92 185 71 196` 一类），缩放源图必须同步改切片；这几张当前采样率本就在 1.8–2.4× |
-
-### 7.3 编码
-
-位图一律 WebP，`-q 84 -m 6 -alpha_q 100 -sharp_yuv`。`-sharp_yuv` 是针对这套美术选的：
-高饱和平涂加硬描边，默认的色度下采样会在描边上留彩色毛边，sharp_yuv 按亮度加权算色度正好治这个。
-`-alpha_q 100` 让 alpha 通道保持无损，切片素材的边缘不会发毛。
-
-字体转 woff2（三个字重合计 920 KB → 308 KB），随字体分发的 OFL 许可原样拷贝——这是许可要求。
-
-音频超过 200 KB 的重编码：`.ogg` 转 Opus 80k，`.mp3` 转 96k。两条 BGM 母版是 141 kbps Vorbis，
-各占一兆多，比全部首页美术加起来还大；音效都只有几 KB，重编码省不下容器开销，原样拷贝。
-
-画质由 `python3 scripts/check-asset-quality.py` 核验：把产物与母版各自缩到实测显示尺寸、
-合成到白底与深底，取更差的一种比 PSNR，判据是没有一张低于 35 dB。当前中位 40.6 dB、最低 35.8 dB。
-注意不要直接比 RGBA 裸通道——全透明像素的 RGB 是无意义值，WebP 会清零，比出来是 9 dB 这种
-吓人但毫无意义的数字；玩家看到的是合成结果，比的就得是合成结果。
-
-### 7.4 分级
-
-`manifest.json` 每项带 `tier`，取值 `boot | home | race | result`，含义是「在哪个阻塞点之前必须就绪」。
-分界按阻塞点划而不是按页面：`race` 覆盖首页之后到结算之前的一切（选马、比赛、选牌、图鉴、设置），
-因为它们都在同一次点击之外。归属由实测的首次出现页面决定，脚本里的 `FALLBACK_TIER` 只管没量到的兜底。
-
-### 7.5 当前体积
-
-| | 母版 | 产物 |
-|---|---|---|
-| 磁盘占用（部署上传量） | 285 MB | **12.20 MB** |
-| 玩家实际下载（全部四级） | — | 10.22 MB |
-| 其中进首页要等（`boot` + `home`） | — | **1.83 MB** |
-| 其中后台预取（`race` + `result`） | — | 8.39 MB |
-
-磁盘 12.20 MB 与下载 10.22 MB 的差额是音频的 `.mp3` 备用编码：每条音频同时带 `.ogg` 与 `.mp3`，
-运行时按 `canPlayType` 只取其一（`src/assets/source.ts`），两份都要上传但从不同时下载。
-
-改动之前这里是 175 MB 部署产物、83.4 MB 首屏一次性预载。
-
-`src/assets/shipped-assets.test.ts` 守住这张表的下限：源码里每一条资源引用都必须有对应产物，
-manifest 每一项都要指向真实文件、字节数一致、分级合法，且进首页要等的两级不超过 2 MB。
-
----
-
-## 8. 仍然缺的素材
-
-| 路径 | 尺寸 | 说明 |
-|------|------|------|
-| `art-src/art/cards/icon-C-01.png` … `icon-C-21.png` | 128×128，透明 PNG（母版；产物自动转成 WebP） | 结算页三个卡槽现在复用 `art-src/placeholder/icons/icon_01.png` … `icon_19.png`（19 张服务 21 张卡；`icon_01`、`icon_19` 各复用了一次，见 `src/race/cards/metadata.ts` 里每条卡的 `art.icon`）。补齐后把对应卡的 `art.icon` 改指到新路径，并在 `src/race/cards/iconUrl.ts` 增加对应的路径解析（非 `card-` 前缀的 icon 一律解析到 `/assets/placeholder/icons/`）。 |
-
-C-22 至 C-40 的卡面图标是代码生成的 SVG，不在这个缺口里。卡面图标之外没有别的缺口：五档奖章、名牌、标题木牌、首页六块木牌与两张整屏背景都已定稿。
+`shipped-assets.test.ts` 检查 40 张独立卡图、角色与特效资源、manifest 路径/字节/摘要/层级、源码引用及 boot+home 小于 2 MiB。部分需要本地母版的断言可能跳过，应单独报告。体积从本次 manifest 和目录计算，不固化旧母版或旧产物的大小。

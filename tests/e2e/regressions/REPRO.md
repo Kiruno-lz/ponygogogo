@@ -2,7 +2,30 @@
 
 第一至四节对应本目录的 `countdown-overlay`、`wallet-busy`、`collection-locked-slots`、`modal-strictmode-close` 四个脚本，第五节的复现脚本在 `tests/e2e/specs/paid-race.spec.ts`，第六节对应 `gogo-exhausted`，第七节对应 `practice-spin-thrust`，第八节对应 `practice-gravity-trace`，第九节对应 `practice-lineup-seed`，`bunx playwright test --config tests/e2e/playwright.config.ts regressions/` 全量跑本目录。
 
-//TODO - 为 `anonymous-card-webkit`、`cosmetics-wind`、`equipment-card-selection`、`gogo-button-layout`、`gogo-camera`、`horse-selection`、`practice-rules-audio` 七个回归脚本补写缺陷现象、根因假设与关联 L1/L2 模块；判据是 `regressions/*.spec.ts` 每个文件在本文都有对应小节。
+本文记录已修复缺陷及现有回归范围，不把历史失败现象描述为当前产品行为；通过与否以实际运行结果为准。当前源码路径见各节，回归使用生产组件和真实规则路径。
+
+## 当前脚本索引
+
+前九节保留核心缺陷的复现原因，其余脚本覆盖如下。每一行的脚本位于本目录，可用上述命令追加文件名定向运行。
+
+| 脚本 | 缺陷 / 当前断言 | 关联实现 |
+| --- | --- | --- |
+| `anonymous-card-webkit.spec.ts` | 匿名首次选牌时拖选/全选不产生蓝色图片遮罩，键盘仍可选牌；该文件指定 WebKit | `src/cards/Card.tsx`、`src/cards/cardKeys.ts` |
+| `cosmetics-wind.spec.ts` | 金/绿头饰在替换、起飞、翻面时仍贴合；风分镜方向、暂停和减少动态效果稳定 | `src/game/pony.ts`、`src/game/effects.ts` |
+| `equipment-card-selection.spec.ts` | 彩虹发射端随马体尺寸、起飞、翻面和归属贴合尾根 | `src/game/pony.ts`、`src/game/effects.ts` |
+| `gogo-button-layout.spec.ts` | GOGOGO 字居中、底图与点击尺寸固定，卡牌不改按钮文案 | `src/ui/race/Hud.tsx`、`src/ui/styles/screens.css` |
+| `gogo-camera.spec.ts` | 连续点击平滑移动构图、限幅和回归，五马共用镜头且规则不变 | `src/game/gogoCamera.ts`、`src/game/RaceScene.ts` |
+| `horse-selection.spec.ts` | 金圈始终在马匹下层，金色描边仅随悬浮出现 | `src/ui/select/SelectScreen.tsx`、`src/ui/styles/screens.css` |
+| `practice-rules-audio.spec.ts` | 玩家冲线旋律按前二名/其余选择且只播放一次，CPU 和结算页不重复播放 | `src/ui/race/raceEventAudio.ts`、`src/ui/race/RaceScreen.tsx` |
+| `cpu-card-audio.spec.ts` | CPU 获得装备不播放玩家获得声音，非零玩家槽位保留检查点声音 | `src/ui/race/raceEventAudio.ts` |
+| `home-english-layout.spec.ts` | 英文首页文字留在木牌内，中文版位保持 | `src/ui/home/HomeScreen.tsx`、`src/ui/styles/screens.css` |
+| `home-notices.spec.ts` | 注册/取消提示能切换语言，5 秒消失，旧计时器不取消新提示 | `src/ui/shared/TransientNotice.tsx`、`src/ui/wallet/useWalletSession.ts` |
+| `loading-entry-icon.spec.ts` | 英文加载入口只有一个 Enter 标签，favicon 返回头像文件 | `src/ui/loading/LoadingScreen.tsx`、`index.html`、`public/favicon.png`、`public/favicon.ico` |
+| `pony-plaque.spec.ts` | 九角色共用名牌边框，肖像尺寸/焦点按注册位置绘制在边框下 | `src/ui/race/RaceArt.tsx`（`PlayerPlaque`）、`src/ui/styles/screens.css`、`src/game/ponyCatalog.ts` |
+| `wallet-panel-fixes.spec.ts` | 登录木牌文字版位正确，钱包只显示智能账户地址与余额 | `src/ui/wallet/WalletModal.tsx`、`src/ui/home/HomeScreen.tsx` |
+| `collection-sync-notice.spec.ts` | 同步提示按中心扩大、5 秒或点外部关闭，失败可重试 | `src/ui/collection/CollectionSyncNotice.tsx` |
+| `showcase-result-preview.spec.ts` | 特效验收按所选角色预览结算并返回原场景 | `src/ui/showcase/EffectShowcaseScreen.tsx` |
+
 
 ---
 
@@ -53,7 +76,7 @@ bunx playwright test --config tests/e2e/playwright.config.ts regressions/countdo
 
 任何以 `?raceSpeed=N` 运行、又要断言**瞬态状态**的用例都有同一个陷阱：可观测窗口被除以 N。写法上一律「先挂等待，后触发」，不要靠放大 timeout——超时再长也救不了已经错过的窗口。
 
-**同一条动线里还有第二处同类问题**，根因相同但形态不同：倒计时结束后，journey 用八次顺序断言逐个检查 HUD（`stamina-bar`、`leaderboard`、`gogo`、五行 `board-row-*`）。`gogo` 的挂载条件是 `!counting && st.pending === null && !st.playerFinished`（`src/ui/RaceScreen.tsx`），而 16 倍速下玩家跑到 25% 里程、弹出第一个检查点选牌面板只要一秒上下——八次往返还没走完，`st.pending` 就已经非空，`gogo` 被卸载，断言报 `element(s) not found`。失败截图里停在选牌面板，正是这个状态。
+**同一条动线里还有第二处同类问题**，根因相同但形态不同：倒计时结束后，journey 用八次顺序断言逐个检查 HUD（`stamina-bar`、`leaderboard`、`gogo`、五行 `board-row-*`）。`gogo` 的挂载条件是 `!counting && st.pending === null && !st.playerFinished`（`src/ui/race/RaceScreen.tsx`），而 16 倍速下玩家跑到 25% 里程、弹出第一个检查点选牌面板只要一秒上下——八次往返还没走完，`st.pending` 就已经非空，`gogo` 被卸载，断言报 `element(s) not found`。失败截图里停在选牌面板，正是这个状态。
 
 已按后一条修好：八条等待和倒计时的等待一起，在点下 RACE 之前就并发挂上，元素一出现就各自命中，不再有八次往返的累计延迟。产品侧一行未动。
 
@@ -69,7 +92,7 @@ bunx playwright test --config tests/e2e/playwright.config.ts regressions/countdo
 
 ### 根因假设
 
-**状态管理。** `src/ui/HomeScreen.tsx` 的两个入口都写着 `disabled={busy !== null}`，而 `busy` 是 `src/App.tsx` 里的 `walletBusy`。原来的 `register` 把 `walletBusy` 一直占到 `wallet.register()` 整个 promise 落地为止，而这个 promise 里除了通行密钥仪式，还包含**领水后的余额轮询**——最坏 15 次 × 1 秒。轮询期间账户早已通过 `onAccount` 回调画到界面上，玩家完全可以退出；退出只清了账户，没清 `walletBusy`，于是按钮继续灰着，直到轮询自己跑完。
+**状态管理。** `src/ui/home/HomeScreen.tsx` 的两个入口都写着 `disabled={busy !== null}`，而 `busy` 是 `src/App.tsx` 里的 `walletBusy`。原来的 `register` 把 `walletBusy` 一直占到 `wallet.register()` 整个 promise 落地为止，而这个 promise 里除了通行密钥仪式，还包含**领水后的余额轮询**——最坏 15 次 × 1 秒。轮询期间账户早已通过 `onAccount` 回调画到界面上，玩家完全可以退出；退出只清了账户，没清 `walletBusy`，于是按钮继续灰着，直到轮询自己跑完。
 
 同一个根因还带出第二个隐患：轮询结果回来时若玩家已经退出（或又注册了另一把），旧的 `setWalletBalance` / `setNotice` 会盖到新状态上。
 
@@ -85,7 +108,7 @@ bunx playwright test --config tests/e2e/playwright.config.ts regressions/wallet-
 
 - L1：无。这不是规则问题。
 - L2：`tests/api/ts/wallet.test.ts` 覆盖 `wallet.register()` 自身的返回契约；忙碌态是界面状态，不属于钱包端口的契约。
-- L3：`src/App.tsx`。修法是两条：通行密钥仪式一结束（`onAccount` 回调里）就放开 `walletBusy`，领水轮询不再锁按钮；同时给钱包操作加一个世代号，退出与再次注册都会让它自增，过期的异步返回一律丢弃。
+- L3：`src/ui/wallet/useWalletSession.ts`。当前实现是两条：通行密钥仪式一结束（`onAccount` 回调里）就放开 `walletBusy`，领水轮询不再锁按钮；同时给钱包操作加一个世代号，退出与再次注册都会让它自增，过期的异步返回一律丢弃。
 
 ### 注意事项与补充
 
@@ -113,9 +136,9 @@ bunx playwright test --config tests/e2e/playwright.config.ts regressions/wallet-
 **测试契约过期，缺陷在测试而不在产品。** 证据：
 
 1. `tests/art/card-layout.js` 用 `.card-root` 选卡，而 `.card-root` 只由 `src/cards/Card.tsx` 的卡面组件输出；
-2. `src/ui/CollectionScreen.tsx` 对访客未拥有的稀有卡只渲染带 `data-card` 的锁定占位，不渲染卡面——这是 `docs/plan/card-collection-unlock.md` 所述稀有卡收藏尚未成为比赛输入的体现；
-3. 数字严格对上：当时 `PAID_CARD_POOL` 共 26 格，其中稀有卡 12 张，`26 − 12 = 14`（现为 40 格、稀有 23、普通 17）；
-4. `tests/e2e/specs/journey.spec.ts` 早已以 `[data-card]` 作为图鉴格子的计数契约（26 格），只有排版检查还停在「每格都是卡面」的旧假设上。
+2. `src/ui/collection/CollectionScreen.tsx` 对访客未拥有的稀有卡只渲染带 `data-card` 的锁定占位，不渲染卡面——这是 `docs/architecture/overall.md` §5 所述“收藏不筛选牌池”的体现；
+3. 数字严格对上：当时 `PAID_CARD_POOL` 共 26 格，其中稀有卡 12 张，`26 − 12 = 14`（现为 40 格、稀有 13、普通 27）；
+4. `tests/e2e/specs/journey.spec.ts` 早已以 `[data-card]` 作为图鉴格子的计数契约（当前由 `PAID_CARD_POOL.length` 派生为 40 格），修复前只有排版检查还停在「每格都是卡面」的旧假设上。
 
 即：**检查器把「卡面」当成了「格子」**，锁定格按设计没有卡面，于是整格不计数也不做任何排版断言。
 
@@ -125,9 +148,9 @@ bunx playwright test --config tests/e2e/playwright.config.ts regressions/wallet-
 bunx playwright test --config tests/e2e/playwright.config.ts regressions/collection-locked-slots.spec.ts
 ```
 
-`FACES_ONLY` 把缺陷机制钉住：`[data-card]` 恰为 `PAID_CARD_POOL.length`（当前 40），`.card-root` 为其减去稀有卡数（当前 17），`[data-card]:not(.card-root)` 恰为稀有卡数（当前 23），说明漏掉的正是锁定格，且锁定格确实不带卡面。`EVERY_SLOT` 断言修正后的检查器按格子覆盖全部格子，并分别报告卡面数与锁定格数。
+`FACES_ONLY` 把缺陷机制钉住：`[data-card]` 恰为 `PAID_CARD_POOL.length`（当前 40），`.card-root` 为其减去稀有卡数（当前 27），`[data-card]:not(.card-root)` 恰为稀有卡数（当前 13），说明漏掉的正是锁定格，且锁定格确实不带卡面。`EVERY_SLOT` 断言修正后的检查器按格子覆盖全部格子，并分别报告卡面数与锁定格数。
 
-修法是检查器改为遍历 `[data-card]`：`.card-root` 卡面照旧断言描述留在缎带上方的羊皮纸区内；锁定格断言提示文字非空且留在边框内侧。**不给锁定占位补 `.card-root`**：该类名在 `helpers.ts` 的选牌点击、`theme.css` 的卡名字体里都表示「卡面组件」，检查器还会深入它的画面区与描述段落；占位补上类名只会被数进去，再因找不到描述段落被跳过，得到 26 格「全绿」而其中 12 格什么都没查。产品侧一行未动。
+修法是检查器改为遍历 `[data-card]`：`.card-root` 卡面照旧断言描述留在缎带上方的羊皮纸区内；锁定格断言提示文字非空且留在边框内侧。**不给锁定占位补 `.card-root`**：该类名在 `helpers.ts` 的选牌点击、`theme.css` 的卡名字体里都表示「卡面组件」，检查器还会深入它的画面区与描述段落；占位补上类名只会被数进去，再因找不到描述段落被跳过，得到全格「全绿」而稀有锁定格什么都没查。产品侧一行未动。
 
 ### 关联模块
 
@@ -137,7 +160,7 @@ bunx playwright test --config tests/e2e/playwright.config.ts regressions/collect
 
 ### 注意事项与补充
 
-访客的图鉴不再以 `gallery` 尺寸渲染稀有卡卡面，这条检查因此不再覆盖 12 张稀有卡在图鉴尺寸下的描述长度——此前它们靠旧图鉴的全量渲染顺带被查（稀有卡仍会以 `choice` 尺寸出现在比赛选牌面板里，但那是另一种字号与折行）。补回这部分覆盖需要走通「登录 → 解锁图鉴 → 远端返回含稀有卡的密文」的端到端动线，属于图鉴解锁的验收范围，不在本修复内。
+访客的图鉴不再以 `gallery` 尺寸渲染稀有卡卡面，这条检查因此不再覆盖 13 张稀有卡在图鉴尺寸下的描述长度——此前它们靠旧图鉴的全量渲染顺带被查（稀有卡仍会以 `choice` 尺寸出现在比赛选牌面板里，但那是另一种字号与折行）。补回这部分覆盖需要走通「登录 → 解锁图鉴 → 远端返回含稀有卡的密文」的端到端动线，属于图鉴解锁的验收范围，不在本修复内。
 
 ---
 
@@ -147,7 +170,7 @@ bunx playwright test --config tests/e2e/playwright.config.ts regressions/collect
 
 ### 缺陷现象
 
-三个模态窗口改用原生 `<dialog>`（`src/ui/StageDialog.tsx`）后，`tests/e2e/specs/keyboard.spec.ts` 在第一步稳定失败：点首页「注册」，`getByTestId('register-modal')` 20 秒内 `element(s) not found`。控制台无报错，焦点停在「注册」按钮上，键盘触发同样不弹窗。
+三个模态窗口改用原生 `<dialog>`（`src/ui/shared/StageDialog.tsx`）后，`tests/e2e/specs/keyboard.spec.ts` 在第一步稳定失败：点首页「注册」，`getByTestId('register-modal')` 20 秒内 `element(s) not found`。控制台无报错，焦点停在「注册」按钮上，键盘触发同样不弹窗。
 
 ### 根因假设
 
@@ -168,11 +191,11 @@ npx playwright test --config tests/e2e/playwright.config.ts regressions/modal-st
 
 `STALE_CLOSE` 点「注册」后等过排队任务的派发时机，再一次性断言窗口仍在、仍是 `:modal`。缺陷版本里窗口已从 DOM 中消失。
 
-修法在底层 `src/ui/modalHost.ts` 的 `openModal`：`close` 事件到达时若 `dialog.open` 已为真，说明窗口已经重新打开，事件过期，直接忽略。L1 `src/ui/StageDialog.test.tsx` 用会翻转 `open` 的假 dialog 复刻了 mount → cleanup → mount 的顺序，修复前两条用例失败、修复后通过。
+修法在底层 `src/ui/shared/modalHost.ts` 的 `openModal`：`close` 事件到达时若 `dialog.open` 已为真，说明窗口已经重新打开，事件过期，直接忽略。L1 `src/ui/shared/StageDialog.test.tsx` 用会翻转 `open` 的假 dialog 复刻了 mount → cleanup → mount 的顺序，修复前两条用例失败、修复后通过。
 
 ### 关联模块
 
-- L1：`src/ui/StageDialog.test.tsx` 的 `openModal` 用例——「a close event that arrives after the dialog is open again is stale and ignored」「StrictMode remount: the close queued by the first cleanup does not dismiss the reopened dialog」。
+- L1：`src/ui/shared/StageDialog.test.tsx` 的 `openModal` 用例——「a close event that arrives after the dialog is open again is stale and ignored」「StrictMode remount: the close queued by the first cleanup does not dismiss the reopened dialog」。
 - L2：不涉及，窗口开关不跨任何契约。
 - L3：`tests/e2e/specs/keyboard.spec.ts`（Escape、焦点回位、Tab 困在窗口内、点遮罩）、`tests/e2e/specs/wallet.spec.ts`（Escape 关钱包面板）。
 
@@ -204,7 +227,7 @@ bash scripts/dev.sh stop
 
 ### 关联模块
 
-- L1：`src/ui/paidText.test.ts`（期限文案）、`src/chain/settleDeadline.test.ts`（期限计算）——文案与数值正确，问题只在排版。
+- L1：`src/ui/race/paidText.test.ts`（期限文案）、`src/chain/settleDeadline.test.ts`（期限计算）——文案与数值正确，问题只在排版。
 - L2：不涉及。
 - L3：`tests/e2e/specs/paid-race.spec.ts` 动线三。
 
@@ -230,7 +253,7 @@ bash scripts/dev.sh stop
 
 ### 关联模块与注意事项
 
-- L1：`src/ui/Hud.test.tsx` 覆盖免费与有奖状态的力竭快照，断言 GOGO 无 `disabled` 且保留力竭提示与体力视觉；修复前失败。
+- L1：`src/ui/race/Hud.test.tsx` 覆盖免费与有奖状态的力竭快照，断言 GOGO 无 `disabled` 且保留力竭提示与体力视觉；修复前失败。
 - L2：不涉及端口契约。
 - L3-R：本脚本使用生产 HUD、输入与 Phaser 镜头，冻结规则时钟以隔离点击效果；不手工注入力竭状态。
 
@@ -252,7 +275,7 @@ bash scripts/dev.sh stop
 ./node_modules/.bin/playwright test --config tests/e2e/playwright.config.ts regressions/practice-spin-thrust.spec.ts
 ```
 
-使用 `seed=0x00000033`、玩家马 0，真实练习赛派生的第一候选为 C-02。通过选牌 UI 取得它，读取正在运行的 `RaceScene`，断言玩家分镜可见、16 帧、帧号变化、马体曾翻面、原实例与 HUD 徽章各一个；保存截图，跳过后续选牌，断言期限结束后分镜与徽章消失。脚本不注入效果、不改比赛时钟。修复前在分镜可见性断言处失败。
+使用 `seed=0x8255eff8185d6e809f29b9125fab0e99fc44efed84f36f59e83c93d30920015c`、选择 ponyId 0；玩家槽位从实际选马名单读取，真实练习赛派生的第一面板第二候选为 C-02。通过选牌 UI 取得它，读取正在运行的 `RaceScene`，断言玩家分镜可见、16 帧、帧号变化、马体曾翻面、原实例与 HUD 徽章各一个；保存截图，跳过后续选牌，断言期限结束后分镜与徽章消失。脚本不注入效果、不改比赛时钟。修复前在分镜可见性断言处失败。
 
 修法仅把原 `speedDeath` 实例映射成 `Status` 与 `{ statusId: 'luckE', spin: true }`，保留原实例 ID、期限与 `['buff', 'debuff']`，不新增实例或事件。
 
@@ -280,12 +303,12 @@ HUD 按来源卡去重，沿用原期限与 debuff 标签；飘字和音频消�
 PLAYWRIGHT_PORT=5186 bunx playwright test --config tests/e2e/playwright.config.ts regressions/practice-gravity-trace.spec.ts
 ```
 
-固定 `seed=0x00000003`、玩家马 0，真实练习牌堆在第一面板槽位 2 提供 C-10。通过 UI 选择，逐帧读取正在运行的 RaceScene：五马位置、速度与体力须等于同刻规范轨迹的采样；井期出现完整 250 ms 步，装备贴图播放多帧，并在实例到期后消失。保存实际比赛截图，不注入效果或修改规则时钟。
+固定 `seed=0x400d5f200c5f2eae43b19613c7921dc9a34389503ef0f47c5074de671c9ad54d`、选择 ponyId 0；玩家槽位由选马名单确定，真实练习牌堆在第一面板槽位 2 提供 C-10。通过 UI 选择，逐帧读取正在运行的 RaceScene：五马位置、速度与体力须等于同刻规范轨迹的采样；井期出现完整 250 ms 步，装备贴图播放多帧，并在实例到期后消失。保存实际比赛截图，不注入效果或修改规则时钟。
 
 ### 关联模块与证据边界
 
 - L1：`solver.gravity.test.ts` 独立重算 RK2 中点步骤、重叠井与事件截断；`paidSnapshot.test.ts` 核对步中间与到期快照；`paidDriver.test.ts` 核对付费展示的重叠井生产输入。
-- L2：`PaidRaceMotion.t.sol` 验证 1001 ms 为四个完整步加 1 ms 尾步，修改前失败；355 场 TS/Solidity 向量逐字段、事件和 digest 对照；`paid-session-anvil.test.ts` 在本地真实 Solver 核对单井与重叠井。
+- L2：`PaidRaceMotion.t.sol` 验证 1001 ms 为四个完整步加 1 ms 尾步，修改前失败；当前 360 场 TS/Solidity 向量逐字段、事件和 digest 对照；`paid-session-anvil.test.ts` 在本地真实 Solver 核对单井与重叠井。
 - L3-R：本脚本覆盖真实练习展示，使用两种驱动共用的快照与 Phaser 装备渲染。测试网只读 state override 探针核对 80 场生产结果；不作为部署或真实智能账户付款证据。
 
 ---
@@ -300,7 +323,7 @@ PLAYWRIGHT_PORT=5186 bunx playwright test --config tests/e2e/playwright.config.t
 
 ### 根因假设
 
-状态管理层。`src/ui/ponySelection.ts` 的 `createPonySelection(ids, rng = Math.random)` 用未播种的 `Math.random` 洗 `orderedPonyIds`；`selectionEntry` 由此给出 `playerHorseId = 4 - 可见位次` 与 `roster = [...可见].reverse()`；`src/App.tsx:414` 把两者原样交给练习 `RaceDriver`，`derivePaidCoreInput` 再按名单套用小马能力。seed 固定时，玩家车道与五匹马的能力分布仍每次挂载重抽。`SelectScreen` 已留出 `rng?: () => number` 入参，`App` 没有传。
+状态管理层。`src/ui/select/ponySelection.ts` 的 `createPonySelection(ids, rng = Math.random)` 用未播种的 `Math.random` 洗 `orderedPonyIds`；`selectionEntry` 由此给出 `playerHorseId = 4 - 可见位次` 与 `roster = [...可见].reverse()`；`src/App.tsx/startRace` 把两者原样交给练习 `RaceDriver`，`derivePaidCoreInput` 再按名单套用小马能力。seed 固定时，玩家车道与五匹马的能力分布仍每次挂载重抽。`SelectScreen` 已留出 `rng?: () => number` 入参，`App` 没有传。
 
 穷举 120 种名单排列（全程跳过选牌）可量化影响：`0x1392a0…` 得第一名的名单只有 3/120，`0x4fdb69…` 得第四名的只有 24/120。而第一面板候选牌与名单无关——C-17、C-02、C-10 在 120/120 种排列下不变——所以 `motion` 的 badge-pop 与 `practice-spin-thrust` 仍稳定通过。因此这不是换种子能解决的问题：任何 seed 都钉不住名次。
 
@@ -314,8 +337,8 @@ PLAYWRIGHT_PORT=5186 bunx playwright test --config tests/e2e/playwright.config.t
 
 ### 关联模块与证据边界
 
-- L1：`src/ui/ponySelection.test.ts` 以注入的 rng 覆盖洗牌与 `selectionEntry`，因而捕捉不到生产默认值；修复应在该层补「同一 seed 得同一名单」的断言。`src/race/driver.test.ts` 固定传入 roster，同样不覆盖来源。
+- L1：`src/ui/select/ponySelection.test.ts` 以注入的 rng 覆盖洗牌与 `selectionEntry`，因而捕捉不到生产默认值；当前 `ponySelectionRng` 的固定 seed 断言覆盖这条路径。`src/race/driver.test.ts` 固定传入 roster，同样不覆盖来源。
 - L2：不涉及端口契约。名单只在前端产生，`openSession` 的 `uint8[5] roster` 由 `src/chain/paidCalls.test.ts` 钉住。
-- L3-R：本脚本只证明名单不稳定以及它进入驱动的路径，不替 `practice-rules-audio`、`practice-gravity-trace` 的断言背书；在底层修复前，这两个脚本不应改写断言去迁就随机名单。
+- L3-R：本脚本断言固定 seed 名单稳定且按实际槽位进入驱动；`practice-rules-audio`、`practice-gravity-trace` 仍分别验证自己的音频和轨迹行为。
 
-修法应落在生产代码：由练习 seed（或一个显式 URL 入参）派生 `SelectScreen` 的 `rng`，使 `?seed=` 同时钉住名单。修复后还需按实际 `playerHorseId` 重述 `practice-gravity-trace` 里写死的 `ponies[0]`、`i.horse === 0`，以及本文第八节「玩家马 0」的表述。
+当前 `App` 将 `practiceForcedSeed()` 经 `ponySelectionRng` 传给 `SelectScreen`，使 `?seed=` 同时固定名单。旋转、重力井和音频回归按实际 `playerHorseId` 读取玩家状态，不把 ponyId 0 当成参赛槽位 0。

@@ -8,29 +8,28 @@ cached in `.cache/audio/` (gitignored).
 
 ## Codec note
 
-The Homebrew `ffmpeg` (8.1.1 and 9.0.1 alike) is built without `--enable-libvorbis`.
-The `.ogg` files therefore use the **Opus** codec (libopus, Ogg/Opus container),
-which is equally browser-compatible and superior in quality. File extensions
-remain `.ogg`; no game-engine changes are needed.
+`scripts/fetch-audio.sh` uses `libopus` for generated Ogg files. The web builder re-encodes Ogg audio at or above 200 KiB with `libopus` at 80k and MP3 at 96k; smaller files are copied. An `.ogg` extension alone does not identify its codec. Runtime selection between the main file and MP3 fallback is implemented in `src/assets/source.ts`; inspect the actual file with ffprobe when checking encoding.
 
 ---
 
-## sfx_gogo pitch trio – design rationale
+## sfx_gogo pitch trio – source variants
 
 `sfx_gogo_good / early / late` are derived from the same source file
 (`kenney_interface-sounds / Audio / select_003.ogg`) via ffmpeg `asetrate`:
 
 | Key | Pitch | Multiplier | Semitones | Meaning |
 |---|---|---|---|---|
-| sfx_gogo_good | Normal | ×1.00 | 0 | Correct timing |
-| sfx_gogo_early | Higher | ×1.26 | +4 | Early timing (sharp) |
-| sfx_gogo_late | Lower | ×0.79 | −4 | Late timing (flat) |
+| sfx_gogo_good | Normal | ×1.00 | 0 | Current gogo camera click feedback |
+| sfx_gogo_early | Higher | ×1.26 | +4 | Shipped, unused at runtime |
+| sfx_gogo_late | Lower | ×0.79 | −4 | Shipped, unused at runtime |
 
 The duration of each variant changes proportionally (shorter = higher pitch,
 longer = lower pitch) because `asetrate` resamples at a different playback
 rate.
 
-Both drivers (`src/race/driver.ts`, `src/race/paidDriver.ts`) emit only `good`; `early` and `late` are shipped but never played.
+Both drivers (`src/race/driver.ts`, `src/race/paidDriver.ts`) emit only `good`; `early` and `late` are shipped but never played. Gogo controls the camera and has no rhythm hit, speed or stamina calculation.
+
+Race audio is mapped by `src/ui/race/raceEventAudio.ts`. Card, checkpoint, equipment and wind acquisition sounds belong to the player; CPU acquisition events are filtered. Successful swap retains its sound. Only the player triggers the finish jingle: ranks 1–2 use `jingle_win`, ranks 3–5 use `jingle_lose`, once at the finish rather than again on the result screen.
 
 ---
 
