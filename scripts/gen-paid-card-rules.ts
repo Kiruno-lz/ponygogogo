@@ -117,7 +117,6 @@ const effects = Object.entries(CARD_EFFECT).map(([name, id]) => {
   const symbol = name.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase()
   return `    uint8 internal constant EFFECT_${symbol} = ${id};`
 }).join('\n')
-const flameLayers = PAID_CARD_RULES[10]!.flameLayers!
 const mileageStages = PAID_CARD_RULES[39]!.baseStages!
 const packedMileageStages = mileageStages.reduce((word, value) => (word << 16n) | BigInt.asUintN(16, BigInt(value)), 0n)
 
@@ -155,11 +154,6 @@ ${fields.map((field, i) => `        ${types[i]} ${field};`).join('\n')}
     function mainFunction(uint8 id) internal pure returns (uint8) {
         (, uint256 lo) = packed(id);
         return uint8(lo >> 152);
-    }
-
-    function flameLayer(uint256 stage) internal pure returns (uint256) {
-        if (stage >= ${flameLayers.length}) revert InvalidCard();
-        return uint8(uint256(${hex(flameLayers.reduce((w,v)=>(w<<8n)|BigInt(v),0n), flameLayers.length)}) >> (8 * (${flameLayers.length - 1} - stage)));
     }
 
     /// @notice C-40 fixed base-speed values, generated from its canonical baseStages.

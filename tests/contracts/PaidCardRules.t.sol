@@ -7,10 +7,10 @@ contract PaidCardRulesTest {
     function testGeneratedCardRulesAndMasks() public pure {
         require(PaidCardRules.RARE_MASK == 0x9610120356 && PaidCardRules.CPU_MASK == 0xbfefe3fae3, "eligibility masks");
         require(
-            PaidCardRules.TABLE_HASH == 0x0aaa341ca75aedcc2a4c83b300312c7dfc1739278a37a146730d5e7b1cf937e0, "table hash"
+            PaidCardRules.TABLE_HASH == 0x2f1acd2d7f5df86b14466b2808492fab3e181cb7cb163426cec9f569ab4618a0, "table hash"
         );
         require(
-            PaidCardRules.RULESET_HASH == 0x879f0d8d0cd93a3dc8bd9ceb80d2a692c239613042b55a43c0b6473a0c950f69,
+            PaidCardRules.RULESET_HASH == 0xd0de4e25fad87edde729b5458f7eee20514ca1ae3449fb0a1f29cc1019cae0f7,
             "ruleset hash"
         );
         PaidCardRules.Rule memory gravity = PaidCardRules.get(10);
@@ -19,7 +19,7 @@ contract PaidCardRulesTest {
         require(gravity.radiusMicro == 8_000_000_000 && gravity.strengthBps == 3_000, "gravity field");
         require(gravity.overlapBps == 3_000, "browser overlap branch");
         PaidCardRules.Rule memory wheel = PaidCardRules.get(11);
-        require(wheel.periodMs == 1_000 && wheel.count == 3 && wheel.fixedSpeed == 100, "wheel schedule");
+        require(wheel.periodMs == 1_000 && wheel.count == 10 && wheel.fixedSpeed == 100, "wheel schedule");
         PaidCardRules.Rule memory rage = PaidCardRules.get(26);
         require(rage.effect == PaidCardRules.EFFECT_RAGE && !rage.rare && rage.cpu, "rage");
         PaidCardRules.Rule memory coatGate = PaidCardRules.get(29);

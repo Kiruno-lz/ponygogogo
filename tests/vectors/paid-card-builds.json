@@ -1,5 +1,5 @@
 {
-  "rulesetHash": "0x879f0d8d0cd93a3dc8bd9ceb80d2a692c239613042b55a43c0b6473a0c950f69",
+  "rulesetHash": "0xd0de4e25fad87edde729b5458f7eee20514ca1ae3449fb0a1f29cc1019cae0f7",
   "samples": 80,
   "policy": "Full pool, actual checkpoint windows; aim for both pieces, take C-05 if missing, refresh slot 0 once when needed, then choose a situational third card. AcquiredBoth counts cards received; triggered additionally checks actual overlap or a corresponding solver trigger. A forfeit is a consumed choice, not a card. This policy is not an optimal strategy or a payout guarantee.",
   "random": {
@@ -149,9 +149,9 @@
       "ranks": [
         3,
         4,
-        7,
+        8,
         14,
-        52
+        51
       ]
     },
     {

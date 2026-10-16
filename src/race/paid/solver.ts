@@ -524,9 +524,7 @@ function triggerAt(st: State, i: Instance, tau: bigint): bigint {
   if (!i.active) return NEVER
   if (i.kind === 'ability' && i.count < SWAP_ATTEMPTS) return i.start + SWAP_PERIOD_MS * BigInt(i.count)
   if (i.kind === 'equip' && i.cardId === 11) {
-    const levels = paidCardRule(11).flameLayers!
-    if (i.count >= levels.length) return NEVER
-    const at = i.start + WHEEL_PERIOD_MS * BigInt(levels[i.count]! - 1)
+    const at = i.start + WHEEL_PERIOD_MS * BigInt(i.count * paidCardRule(11).count! - 1)
     return at < i.end ? at : NEVER
   }
   if (i.kind !== 'watch' || tau >= i.end) return NEVER
@@ -991,7 +989,7 @@ function applyDue(st: State, due: Due, tau: bigint): void {
       } else {
         inst.fixed += WHEEL_DELTA_V
         st.horses[inst.owner]!.fixed += WHEEL_DELTA_V
-        emit(st, EV_WHEEL_BURST, tau, inst.owner, BigInt(paidCardRule(11).flameLayers![inst.count]!))
+        emit(st, EV_WHEEL_BURST, tau, inst.owner, BigInt(inst.count * paidCardRule(11).count!))
         inst.count++
       }
       return

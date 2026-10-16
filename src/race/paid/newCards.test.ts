@@ -109,12 +109,13 @@ describe('C-22..C-40 actual race effects', () => {
     expect(triggers(r, 31)).toHaveLength(2)
     expect(sampleHorse(r.trace!, H, start(r, 8)).pBps).toBe(2500n)
   })
-  test('C-32 renews expiry, preserving wheel phase and keeping exactly three speed tiers', () => {
+  test('C-32 renews expiry, preserving wheel phase and growing beyond its original lifetime', () => {
     const r = played([11, 32], { profiles: slow }), t = start(r, 11), u = start(r, 32)
     const bursts = r.events.filter((e) => e.code === EV_WHEEL_BURST && e.horse === H)
     expect(r.events.filter((e) => e.code === RENEW && e.horse === H)).toHaveLength(1)
-    expect(bursts.map(e=>e.arg)).toEqual([1n,11n,21n])
-    expect(bursts.every((e) => (e.tau - t) % 10000n === 0n && e.tau < u + 30_000n)).toBe(true)
+    expect(bursts.map(e=>e.arg)).toEqual([1n, ...Array.from({ length: bursts.length - 1 }, (_, n) => BigInt((n + 1) * 10))])
+    expect(bursts.length).toBeGreaterThan(4)
+    expect(bursts.every((e) => (e.tau === t || (e.tau - t + 1000n) % 10000n === 0n) && e.tau < u + 30_000n)).toBe(true)
   })
   test('C-33 checks tail/hooves as well as torso', () => {
     const r = played([33, 8]), t = start(r, 8)

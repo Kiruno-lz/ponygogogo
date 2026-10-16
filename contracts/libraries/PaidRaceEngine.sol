@@ -617,8 +617,7 @@ library PaidRaceEngine {
             return inst.start + st.params.swapPeriod * inst.count;
         }
         if (inst.kind == KIND_EQUIP && inst.wheel) {
-            if (inst.count >= _rule(st, 11).count) return NEVER;
-            uint256 at = inst.start + st.params.wheelPeriod * (PaidCardRules.flameLayer(inst.count) - 1);
+            uint256 at = inst.start + st.params.wheelPeriod * (inst.count * _rule(st, 11).count - 1);
             return at < inst.end ? at : NEVER;
         }
         if (inst.kind == KIND_WATCH && st.currentTau < inst.end) {
@@ -850,7 +849,7 @@ library PaidRaceEngine {
         } else {
             inst.fixedDelta += int256(st.params.wheelDeltaV);
             st.horses[inst.owner].fixedK += int256(st.params.wheelDeltaV);
-            _log(st, EV_WHEEL_BURST, tau, inst.owner, int256(PaidCardRules.flameLayer(inst.count)));
+            _log(st, EV_WHEEL_BURST, tau, inst.owner, int256(inst.count * _rule(st, 11).count));
             inst.count += 1;
             _touch(st, inst, index);
         }
